@@ -78,7 +78,7 @@ Plugin 'airblade/vim-gitgutter'
 Plugin 'tpope/vim-fugitive'
 
 "maps NERDTree
-map <F6> :NERDTreeToggle<CR>
+map <Tab> :NERDTreeToggle<CR>
 
 "Colors Solarized Dark
 syntax enable
