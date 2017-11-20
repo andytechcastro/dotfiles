@@ -7,7 +7,7 @@ set nocompatible
 syntax on
 set nowrap
 set encoding=utf8
-set number
+set relativenumber
 :highlight LineNr ctermfg=grey
 set tabstop=4 shiftwidth=4 smarttab
  
