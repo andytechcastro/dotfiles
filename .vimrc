@@ -77,6 +77,8 @@ Plugin 'airblade/vim-gitgutter'
 
 Plugin 'tpope/vim-fugitive'
 
+Plugin 'jwilm/i3-vim-focus'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
