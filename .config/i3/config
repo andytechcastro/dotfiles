@@ -186,7 +186,6 @@ exec_always xrandr --output HDMI2 --mode 1920x1080 --pos 1920x0 --rotate normal 
 
 exec_always --no-startup-id compton
 exec thunar --daemon
-exec /home/MADRID/andres.ernesto/VirtualMachines/vagrant up
 
 new_window pixel 1
 
