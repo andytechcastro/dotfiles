@@ -8,6 +8,7 @@ syntax on
 set nowrap
 set encoding=utf8
 set relativenumber
+set number
 :highlight LineNr ctermfg=grey
 set tabstop=4 shiftwidth=4 smarttab
  
