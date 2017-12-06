@@ -91,6 +91,11 @@ colorscheme solarized
 "vim-airline
 let g:airline_solarized_bg='dark'
 let g:airline#extensions#tabline#enabled = 1
+let g:airline_powerline_fonts=1
+let g:Powerline_symbols='unicode'
+set  rtp+=/usr/local/lib/python2.7/dist-packages/powerline/bindings/vim/
+set laststatus=2
+set t_Co=256
 
 "set moving between windows to ctrl+arrows
 nnoremap <silent> <C-Right> <c-w>l
