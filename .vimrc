@@ -80,6 +80,8 @@ Plugin 'tpope/vim-fugitive'
 
 Plugin 'jwilm/i3-vim-focus'
 
+Plugin 'Valloric/YouCompleteMe'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
