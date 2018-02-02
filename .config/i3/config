@@ -189,6 +189,7 @@ exec thunar --daemon
 
 new_window pixel 1
 
+for_window [window_role="app"] floating enable
 for_window [window_role="pop-up"] floating enable
 for_window [window_role="bubble"] floating enable
 for_window [window_role="task_dialog"] floating enable

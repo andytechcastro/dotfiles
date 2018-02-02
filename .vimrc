@@ -82,8 +82,11 @@ Plugin 'jwilm/i3-vim-focus'
 
 Plugin 'Valloric/YouCompleteMe'
 
+Plugin 'crtlpvim/ctrlp.vim'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
+map <c-f> :CtrlP<CR>
 
 "Colors Solarized Dark
 syntax enable
