@@ -9,8 +9,9 @@ set nowrap
 set encoding=utf8
 set relativenumber
 set number
+set hlsearch
 :highlight LineNr ctermfg=grey
-set tabstop=4 shiftwidth=4 smarttab
+set tabstop=4 shiftwidth=4 expandtab 
  
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
@@ -79,10 +80,6 @@ Plugin 'airblade/vim-gitgutter'
 Plugin 'tpope/vim-fugitive'
 
 Plugin 'jwilm/i3-vim-focus'
-
-Plugin 'Valloric/YouCompleteMe'
-
-Plugin 'crtlpvim/ctrlp.vim'
 
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
