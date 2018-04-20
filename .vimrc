@@ -12,6 +12,7 @@ set number
 set hlsearch
 :highlight LineNr ctermfg=grey
 set tabstop=4 shiftwidth=4 expandtab 
+au BufRead,BufNewFile *.hx set filetype=hx
  
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
