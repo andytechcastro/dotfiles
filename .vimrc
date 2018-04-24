@@ -82,6 +82,8 @@ Plugin 'tpope/vim-fugitive'
 
 Plugin 'jwilm/i3-vim-focus'
 
+Plugin 'alvan/vim-closetag'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 map <c-f> :CtrlP<CR>
