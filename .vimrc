@@ -86,7 +86,6 @@ Plugin 'alvan/vim-closetag'
 
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
-map <c-f> :CtrlP<CR>
 
 "Colors Solarized Dark
 syntax enable
@@ -113,3 +112,10 @@ noremap <silent> <C-l> <c-w>l
 noremap <silent> <C-h> <c-w>h
 noremap <silent> <C-k> <c-w>k
 noremap <silent> <C-j> <c-w>j
+
+"Funciones llamando texto
+inoremap <buffer><expr> <c-f> Debug()
+
+function! Debug()
+    return "\\CUtil::debug('andres', print_r('',true).chr(10), FILE_APPEND);"
+endfunction
