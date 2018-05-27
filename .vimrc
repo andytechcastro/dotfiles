@@ -114,8 +114,14 @@ noremap <silent> <C-k> <c-w>k
 noremap <silent> <C-j> <c-w>j
 
 "Funciones llamando texto
-inoremap <buffer><expr> <c-f> Debug()
+"inoremap <buffer><expr> <c-f> Debug()
 
-function! Debug()
-    return "\\CUtil::debug('andres', print_r('',true).chr(10), FILE_APPEND);"
+"function! Debug()
+"    return "\\CUtil::debug('andres', print_r('',true).chr(10), FILE_APPEND);"
+"endfunction
+"
+noremap <c-m>a :call CutilDebug()<CR>
+
+function! CutilDebug()
+    r ~/.vim/recordings/debug
 endfunction
