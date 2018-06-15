@@ -7,6 +7,10 @@ alias gpull="git pull origin"
 alias home="cd ~"
 alias gbranch="git branch"
 alias ranger='ranger --choosedir=$HOME/rangerdir; LASTDIR=`cat $HOME/rangerdir`; cd "$LASTDIR"'
-alias vup='cd ~/VirtualMachines && vagrant up && vagrant ssh && home'
-alias vhalt='cd ~/VirtualMachines && vagrant halt && home'
+alias scaleup='cd /home/andres/VagrantFiles/Scalefast && vagrant up && vagrant ssh && home'
+alias scalehalt='cd /home/andres/VagrantFiles/Scalefast && vagrant halt && home'
+alias jetroup='cd /home/andres/VagrantFiles/jetroUbuntu && vagrant up && cd /var/www/html/apiJetro'
+alias jetrohalt='cd /home/andres/VagrantFiles/jetroUbuntu && vagrant halt && home'
 alias expirationdate='sudo sh ~/.timePass'
+alias fixWallpaper="feh --bg-scale ~/.config/i3/wallpapers/linux-terminal-commands.jpg"
+alias webserver="cd /var/www/html"

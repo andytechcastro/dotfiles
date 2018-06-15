@@ -84,6 +84,9 @@ Plugin 'jwilm/i3-vim-focus'
 
 Plugin 'alvan/vim-closetag'
 
+Plugin 'ctrlpvim/ctrlp.vim'
+
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -114,14 +117,27 @@ noremap <silent> <C-k> <c-w>k
 noremap <silent> <C-j> <c-w>j
 
 "Funciones llamando texto
-"inoremap <buffer><expr> <c-f> Debug()
-
-"function! Debug()
-"    return "\\CUtil::debug('andres', print_r('',true).chr(10), FILE_APPEND);"
-"endfunction
-"
 noremap <c-m>a :call CutilDebug()<CR>
 
 function! CutilDebug()
     r ~/.vim/recordings/debug
+endfunction
+
+
+
+"Funciones llamando texto
+noremap <c-m>c :call CController()<CR>
+noremap <c-m>m :call CModel()<CR>
+noremap <c-m>f :call CForm()<CR>
+
+function! CController()
+    r ~/.vim/recordings/zendController
+endfunction
+
+function! CModel()
+    r ~/.vim/recordings/zendModel
+endfunction
+
+function! CForm()
+    r ~/.vim/recordings/zendForm
 endfunction
