@@ -37,7 +37,7 @@ bindsym $mod+Shift+q kill
 
 # start dmenu (a program launcher)
 bindsym $mod+d exec rofi -show run 
-bindsym $mod+Shift+d exec rofi -modi drun -show drun -run-command 'gksudo {cmd}' 
+bindsym $mod+Shift+d exec rofi -modi drun -show drun -run-command '{cmd}' 
 bindsym Print exec "gnome-screenshot -i"
 
 # There also is the (new) i3-dmenu-desktop which only displays applications
@@ -85,6 +85,8 @@ bindsym $mod+e layout toggle split
 
 # toggle tiling / floating
 bindsym $mod+Shift+space floating toggle
+bindsym $mod+Ctrl+Down sticky enable
+bindsym $mod+Ctrl+Up sticky disable
 
 # change focus between tiling / floating windows
 bindsym $mod+space focus mode_toggle
@@ -180,7 +182,8 @@ bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume 0 +5%
 bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume 0 -5%
 bindsym XF86AudioMute exec --no-startup-id pactl set-sink-volume 0 toggle 
 
-exec_always feh --bg-scale ~/.config/i3/linux.jpg
+#exec_always feh --bg-scale ~/.config/i3/linux.jpg
+exec_always feh --bg-fill ~/.config/i3/wallpapers/solarized-wallpaper-kernel.png --bg-fill ~/.config/i3/wallpapers/solarized-wallpaper-vim.png
 
 exec_always xrandr --output HDMI2 --mode 1920x1080 --pos 1920x0 --rotate normal --output HDMI1 --mode 1920x1080 --pos 0x0 --rotate normal --output VIRTUAL1 --off --output DP1 --off 
 
@@ -188,6 +191,8 @@ exec_always xrandr --output HDMI2 --mode 1920x1080 --pos 1920x0 --rotate normal 
 exec_always --no-startup-id compton
 exec thunar --daemon
 exec gnome-settings-daemon
+
+exec_always xrandr --output HDMI2 --mode 1920x1080 --pos 1920x0 --rotate normal --output HDMI1 --mode 1920x1080 --pos 0x0 --rotate normal --output VIRTUAL1 --off --output DP1 --off
 
 new_window pixel 1
 
@@ -198,3 +203,9 @@ for_window [window_role="task_dialog"] floating enable
 for_window [window_role="Preferences"] floating enable
 for_window [window_type="dialog"] floating enable
 for_window [window_type="menu"] floating enable
+
+# Apps to exec at start session
+exec --no-startup-id i3-msg 'workspace 1; exec urxvt'
+exec --no-startup-id i3-msg 'workspace 2; exec google-chrome'
+exec --no-startup-id i3-msg 'workspace 3; exec skypeforlinux'
+exec --no-startup-id i3-msg 'workspace 4; exec whatsapp'
