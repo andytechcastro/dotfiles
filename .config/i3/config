@@ -203,9 +203,3 @@ for_window [window_role="task_dialog"] floating enable
 for_window [window_role="Preferences"] floating enable
 for_window [window_type="dialog"] floating enable
 for_window [window_type="menu"] floating enable
-
-# Apps to exec at start session
-exec --no-startup-id i3-msg 'workspace 1; exec urxvt'
-exec --no-startup-id i3-msg 'workspace 2; exec google-chrome'
-exec --no-startup-id i3-msg 'workspace 3; exec skypeforlinux'
-exec --no-startup-id i3-msg 'workspace 4; exec whatsapp'
