@@ -86,6 +86,12 @@ Plugin 'alvan/vim-closetag'
 
 Plugin 'ctrlpvim/ctrlp.vim'
 
+Plugin 'scrooloose/syntastic'
+
+Plugin 'jalvesaq/Nvim-R'
+
+Plugin 'chrisbra/csv.vim'
+
 
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
@@ -129,6 +135,7 @@ endfunction
 noremap <c-m>c :call CController()<CR>
 noremap <c-m>m :call CModel()<CR>
 noremap <c-m>f :call CForm()<CR>
+noremap <c-m>v :call CValidator()<CR>
 
 function! CController()
     r ~/.vim/recordings/zendController
@@ -141,3 +148,20 @@ endfunction
 function! CForm()
     r ~/.vim/recordings/zendForm
 endfunction
+
+function! CValidator()
+    r ~/.vim/recordings/zendValidator
+endfunction
+
+"syntastic
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+
+"python
+let g:pymode_python = 'python3'
