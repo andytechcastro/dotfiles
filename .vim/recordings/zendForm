@@ -1,0 +1,39 @@
+<?php 
+namespace Membresia\Form;
+
+ use Zend\Form\Form;
+
+ class PersonaCategoriaForm extends Form
+ {
+     public function __construct($name = null)
+     {
+         // we want to ignore the name passed
+         parent::__construct('estado');
+
+         $this->add(array(
+             'name' => 'idPersonaCategoria',
+             'type' => 'Hidden',
+             'attributes' => array(
+                 'class' => 'form-control',
+             ),
+         ));
+         $this->add(array(
+             'name' => 'categoria',
+             'type' => 'Text',
+             'attributes' => array(
+                 'class' => 'form-control',
+             ),
+             'options' => array(
+                 'label' => 'Categoria',
+             ),
+         ));
+         $this->add(array(
+             'name' => 'submit',
+             'type' => 'Submit',
+             'attributes' => array(
+                 'value' => 'Go',
+                 'id' => 'submitbutton',
+             ),
+         ));
+     }
+ }

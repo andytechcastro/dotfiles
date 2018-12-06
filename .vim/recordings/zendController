@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Controller;
+
+use Zend\Mvc\Controller\AbstractActionController;
+
+use Membresia\Model\AsistenteCursoTable;
+use Membresia\Model\AsistenteCurso;
+
+class NameController extends AbstractActionController
+{
+    private $tabla;
+
+    public function __construct(TablaTable $tabla)
+    {
+        $this->tabla = $tabla;
+    }
+
+}
