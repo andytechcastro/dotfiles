@@ -68,9 +68,7 @@ Plugin 'Valloric/MatchTagAlways'
 
 Plugin 'vim-scripts/RltvNmbr.vim'
 
-Plugin 'shawncplus/phpcomplete.vim'
-
-Plugin 'Townk/vim-autoclose'
+Plugin 'jiangmiao/auto-pairs'
 
 Plugin 'altercation/vim-colors-solarized'
 
@@ -92,6 +90,7 @@ Plugin 'jalvesaq/Nvim-R'
 
 Plugin 'chrisbra/csv.vim'
 
+Plugin 'valloric/youcompleteme'
 
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
@@ -123,10 +122,12 @@ noremap <silent> <C-k> <c-w>k
 noremap <silent> <C-j> <c-w>j
 
 "Funciones llamando texto
-noremap <c-m>a :call CutilDebug()<CR>
+noremap <c-m>1 :call CutilDebug()<CR>
 
 function! CutilDebug()
     r ~/.vim/recordings/debug
+    normal! 2f,
+    call feedkeys('i')
 endfunction
 
 
