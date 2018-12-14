@@ -70,7 +70,7 @@ Plugin 'vim-scripts/RltvNmbr.vim'
 
 Plugin 'shawncplus/phpcomplete.vim'
 
-Plugin 'Townk/vim-autoclose'
+Plugin 'jiangmiao/auto-pairs'
 
 Plugin 'altercation/vim-colors-solarized'
 
@@ -83,6 +83,14 @@ Plugin 'tpope/vim-fugitive'
 Plugin 'jwilm/i3-vim-focus'
 
 Plugin 'alvan/vim-closetag'
+
+Plugin 'scrooloose/syntastic'
+
+Plugin 'ctrlpvim/ctrlp.vim'
+
+Plugin 'valloric/youcompleteme'
+
+Plugin 'majutsushi/tagbar'
 
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
@@ -119,3 +127,17 @@ inoremap <buffer><expr> <c-f> Debug()
 function! Debug()
     return "\\CUtil::debug('andres', print_r('',true).chr(10), FILE_APPEND);"
 endfunction
+
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+
+"CRTLP
+let g:ctrlp_working_path_mode = 0
+let g:ctrlp_max_files=0
+let g:ctrlp_max_depth=40
