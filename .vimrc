@@ -92,6 +92,16 @@ Plugin 'chrisbra/csv.vim'
 
 Plugin 'valloric/youcompleteme'
 
+Plugin 'majutsushi/tagbar'
+
+Plugin 'honza/vim-snippets'
+
+Plugin 'MarcWeber/vim-addon-mw-utils'
+
+Plugin 'tomtom/tlib_vim'
+
+Plugin 'garbas/vim-snipmate'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -166,3 +176,9 @@ let g:syntastic_check_on_wq = 0
 
 "python
 let g:pymode_python = 'python3'
+
+"Tagbar
+nmap <F8> :TagbarToggle<CR>
+
+let g:ycm_key_list_select_completion=[]
+let g:ycm_key_list_previous_completion=[]
