@@ -92,6 +92,8 @@ Plugin 'valloric/youcompleteme'
 
 Plugin 'majutsushi/tagbar'
 
+Plugin 'francoiscabrol/ranger.vim'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -141,3 +143,9 @@ let g:syntastic_check_on_wq = 0
 let g:ctrlp_working_path_mode = 0
 let g:ctrlp_max_files=0
 let g:ctrlp_max_depth=40
+
+"open horizontal windows dow
+:set splitbelow
+
+"open vertical windows rigth
+:set splitright
