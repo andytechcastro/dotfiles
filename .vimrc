@@ -102,6 +102,16 @@ Plugin 'tomtom/tlib_vim'
 
 Plugin 'garbas/vim-snipmate'
 
+Plugin 'cjrh/vim-conda'
+
+Plugin 'jimf/vim-pep8-text-width'
+
+Plugin 'francoiscabrol/ranger.vim'
+
+Plugin 'vim-vdebug/vdebug'
+
+Plugin 'grep.vim'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -182,3 +192,14 @@ nmap <F8> :TagbarToggle<CR>
 
 let g:ycm_key_list_select_completion=[]
 let g:ycm_key_list_previous_completion=[]
+
+"Conda
+let g:jedi#force_py_version = 2
+let g:UltisnipsUsePythonVersion = 2
+let g:conda_startup_msg_suppress = 1
+
+"VDebug
+let g:vdebug_options = {'ide_key': 'vim_debug'}
+let g:vdebug_options = {'break_on_open': 0}
+let g:vdebug_options = {'server': '127.0.0.1'}
+let g:vdebug_options = {'port': '9000'}
