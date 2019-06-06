@@ -13,6 +13,7 @@ set hlsearch
 :highlight LineNr ctermfg=grey
 set tabstop=4 shiftwidth=4 expandtab 
 au BufRead,BufNewFile *.hx set filetype=hx
+autocmd BufRead,BufNewFile *.blade.php set filetype=blade
  
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
@@ -112,6 +113,8 @@ Plugin 'vim-vdebug/vdebug'
 
 Plugin 'grep.vim'
 
+Plugin 'jwalton512/vim-blade'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -203,3 +206,9 @@ let g:vdebug_options = {'ide_key': 'vim_debug'}
 let g:vdebug_options = {'break_on_open': 0}
 let g:vdebug_options = {'server': '127.0.0.1'}
 let g:vdebug_options = {'port': '9000'}
+
+"open horizontal windows dow
+:set splitbelow
+
+"open vertical windows rigth
+:set splitright
