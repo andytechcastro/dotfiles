@@ -83,7 +83,7 @@ URxvt*scrollWithBuffer: true
 rofi.separator-style: solid
 rofi.sidebar-mode: true
 rofi.lines: 5
-rofi.font: Hack Regular 12
+rofi.font: Hack-Regular 12
 rofi.bw: 1
 rofi.columns: 1
 rofi.padding: 5

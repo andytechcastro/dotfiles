@@ -6,9 +6,9 @@ alias gcheck="git checkout"
 alias gpull="git pull origin"
 alias home="cd ~"
 alias gbranch="git branch"
-alias ranger='ranger --choosedir=$HOME/rangerdir; LASTDIR=`cat $HOME/rangerdir`; cd "$LASTDIR"'
-alias scaleup='cd /home/andres/VagrantFiles/Scalefast && vagrant up && vagrant ssh && home'
-alias scalehalt='cd /home/andres/VagrantFiles/Scalefast && vagrant halt && home'
+alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
+alias scaleup='cd /home/andres/VagrantFiles/scalefast && vagrant up --provision && home'
+alias scalehalt='cd /home/andres/VagrantFiles/scalefast && vagrant halt && home'
 alias jetroup='cd /home/andres/VagrantFiles/jetroUbuntu && vagrant up && cd /var/www/html/apiJetro'
 alias jetrohalt='cd /home/andres/VagrantFiles/jetroUbuntu && vagrant halt && home'
 alias expirationdate='sudo sh ~/.timePass'

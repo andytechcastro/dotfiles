@@ -10,6 +10,7 @@ set encoding=utf8
 set relativenumber
 set number
 set hlsearch
+set incsearch
 :highlight LineNr ctermfg=grey
 set tabstop=4 shiftwidth=4 expandtab 
 au BufRead,BufNewFile *.hx set filetype=hx
@@ -103,8 +104,6 @@ Plugin 'tomtom/tlib_vim'
 
 Plugin 'garbas/vim-snipmate'
 
-Plugin 'cjrh/vim-conda'
-
 Plugin 'jimf/vim-pep8-text-width'
 
 Plugin 'francoiscabrol/ranger.vim'
@@ -114,6 +113,8 @@ Plugin 'vim-vdebug/vdebug'
 Plugin 'grep.vim'
 
 Plugin 'jwalton512/vim-blade'
+
+Plugin 'OrangeT/vim-csharp'
 
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
@@ -161,22 +162,6 @@ noremap <c-m>m :call CModel()<CR>
 noremap <c-m>f :call CForm()<CR>
 noremap <c-m>v :call CValidator()<CR>
 
-function! CController()
-    r ~/.vim/recordings/zendController
-endfunction
-
-function! CModel()
-    r ~/.vim/recordings/zendModel
-endfunction
-
-function! CForm()
-    r ~/.vim/recordings/zendForm
-endfunction
-
-function! CValidator()
-    r ~/.vim/recordings/zendValidator
-endfunction
-
 "syntastic
 set statusline+=%#warningmsg#
 set statusline+=%{SyntasticStatuslineFlag()}
@@ -187,25 +172,17 @@ let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 
-"python
-let g:pymode_python = 'python3'
-
 "Tagbar
 nmap <F8> :TagbarToggle<CR>
 
 let g:ycm_key_list_select_completion=[]
 let g:ycm_key_list_previous_completion=[]
 
-"Conda
-let g:jedi#force_py_version = 2
-let g:UltisnipsUsePythonVersion = 2
-let g:conda_startup_msg_suppress = 1
-
 "VDebug
-let g:vdebug_options = {'ide_key': 'vim_debug'}
+let g:vdebug_options = {'ide_key': 'netbeans-xdebug'}
 let g:vdebug_options = {'break_on_open': 0}
 let g:vdebug_options = {'server': '127.0.0.1'}
-let g:vdebug_options = {'port': '9000'}
+let g:vdebug_options = {'port': '10000'}
 
 "open horizontal windows dow
 :set splitbelow
