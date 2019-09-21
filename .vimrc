@@ -189,3 +189,5 @@ let g:vdebug_options = {'port': '10000'}
 
 "open vertical windows rigth
 :set splitright
+
+let g:powerline_pycmd = 'py3'
