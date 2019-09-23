@@ -129,6 +129,7 @@ let g:airline_solarized_bg='dark'
 let g:airline#extensions#tabline#enabled = 1
 let g:airline_powerline_fonts=1
 let g:Powerline_symbols='unicode'
+let g:powerline_pycmd = 'py3'
 set  rtp+=/usr/local/lib/python2.7/dist-packages/powerline/bindings/vim/
 set laststatus=2
 set t_Co=256
@@ -190,4 +191,3 @@ let g:vdebug_options = {'port': '10000'}
 "open vertical windows rigth
 :set splitright
 
-let g:powerline_pycmd = 'py3'
