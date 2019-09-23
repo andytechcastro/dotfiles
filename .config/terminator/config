@@ -2,6 +2,7 @@
   borderless = True
   hide_from_taskbar = True
 [keybindings]
+  copy = <Primary><Alt>c
 [layouts]
   [[default]]
     [[[child1]]]
