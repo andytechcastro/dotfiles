@@ -89,9 +89,9 @@ rofi.columns: 1
 rofi.padding: 5
 rofi.fixed-num-lines: true
 rofi.hide-scrollbar: true
-rofi.terminal: urxvt
+rofi.terminal: terminator
 rofi.ssh-client:           ssh
-rofi.ssh-command:          {terminal} -e {ssh-client} {host}
+rofi.ssh-command:          {terminal} -x {ssh-client} {host}
 
 rofi.color-window: #002b37, S_base3, #003642
 rofi.color-normal: #002b37, #819396, #002b37, #003642, S_base3
