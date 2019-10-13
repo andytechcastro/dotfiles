@@ -116,6 +116,8 @@ Plugin 'jwalton512/vim-blade'
 
 Plugin 'OrangeT/vim-csharp'
 
+Plugin 'stephpy/vim-php-cs-fixer'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -171,7 +173,8 @@ set statusline+=%*
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
+let g:syntastic_check_on_wq = 1
+let g:syntastic_php_phpcs_args='--standard=PSR2'
 
 "Tagbar
 nmap <F8> :TagbarToggle<CR>
@@ -191,3 +194,4 @@ let g:vdebug_options = {'port': '10000'}
 "open vertical windows rigth
 :set splitright
 
+autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
