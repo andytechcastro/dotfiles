@@ -5,7 +5,7 @@
 filetype off                  " required
 set nocompatible
 syntax on
-set nowrap
+set wrap
 set encoding=utf8
 set relativenumber
 set number
@@ -15,6 +15,10 @@ set incsearch
 set tabstop=4 shiftwidth=4 expandtab 
 au BufRead,BufNewFile *.hx set filetype=hx
 autocmd BufRead,BufNewFile *.blade.php set filetype=blade
+filetype plugin on
+set omnifunc=syntaxcomplete#Complete
+
+call has('python3')
  
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
@@ -118,6 +122,12 @@ Plugin 'OrangeT/vim-csharp'
 
 Plugin 'stephpy/vim-php-cs-fixer'
 
+Plugin 'powerline/powerline'
+
+Plugin 'yggdroot/indentline'
+
+Plugin 'stanangeloff/php.vim'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -157,8 +167,6 @@ function! CutilDebug()
     call feedkeys('i')
 endfunction
 
-
-
 "Funciones llamando texto
 noremap <c-m>c :call CController()<CR>
 noremap <c-m>m :call CModel()<CR>
@@ -174,7 +182,7 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 1
-let g:syntastic_php_phpcs_args='--standard=PSR12'
+let g:syntastic_php_phpcs_args='--standard=PSR2'
 
 "Tagbar
 nmap <F8> :TagbarToggle<CR>
@@ -194,4 +202,14 @@ let g:vdebug_options = {'port': '10000'}
 "open vertical windows rigth
 :set splitright
 
+let g:php_cs_fixer_rules = "@PSR2"
 autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
+
+" workaround issue with powerline + virtualenv
+" https://github.com/powerline/powerline/issues/1908
+python3 << EOF
+import sys
+path = "/usr/lib/python{}.{}/site-packages/".format(
+    sys.version_info.major, sys.version_info.minor)
+sys.path.append(path)
+EOF

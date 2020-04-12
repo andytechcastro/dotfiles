@@ -1,5 +1,6 @@
 [global_config]
   hide_from_taskbar = True
+  inactive_color_offset = 1.0
 [keybindings]
   copy = <Primary><Alt>c
   paste = <Primary><Alt>c
