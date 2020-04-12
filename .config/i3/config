@@ -9,12 +9,36 @@
 #
 # Please see http://i3wm.org/docs/userguide.html for a complete reference!
 
+set_from_resource $base03   i3wm.color8     #002b36
+set_from_resource $base02   i3wm.color0     #073642
+set_from_resource $base01   i3wm.color10    #586e75
+set_from_resource $base00   i3wm.color11    #657b83
+set_from_resource $base0    i3wm.color12    #839496
+set_from_resource $base1    i3wm.color14    #93a1a1
+set_from_resource $base2    i3wm.color7     #eee8d5
+set_from_resource $base3    i3wm.color15    #fdf6e3
+
+set_from_resource $yellow   i3wm.color3     #b58900
+set_from_resource $orange   i3wm.color9     #cb4b16
+set_from_resource $red      i3wm.color1     #dc322f
+set_from_resource $magenta  i3wm.color5     #d33682
+set_from_resource $violet   i3wm.color13    #6c71c4
+set_from_resource $blue     i3wm.color4     #268bd2
+set_from_resource $cyan     i3wm.color6     #2aa198
+set_from_resource $green    i3wm.color2     #859900
+
+set_from_resource $background i3wm.background $base3
+set_from_resource $foreground i3wm.foreground $base00
+
+set_from_resource $lighterbg  i3wm.lighterbg  $base02
+set_from_resource $separator  i3wm.separator  $lighterbg
+
 set $mod Mod1
 
 # Font for window titles. Will also be used by the bar unless a different font
 # is used in the bar {} block below.
 #font pango:monospace 8
-font pango:Harck-Regular 10
+font pango:Harck-Regular 14
 
 # This font is widely installed, provides lots of unicode glyphs, right-to-left
 # text rendering and scalability on retina/hidpi displays (thanks to pango).
@@ -126,22 +150,6 @@ bindsym $mod+Shift+r restart
 bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -b 'Yes, exit i3' 'i3-msg exit'"
 
 
-# Set shut down, restart and locking features
-bindsym $mod+0 mode "$mode_power"
-set $mode_power (l)ock, (e)xit, switch_(u)ser, (s)uspend, (h)ibernate, (r)eboot, (Shift+s)hutdown
-
-mode "$mode_power" {
-    bindsym l mode "default", exec --no-startup-id $HOME/.config/i3/i3exit lock
-    bindsym e mode "default", exec --no-startup-id $HOME/.config/i3/i3exit logout
-    bindsym s mode "default", exec --no-startup-id $HOME/.config/i3/i3exit suspend
-    bindsym h mode "default", exec --no-startup-id $HOME/.config/i3/i3exit hibernate
-    bindsym r mode "default", exec --no-startup-id $HOME/.config/i3/i3exit reboot
-    bindsym Shift+s mode "default", exec --no-startup-id $HOME/.config/.i3/i3exit shutdown
-
-    bindsym Return mode "default"
-    bindsym Escape mode "default"
-}
-
 # resize window (you can also use the mouse for that)
 mode "resize" {
         # These bindings trigger as soon as you enter the resize mode
@@ -170,21 +178,21 @@ bindsym $mod+r mode "resize"
 
 # Start i3bar to display a workspace bar (plus the system information i3status
 # finds out, if available)
-bar {
-    status_command i3status
-	font pango:Terminus 12
-    colors {
-        background #021215
-        statusline #93a1a1 
-        separator #2aa198
-
-       # Type              border  background font
-        focused_workspace  #2aa198 #073642 #eee895
-        active_workspace   #073642 #002b36 #839496
-        inactive_workspace #002b36 #021215 #586e75
-        urgent_workspace   #cb4b16 #dc322f #fdf6e3
-    }
-}
+#bar {
+#    status_command i3status
+#	font pango:Terminus 12
+#    colors {
+#        background #021215
+#        statusline #93a1a1 
+#        separator #2aa198
+#
+#       # Type              border  background font
+#        focused_workspace  #2aa198 #073642 #eee895
+#        active_workspace   #073642 #002b36 #839496
+#        inactive_workspace #002b36 #021215 #586e75
+#        urgent_workspace   #cb4b16 #dc322f #fdf6e3
+#    }
+#}
 
 
 bindsym $mod+m bar mode toggle
@@ -196,7 +204,7 @@ bindsym XF86AudioMute exec --no-startup-id pactl set-sink-volume 0 toggle
 bindsym XF86MonBrightnessUp exec light -A 5
 bindsym XF86MonBrightnessDown exec light -U 5
 
-exec_always feh --bg-fill ~/.config/i3/wallpapers/kernel-solarized.png
+exec_always feh --bg-fill ~/.config/i3/wallpapers/nord_arch.png
 
 exec_always --no-startup-id compton
 exec gnome-settings-daemon
@@ -204,7 +212,10 @@ exec conky
 exec --no-startup-id i3-battery-popup -n
 exec xrandr --addmode HDMI-2 2560x1080
 exec xrandr --output eDP-1 --primary --mode 1920x1080 --pos 3640x0 --rotate normal --output DP-1 --off --output HDMI-1 --mode 2560x1080 --pos 0x0 --rotate right --output HDMI-2 --mode 2560x1080 --pos 1080x0 --rotate normal
-
+exec_always --no-startup-id sh ~/.config/polybar/launch.sh
+exec nm-applet
+exec qlipper
+exec --no-startup-id dunst -config ~/.config/dunst/dunstrc
 new_window pixel 1
 
 for_window [window_role="app"] floating enable

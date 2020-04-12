@@ -78,6 +78,8 @@ Plugin 'jiangmiao/auto-pairs'
 
 Plugin 'altercation/vim-colors-solarized'
 
+Plugin 'arcticicestudio/nord-vim'
+
 Plugin 'mhinz/vim-signify'
 
 Plugin 'airblade/vim-gitgutter'
@@ -134,10 +136,10 @@ map <Tab> :NERDTreeToggle<CR>
 "Colors Solarized Dark
 syntax enable
 set background=dark
-colorscheme solarized
+colorscheme nord
 
 "vim-airline
-let g:airline_solarized_bg='dark'
+"let g:airline_solarized_bg='dark'
 let g:airline#extensions#tabline#enabled = 1
 let g:airline_powerline_fonts=1
 let g:Powerline_symbols='unicode'
