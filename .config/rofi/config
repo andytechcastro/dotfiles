@@ -1,5 +1,5 @@
 rofi.show-icons:            false
-rofi.modi:                  drun,run,window,ssh
+rofi.modi:                  drun,window,run,ssh
 rofi.lines:                 7
 rofi.line-padding:          10
 rofi.matching:              fuzzy
@@ -8,5 +8,8 @@ rofi.padding:               0
 rofi.separator-style:       none
 rofi.hide-scrollbar:        true
 rofi.line-margin:           0
-rofi.font:                  sans-serif 10
+rofi.font:                  Hack Regular 12
 rofi.theme: custom-nord.rasi
+rofi.terminal: terminator
+rofi.ssh-client:           ssh
+rofi.ssh-command:          {terminal} -x {ssh-client} {host}
