@@ -130,6 +130,10 @@ Plugin 'yggdroot/indentline'
 
 Plugin 'stanangeloff/php.vim'
 
+Plugin 'hashivim/vim-terraform'
+
+Plugin 'juliosueiras/vim-terraform-completion'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -206,6 +210,12 @@ let g:vdebug_options = {'port': '10000'}
 
 let g:php_cs_fixer_rules = "@PSR2"
 autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
+
+"terraform
+let g:terraform_align=1
+let g:terraform_fold_sections=1
+let g:terraform_fmt_on_save=1
+
 
 " workaround issue with powerline + virtualenv
 " https://github.com/powerline/powerline/issues/1908
