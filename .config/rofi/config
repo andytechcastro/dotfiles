@@ -10,6 +10,6 @@ rofi.hide-scrollbar:        true
 rofi.line-margin:           0
 rofi.font:                  Hack Regular 12
 rofi.theme: custom-nord.rasi
-rofi.terminal: terminator
-rofi.ssh-client:           ssh
-rofi.ssh-command:          {terminal} -x {ssh-client} {host}
+rofi.terminal:              kitty
+rofi.ssh-client:            ssh
+rofi.ssh-command:           {terminal} {ssh-client} {host}
