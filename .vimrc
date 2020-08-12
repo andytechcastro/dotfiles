@@ -134,6 +134,10 @@ Plugin 'hashivim/vim-terraform'
 
 Plugin 'juliosueiras/vim-terraform-completion'
 
+Plugin 'ekalinin/dockerfile.vim'
+
+Plugin 'stephpy/vim-yaml'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -151,6 +155,7 @@ let g:powerline_pycmd = 'py3'
 set  rtp+=/usr/local/lib/python2.7/dist-packages/powerline/bindings/vim/
 set laststatus=2
 set t_Co=256
+set term=xterm-kitty
 
 "set moving between windows to ctrl+arrows
 nnoremap <silent> <C-Right> <c-w>l
@@ -197,11 +202,14 @@ let g:ycm_key_list_select_completion=[]
 let g:ycm_key_list_previous_completion=[]
 
 "VDebug
-let g:vdebug_options = {'ide_key': 'netbeans-xdebug'}
+let g:vdebug_features = { 'max_children': 256 }
+let g:vdebug_options = {'ide_key': 'docker'}
 let g:vdebug_options = {'break_on_open': 0}
+"let g:vdebug_options = {'server': '172.17.0.1'}
 let g:vdebug_options = {'server': '127.0.0.1'}
-let g:vdebug_options = {'port': '10000'}
-
+let g:vdebug_options = {'port': '9000'}
+"let g:vdebug_options = {'path_maps':{'/var/www/html':'/home/andres/public_html/newWordpress/wordpress/_data'}}
+let g:vdebug_options = {'path_maps':{'/var/www/html': getcwd()}}
 "open horizontal windows dow
 :set splitbelow
 
@@ -215,6 +223,8 @@ autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
 let g:terraform_align=1
 let g:terraform_fold_sections=1
 let g:terraform_fmt_on_save=1
+
+let g:ctrlp_working_path_mode=0
 
 
 " workaround issue with powerline + virtualenv

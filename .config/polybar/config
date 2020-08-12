@@ -2,6 +2,7 @@
 background = ${xrdb:background:#ff0000}
 background2 = ${xrdb:lighterbg:#ff0000}
 selection = ${xrdb:selection:#ff0000}
+selectionLabel = ${xrdb:selection:#000000}
 ;foreground = ${xrdb:foreground:#ff0000}
 foreground = #839496
 separator = ${xrdb:separator:#ff0000}
@@ -56,7 +57,7 @@ pin-workspaces = true
 
 label-focused = %index%
 label-focused-padding = 1
-label-focused-foreground = ${colors.selection}
+label-focused-foreground = ${colors.selectionLabel}
 label-focused-background = ${colors.selection}
 
 label-unfocused = %index%

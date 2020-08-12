@@ -214,6 +214,7 @@ exec xrandr --output eDP-1 --mode 1920x1080 --pos 3640x0 --rotate normal --outpu
 exec_always --no-startup-id sh ~/.config/polybar/launch.sh
 exec nm-applet
 exec qlipper
+exec pasystray
 exec --no-startup-id dunst -config ~/.config/dunst/dunstrc
 new_window pixel 1
 
