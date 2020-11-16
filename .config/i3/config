@@ -215,6 +215,7 @@ exec_always --no-startup-id sh ~/.config/polybar/launch.sh
 exec nm-applet
 exec qlipper
 exec pasystray
+exec setxkbmap -layout us -variant altgr-intl
 exec --no-startup-id dunst -config ~/.config/dunst/dunstrc
 new_window pixel 1
 
