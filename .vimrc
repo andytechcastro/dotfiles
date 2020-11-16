@@ -138,6 +138,8 @@ Plugin 'ekalinin/dockerfile.vim'
 
 Plugin 'stephpy/vim-yaml'
 
+Plugin 'dbakker/vim-projectroot'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -209,7 +211,19 @@ let g:vdebug_options = {'break_on_open': 0}
 let g:vdebug_options = {'server': '127.0.0.1'}
 let g:vdebug_options = {'port': '9000'}
 "let g:vdebug_options = {'path_maps':{'/var/www/html':'/home/andres/public_html/newWordpress/wordpress/_data'}}
-let g:vdebug_options = {'path_maps':{'/var/www/html': getcwd()}}
+"let g:vdebug_options = {'path_maps':{'/var/www/html': getcwd()}}
+
+" PROJECTROOT
+"let g:rootmarkers = ['.projectroot', 'docker-compose.yml', '.git', '.hg', '.svn', '.bzr','_darcs','build.xml']
+let g:rootmarkers = ['.projectroot']
+
+function! SetupDebug()
+  let g:vdebug_options['path_maps'] = {'/var/www/html': call('projectroot#get', a:000)}
+  " Hack to override vdebug options
+  source ~/.vim/bundle/vdebug/plugin/vdebug.vim
+endfunction
+autocmd VimEnter * :call SetupDebug()
+
 "open horizontal windows dow
 :set splitbelow
 
