@@ -17,6 +17,7 @@ au BufRead,BufNewFile *.hx set filetype=hx
 autocmd BufRead,BufNewFile *.blade.php set filetype=blade
 filetype plugin on
 set omnifunc=syntaxcomplete#Complete
+set belloff=all
 
 call has('python3')
  
