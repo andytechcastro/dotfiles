@@ -1,4 +1,4 @@
-""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""
 """ Andres Castro Vim Config """
 """"""""""""""""""""""""""""""""
 
@@ -141,6 +141,8 @@ Plugin 'stephpy/vim-yaml'
 
 Plugin 'dbakker/vim-projectroot'
 
+Plugin 'fatih/vim-go'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -172,20 +174,9 @@ noremap <silent> <C-h> <c-w>h
 noremap <silent> <C-k> <c-w>k
 noremap <silent> <C-j> <c-w>j
 
-"Funciones llamando texto
-noremap <c-m>1 :call CutilDebug()<CR>
-
-function! CutilDebug()
-    r ~/.vim/recordings/debug
-    normal! 2f,
-    call feedkeys('i')
-endfunction
-
-"Funciones llamando texto
-noremap <c-m>c :call CController()<CR>
-noremap <c-m>m :call CModel()<CR>
-noremap <c-m>f :call CForm()<CR>
-noremap <c-m>v :call CValidator()<CR>
+"Macros para moonlander
+map <S-Tab> :Ranger<CR>
+map <S-t> :RangerNewTab<CR>
 
 "syntastic
 set statusline+=%#warningmsg#
