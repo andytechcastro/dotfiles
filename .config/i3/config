@@ -206,7 +206,7 @@ bindsym XF86MonBrightnessDown exec light -U 5
 
 exec_always feh --bg-fill ~/.config/i3/wallpapers/nord_arch.png
 
-exec_always --no-startup-id compton
+exec_always --no-startup-id picom -b -f
 exec conky
 exec --no-startup-id i3-battery-popup -n
 exec xrandr --addmode HDMI-2 2560x1080
