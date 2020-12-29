@@ -210,7 +210,7 @@ exec_always --no-startup-id compton
 exec conky
 exec --no-startup-id i3-battery-popup -n
 exec xrandr --addmode HDMI-2 2560x1080
-exec xrandr --output eDP-1 --mode 1920x1080 --pos 3640x0 --rotate normal --output DP-1 --off --output HDMI-1 --primary --mode 2560x1080 --pos 0x0 --rotate right --output HDMI-2 --mode 2560x1080 --pos 1080x0 --rotate normal 
+exec xrandr --output eDP-1 --mode 1920x1080 --pos 0x0 --rotate normal --output DP-1 --off --output HDMI-1 --primary --mode 2560x1080 --pos 1920x0 --rotate normal --output HDMI-2 --mode 2560x1080 --pos 4480x0 --rotate left
 exec_always --no-startup-id sh ~/.config/polybar/launch.sh
 exec nm-applet
 exec qlipper
