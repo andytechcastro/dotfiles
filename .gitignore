@@ -53,10 +53,6 @@ Imágenes/
 .config/gnome-initial-setup-done
 .config/gnote/
 .config/gtk-2.0/
-.config/i3/lemonbar/
-.config/i3/movementvimwallapaper.webp
-.config/i3/ubunutu-black.jpg
-.config/i3/wallpapers/
 .config/neofetch/
 .config/sqlitebrowser/
 .config/totem/
@@ -91,15 +87,6 @@ Imágenes/
 .local/share/NuGet/
 .local/share/WebpageIcons.db
 .local/share/composer/
-.local/share/fonts/.uuid
-.local/share/fonts/MesloLGS NF Bold Italic.ttf
-.local/share/fonts/MesloLGS NF Bold.ttf
-.local/share/fonts/MesloLGS NF Italic.ttf
-.local/share/fonts/MesloLGS NF Regular.ttf
-.local/share/fonts/NotoSans-Bold.ttf
-.local/share/fonts/NotoSans-BoldItalic.ttf
-.local/share/fonts/NotoSans-Italic.ttf
-.local/share/fonts/NotoSans-Regular.ttf
 .local/share/gnote/
 .local/share/gsettings-data-convert
 .local/share/icons/
@@ -115,7 +102,7 @@ Imágenes/
 .nuget/
 .nv/
 .nvidia-settings-rc
-.oh-my-zsh/
+.oh-my-zsh
 .p10k.zsh
 .pki/
 .profile
@@ -194,6 +181,7 @@ go/
 .remarkable/
 .rnd
 .themes/Nordic/
+.tmux
 .viminfl.tmp
 .viminfm.tmp
 .viminfn.tmp
