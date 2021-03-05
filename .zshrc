@@ -78,7 +78,6 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
-source $HOME/.bash_aliases
 
 # User configuration
 
@@ -105,6 +104,18 @@ source $HOME/.bash_aliases
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+
+alias gstatus="git status"
+alias gadd="git add"
+alias gcommit="git commit -m"
+alias gpush="git push origin"
+alias gcheck="git checkout"
+alias gpull="git pull origin"
+alias home="cd ~"
+alias gbranch="git branch"
+alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
+
+alias backuphome='rsync -avh --exclude ".npm" --exclude ".local" --exclude ".cache" --exclude ".config/google-chrome" --exclude ".mozilla" --exclude ".kube" --exclude ".java" --exclude ".fnmt" --exclude ".steam" /home/andres /mnt/backup --delete'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
