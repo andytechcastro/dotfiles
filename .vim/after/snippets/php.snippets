@@ -1,8 +1,0 @@
-snippet log3 
-	\CUtil::log("====================================================================");
-	\CUtil::log('andres', print_r(strtoupper('${1:log}'),true).chr(10), FILE_APPEND);
-	\CUtil::log('andres', print_r($${2:$1},true).chr(10), FILE_APPEND);
-	\CUtil::log("====================================================================");
-
-snippet log
-	\CUtil::log('andres', print_r(${1:log},true).chr(10), FILE_APPEND);
