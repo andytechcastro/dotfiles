@@ -114,6 +114,13 @@ alias gpull="git pull origin"
 alias home="cd ~"
 alias gbranch="git branch"
 alias ranger='ranger --choosedir=$HOME/.rangerdir; LASTDIR=`cat $HOME/.rangerdir`; cd "$LASTDIR"'
+alias ls='lsd'
+alias l='ls -l'
+alias la='ls -a'
+alias lla='ls -la'
+alias lt='ls --tree'
+
+neofetch
 
 alias backuphome='rsync -avh --exclude ".npm" --exclude ".local" --exclude ".cache" --exclude ".config/google-chrome" --exclude ".mozilla" --exclude ".kube" --exclude ".java" --exclude ".fnmt" --exclude ".steam" /home/andres /mnt/backup --delete'
 

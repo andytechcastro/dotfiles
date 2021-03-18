@@ -142,6 +142,8 @@ Plugin 'dbakker/vim-projectroot'
 
 Plugin 'fatih/vim-go'
 
+Plugin 'ryanoasis/vim-devicons'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
