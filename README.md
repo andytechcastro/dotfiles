@@ -30,10 +30,10 @@ In case you want to do a fork of my config I use:
 ## Screenshots
 
 ### Desktop
-![Desktop] (./.images/desktop.png)
+![Desktop] (/.images/desktop.png "Desktop")
 
 ### Rofi
-![Desktop] (./.images/rofi.png)
+![Rofi] (/.images/rofi.png "Rofi")
 
 ### Terminal
-![Desktop] (./.images/terminal.png)
+![Terminal] (/.images/terminal.png "Terminal")
