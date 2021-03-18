@@ -8,7 +8,7 @@ rofi.padding:               0
 rofi.separator-style:       none
 rofi.hide-scrollbar:        true
 rofi.line-margin:           0
-rofi.font:                  Hack Regular 12
+rofi.font:                  Fira Code 12
 rofi.theme: custom-nord.rasi
 rofi.terminal:              kitty
 rofi.ssh-client:            kitty +kitten ssh
