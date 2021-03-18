@@ -64,7 +64,7 @@ Plugin 'scrooloose/nerdtree'
 
 Plugin 'vim-airline/vim-airline'
 
-Plugin 'vim-airline/vim-airline-themes'
+"Plugin 'vim-airline/vim-airline-themes'
 
 Plugin 'severin-lemaignan/vim-minimap'
 
@@ -76,7 +76,7 @@ Plugin 'vim-scripts/RltvNmbr.vim'
 
 Plugin 'jiangmiao/auto-pairs'
 
-Plugin 'altercation/vim-colors-solarized'
+"Plugin 'altercation/vim-colors-solarized'
 
 Plugin 'arcticicestudio/nord-vim'
 
@@ -144,6 +144,7 @@ Plugin 'fatih/vim-go'
 
 Plugin 'ryanoasis/vim-devicons'
 
+Plugin 'tiagofumo/vim-nerdtree-syntax-highlight'
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
