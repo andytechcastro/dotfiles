@@ -27,6 +27,16 @@ In case you want to do a fork of my config I use:
 | Vundle            | Vim Plugin Manager                |
 | Tmux              | Terminal Multiplexor              |
 
+## Keyboard Config
+I Live in Spain but i prefer a english keyboard so i have this config:
+
+```
+localectl set-x11-keymap us pc105 altgr-intl
+```
+
+## Display Manager
+[https://github.com/andytechcastro/login-manager!](https://github.com/andytechcastro/login-manager)
+
 ## Screenshots
 
 ### Desktop
