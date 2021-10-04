@@ -127,6 +127,11 @@ alias backuphome='rsync -avh --exclude ".npm" --exclude ".local" --exclude ".cac
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+if [ -d "$HOME/.bookmarks" ]; then
+    export CDPATH=".:$HOME/.bookmarks:/"
+    alias goto="cd -P"
+fi
+
 autoload -Uz compinit
 compinit
 # Completion for kitty

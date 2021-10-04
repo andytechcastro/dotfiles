@@ -1,15 +1,17 @@
-rofi.show-icons:            false
-rofi.modi:                  drun,window,run,ssh
-rofi.lines:                 7
-rofi.line-padding:          10
-rofi.matching:              fuzzy
-rofi.bw:                    0
-rofi.padding:               0
-rofi.separator-style:       none
-rofi.hide-scrollbar:        true
-rofi.line-margin:           0
-rofi.font:                  Fira Code 12
-rofi.theme: custom-nord.rasi
-rofi.terminal:              kitty
-rofi.ssh-client:            kitty +kitten ssh
-rofi.ssh-command:           {terminal} {ssh-client} {host}
+configurarion {
+    show-icons:            false;
+    modi:                  "drun,window,run,ssh";
+    lines:                 7;
+    line-padding:          10;
+    matching:              "fuzzy";
+    bw:                    0;
+    padding:               0;
+    separator-style:       none;
+    hide-scrollbar:        true;
+    line-margin:           0;
+    font:                  "Fira Code 12";
+    theme:                 "custom-nord.rasi";
+    terminal:              "kitty";
+    ssh-client:            "kitty +kitten ssh";
+    ssh-command:           "{terminal} {ssh-client} {host}";
+}
