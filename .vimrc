@@ -191,6 +191,9 @@ let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 1
 let g:syntastic_php_phpcs_args='--standard=PSR2'
 
+"snipmate
+let g:snipMate = { 'snippet_version' : 1 }
+
 "Tagbar
 nmap <F8> :TagbarToggle<CR>
 
