@@ -1,14 +1,7 @@
-configurarion {
+configuration {
     show-icons:            false;
     modi:                  "drun,window,run,ssh";
-    lines:                 7;
-    line-padding:          10;
     matching:              "fuzzy";
-    bw:                    0;
-    padding:               0;
-    separator-style:       none;
-    hide-scrollbar:        true;
-    line-margin:           0;
     font:                  "Fira Code 12";
     theme:                 "custom-nord.rasi";
     terminal:              "kitty";
