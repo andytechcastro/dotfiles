@@ -50,6 +50,15 @@
     background-color: @backgroundcoloralternate;
 }
 
+#element-text.selected {
+    background-color: @selectioncolor;
+    text-color: @foregroundcolorinverse;
+    border-radius: 0px;
+
+    border: 0 0 1 0;
+    border-color: @separatorcolor;
+}
+
 #element.selected.normal {
     background-color: @selectioncolor;
     text-color: @foregroundcolorinverse;
@@ -61,23 +70,6 @@
 
 #element.alternate.normal {
     background-color: @backgroundcoloralternate;
-}
-
-#element.normal.active {
-    background-color: #434c5e;
-}
-
-#element.alternate.active {
-    background-color: #434c5e;
-}
-
-#element.selected.active {
-    background-color: @selectioncolor;
-    text-color: @foregroundcolorinverse;
-    border-radius: 0px;
-
-    border: 0 0 1 0;
-    border-color: @separatorcolor;
 }
 
 #inputbar {
