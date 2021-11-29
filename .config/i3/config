@@ -215,6 +215,7 @@ exec_always --no-startup-id sh ~/.config/polybar/launch.sh
 exec nm-applet
 exec blueman-applet
 exec pasystray
+exec clockify
 exec --no-startup-id dunst -config ~/.config/dunst/dunstrc
 new_window pixel 1
 
