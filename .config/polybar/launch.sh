@@ -9,8 +9,8 @@ export MONITOR2=$(xrandr -q | grep " connected" | cut -d ' ' -f1 | sed -n 2p)
 export MONITOR3=$(xrandr -q | grep " connected" | cut -d ' ' -f1 | sed -n 3p)
 #export MONITOR3="HDMI-2"
 
-polybar bar &
+#polybar bar &
 polybar second &
-polybar third &
+#polybar third &
 
 echo "Bars launched..."

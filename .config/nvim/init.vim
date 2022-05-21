@@ -1,4 +1,4 @@
-"""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""
 """ Andres Castro Vim Config """
 """"""""""""""""""""""""""""""""
 
@@ -18,47 +18,15 @@ filetype plugin on
 set omnifunc=syntaxcomplete#Complete
 set belloff=all
 
-call has('python3')
  
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
-" alternatively, pass a path where Vundle should install plugins
-"call vundle#begin('~/some/path/here')
  
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
- 
-" The following are examples of different formats supported.
-" Keep Plugin commands between vundle#begin/end.
-" plugin on GitHub repo
-" Plugin 'tpope/vim-fugitive'
-" plugin from http://vim-scripts.org/vim/scripts.html
-" Plugin 'L9'
-" Git plugin not hosted on GitHub
-" Plugin 'git://git.wincent.com/command-t.git'
-" git repos on your local machine (i.e. when working on your own plugin)
-" Plugin 'file:///home/gmarik/path/to/plugin'
-" The sparkup vim script is in a subdirectory of this repo called vim.
-" Pass the path to set the runtimepath properly.
-" Plugin 'rstacruz/sparkup', {'rtp': 'vim/'}
-" Avoid a name conflict with L9
-" Plugin 'user/L9', {'name': 'newL9'}
- 
-" All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
-" To ignore plugin indent changes, instead use:
-"filetype plugin on
-"
-" Brief help
-" :PluginList       - lists configured plugins
-" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
-" :PluginSearch foo - searches for foo; append `!` to refresh local cache
-" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
-"
-" see :h vundle for more details or wiki for FAQ
-" Put your non-Plugin stuff after this line
 
 Plugin 'scrooloose/nerdtree'
 
@@ -70,7 +38,7 @@ Plugin 'severin-lemaignan/vim-minimap'
 
 Plugin 'tpope/vim-surround'
 
-Plugin 'Valloric/MatchTagAlways'
+"Plugin 'Valloric/MatchTagAlways'
 
 Plugin 'vim-scripts/RltvNmbr.vim'
 
@@ -98,7 +66,7 @@ Plugin 'jalvesaq/Nvim-R'
 
 Plugin 'chrisbra/csv.vim'
 
-Plugin 'valloric/youcompleteme'
+"Plugin 'valloric/youcompleteme'
 
 Plugin 'majutsushi/tagbar'
 
@@ -114,7 +82,7 @@ Plugin 'jimf/vim-pep8-text-width'
 
 Plugin 'francoiscabrol/ranger.vim'
 
-Plugin 'vim-vdebug/vdebug'
+"Plugin 'vim-vdebug/vdebug'
 
 Plugin 'grep.vim'
 
@@ -145,6 +113,18 @@ Plugin 'fatih/vim-go'
 Plugin 'ryanoasis/vim-devicons'
 
 Plugin 'tiagofumo/vim-nerdtree-syntax-highlight'
+
+Plugin 'nvim-lua/plenary.nvim'
+Plugin 'nvim-telescope/telescope.nvim'
+
+Plugin 'frazrepo/vim-rainbow'
+
+Plugin 'camspiers/animate.vim'
+Plugin 'camspiers/lens.vim'
+
+Plugin 'ahmedkhalf/project.nvim'
+Plugin 'nvim-telescope/telescope-project.nvim'
+
 "maps NERDTree
 map <Tab> :NERDTreeToggle<CR>
 
@@ -162,7 +142,7 @@ let g:powerline_pycmd = 'py3'
 set  rtp+=/usr/local/lib/python2.7/dist-packages/powerline/bindings/vim/
 set laststatus=2
 set t_Co=256
-set term=xterm-kitty
+"set term=xterm-kitty
 
 "set moving between windows to ctrl+arrows
 nnoremap <silent> <C-Right> <c-w>l
@@ -200,26 +180,9 @@ nmap <F8> :TagbarToggle<CR>
 let g:ycm_key_list_select_completion=[]
 let g:ycm_key_list_previous_completion=[]
 
-"VDebug
-let g:vdebug_features = { 'max_children': 256 }
-let g:vdebug_options = {'ide_key': 'docker'}
-let g:vdebug_options = {'break_on_open': 0}
-"let g:vdebug_options = {'server': '172.17.0.1'}
-let g:vdebug_options = {'server': '127.0.0.1'}
-let g:vdebug_options = {'port': '9000'}
-"let g:vdebug_options = {'path_maps':{'/var/www/html':'/home/andres/public_html/newWordpress/wordpress/_data'}}
-"let g:vdebug_options = {'path_maps':{'/var/www/html': getcwd()}}
-
 " PROJECTROOT
 "let g:rootmarkers = ['.projectroot', 'docker-compose.yml', '.git', '.hg', '.svn', '.bzr','_darcs','build.xml']
-let g:rootmarkers = ['.projectroot']
-
-function! SetupDebug()
-  let g:vdebug_options['path_maps'] = {'/var/www/html': call('projectroot#get', a:000)}
-  " Hack to override vdebug options
-  source ~/.vim/bundle/vdebug/plugin/vdebug.vim
-endfunction
-autocmd VimEnter * :call SetupDebug()
+let g:rootmarkers = ['.projectroot', '.git']
 
 "open horizontal windows dow
 :set splitbelow
@@ -232,17 +195,24 @@ autocmd BufWritePost *.php silent! call PhpCsFixerFixFile()
 
 "terraform
 let g:terraform_align=1
-let g:terraform_fold_sections=1
+let g:terraform_fold_sections=0
 let g:terraform_fmt_on_save=1
 
 let g:ctrlp_working_path_mode=0
 
+"Rainbow brackets
+let g:rainbow_active = 1
 
-" workaround issue with powerline + virtualenv
-" https://github.com/powerline/powerline/issues/1908
-python3 << EOF
-import sys
-path = "/usr/lib/python{}.{}/site-packages/".format(
-    sys.version_info.major, sys.version_info.minor)
-sys.path.append(path)
-EOF
+"Telescope
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+" Using Lua functions
+nnoremap <leader>ff <cmd>lua require('telescope.builtin').find_files()<cr>
+nnoremap <leader>fg <cmd>lua require('telescope.builtin').live_grep()<cr>
+nnoremap <leader>fb <cmd>lua require('telescope.builtin').buffers()<cr>
+nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
+

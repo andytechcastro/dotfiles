@@ -119,10 +119,10 @@ alias l='ls -l'
 alias la='ls -a'
 alias lla='ls -la'
 alias lt='ls --tree'
+alias t='terraform'
+alias vim='nvim'
 
 neofetch
-
-alias backuphome='rsync -avh --exclude ".npm" --exclude ".local" --exclude ".cache" --exclude ".config/google-chrome" --exclude ".mozilla" --exclude ".kube" --exclude ".java" --exclude ".fnmt" --exclude ".steam" /home/andres /mnt/backup --delete'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
@@ -132,8 +132,23 @@ if [ -d "$HOME/.bookmarks" ]; then
     alias goto="cd -P"
 fi
 
+export PATH="${PATH}:${HOME}/.krew/bin"
+
 autoload -Uz compinit
 compinit
 # Completion for kitty
 kitty + complete setup zsh | source /dev/stdin
 TERM=xterm-kitty
+
+export VISUAL=/usr/bin/nvim
+export EDITOR=/usr/bin/nvim
+
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /usr/bin/terraform terraform
+source <(kubectl completion zsh)
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/home/andres/Descargas/google-cloud-sdk/path.zsh.inc' ]; then . '/home/andres/Descargas/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/home/andres/Descargas/google-cloud-sdk/completion.zsh.inc' ]; then . '/home/andres/Descargas/google-cloud-sdk/completion.zsh.inc'; fi
