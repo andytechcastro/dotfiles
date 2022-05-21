@@ -26,6 +26,8 @@ In case you want to do a fork of my config I use:
 | Nerd Fonts        | Patched Fonts                     |
 | Vundle            | Vim Plugin Manager                |
 | Tmux              | Terminal Multiplexor              |
+| Coc               | Autocomplete in Nvim              |
+| Bat               | Colored code cat                  |
 
 ## Keyboard Config
 I Live in Spain but i prefer a english keyboard so i have this config:
@@ -33,6 +35,9 @@ I Live in Spain but i prefer a english keyboard so i have this config:
 ```
 localectl set-x11-keymap us pc105 altgr-intl
 ```
+
+## Editor
+I was using vim for many years but I change to nvim some days ago
 
 ## Display Manager
 [https://github.com/andytechcastro/login-manager!](https://github.com/andytechcastro/login-manager)
