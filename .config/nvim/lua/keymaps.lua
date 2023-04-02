@@ -25,3 +25,10 @@ vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
 vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
 vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
+
+-- go
+-- if vim.bo.filetype == 'go' then
+vim.keymap.set('n', '<Leader>ds', '<Plug>(go-def-split)', {})
+vim.keymap.set('n', '<Leader>dv', '<Plug>(go-def-vertical)',{})
+vim.keymap.set('n', '<Leader>dt', '<Plug>(go-def-tab)',{})
+-- end

@@ -1,6 +1,8 @@
 require('plugins')
 require('keymaps')
 require('go').setup()
+-- require("go.format").gofmt()  -- gofmt only
+--require("go.format").goimport()  -- goimport + gofmt
 
 local set = vim.opt
 
@@ -32,3 +34,25 @@ set.laststatus = 2
 
 -- project root
 vim.cmd("let g:rootmarkers = ['.projectroot', '.git']")
+
+-- on
+local format_sync_grp = vim.api.nvim_create_augroup("GoFormat", {})
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*.go",
+  callback = function()
+   require('go.format').gofmt()
+  end,
+  group = format_sync_grp,
+})
+
+-- rainbow
+vim.cmd("let g:rainbow_active = 1")
+
+-- Ale
+vim.cmd("let g:ale_completion_enabled = 0")
+vim.cmd("let b:ale_fixers = ['prettier', 'eslint']")
+vim.cmd("let g:ale_fix_on_save = 1")
+vim.cmd("let g:ale_floating_preview = 1")
+vim.cmd("let g:ale_floating_window_border = []")
+vim.cmd("let g:ale_hover_to_floating_preview = 1")
+vim.cmd("let g:ale_detail_to_floating_preview = 1")
