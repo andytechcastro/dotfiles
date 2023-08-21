@@ -1,8 +1,6 @@
 require('plugins')
 require('keymaps')
-require('go').setup()
--- require("go.format").gofmt()  -- gofmt only
---require("go.format").goimport()  -- goimport + gofmt
+require('goconfig')
 
 local set = vim.opt
 

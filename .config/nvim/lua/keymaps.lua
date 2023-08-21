@@ -11,7 +11,7 @@ vim.api.nvim_set_keymap('', '<C-j>', '<c-w>j', {noremap = true, silent = true})
 
 -- Ranger
 vim.api.nvim_set_keymap('','<S-Tab>', ':Ranger<CR>',{})
-vim.api.nvim_set_keymap('','<S-t>', ':RangeriNewTab<CR>',{})
+vim.api.nvim_set_keymap('','<S-t>', ':RangerNewTab<CR>',{})
 
 -- coc keymaps
 vim.keymap.set("i", "<C-Space>", "coc#pum#visible() ? coc#pum#stop() : coc#refresh()", { expr = true, noremap = true, silent = true })
@@ -25,10 +25,3 @@ vim.keymap.set('n', '<leader>ff', builtin.find_files, {})
 vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
 vim.keymap.set('n', '<leader>fb', builtin.buffers, {})
 vim.keymap.set('n', '<leader>fh', builtin.help_tags, {})
-
--- go
--- if vim.bo.filetype == 'go' then
-vim.keymap.set('n', '<Leader>ds', '<Plug>(go-def-split)', {})
-vim.keymap.set('n', '<Leader>dv', '<Plug>(go-def-vertical)',{})
-vim.keymap.set('n', '<Leader>dt', '<Plug>(go-def-tab)',{})
--- end

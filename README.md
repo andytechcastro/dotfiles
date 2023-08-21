@@ -28,6 +28,8 @@ In case you want to do a fork of my config I use:
 | Tmux              | Terminal Multiplexor              |
 | Coc               | Autocomplete in Nvim              |
 | Bat               | Colored code cat                  |
+| Autorandr         | Screen Profiles                   |
+| Thunar            | File Manager                      |
 
 ## Keyboard Config
 I Live in Spain but i prefer a english keyboard so i have this config:
