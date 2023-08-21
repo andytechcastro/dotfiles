@@ -27,6 +27,7 @@ return require('packer').startup(function(use)
   use {'majutsushi/tagbar'}
   use {'powerline/powerline'}
   use {'hashivim/vim-terraform'}
+  use {'juliosueiras/vim-terraform-completion'}
   use {'ryanoasis/vim-devicons'}
   use {'nvim-lua/plenary.nvim'}
   use {'nvim-telescope/telescope.nvim'}
@@ -36,7 +37,12 @@ return require('packer').startup(function(use)
   use {'tpope/vim-fugitive'}
   use {'towolf/vim-helm'}
   use {'frazrepo/vim-rainbow'}
+  use { "rcarriga/nvim-dap-ui", requires = {"mfussenegger/nvim-dap"} }
+  use {'dgryski/vim-godef'}
+  use {'chrisbra/csv.vim'}
 
+
+  -- use 'fatih/vim-go'
   use 'ray-x/go.nvim'
   use 'ray-x/guihua.lua' -- recommended if need floating window support
   use 'neovim/nvim-lspconfig'
