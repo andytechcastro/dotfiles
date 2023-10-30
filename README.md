@@ -24,9 +24,7 @@ In case you want to do a fork of my config I use:
 | Neofetch          | System Info                       | 
 | Kitty             | Terminal                          |
 | Nerd Fonts        | Patched Fonts                     |
-| Vundle            | Vim Plugin Manager                |
 | Tmux              | Terminal Multiplexor              |
-| Coc               | Autocomplete in Nvim              |
 | Bat               | Colored code cat                  |
 | Autorandr         | Screen Profiles                   |
 | Thunar            | File Manager                      |
