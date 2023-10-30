@@ -1,5 +1,3 @@
 {
-    "diagnostic.checkCurrentLine": true,
-    "coc.preferences.extensionUpdateCheck": "daily",
-    "snippets.ultisnips.pythonPrompt": false,
+  "snippets.ultisnips.pythonPrompt": false
 }
