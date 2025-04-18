@@ -1,2 +1,2 @@
 -- project root
-vim.cmd("let g:rootmarkers = ['.projectroot', '.git']")
+require("project_nvim").setup{}

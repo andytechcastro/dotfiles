@@ -198,9 +198,9 @@ bindsym $mod+r mode "resize"
 bindsym $mod+m bar mode toggle
 bindsym $mod+Ctrl+l exec i3lock-fancy-multimonitor --blur=0x4
 
-bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume 3 +5%
-bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume 3 -5%
-bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute 3 toggle 
+bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +5%
+bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -5%
+bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle 
 bindsym XF86MonBrightnessUp exec light -A 5
 bindsym XF86MonBrightnessDown exec light -U 5
 
@@ -209,15 +209,16 @@ exec_always feh --bg-fill ~/.config/i3/wallpapers/nord_arch.png
 exec_always --no-startup-id picom -b -f
 exec conky
 exec --no-startup-id i3-battery-popup -n
-exec xrandr --addmode DP-3 2560x1080
+exec xrandr --addmode DP-1-3 2560x1080
 exec xrandr --output eDP-1 --primary --mode 1920x1080 --pos 0x1043 --rotate normal --output DP-1 --off --output HDMI-1 --mode 2560x1080 --pos 1920x626 --rotate normal --output DP-2 --off --output DP-3 --mode 2560x1080 --pos 4480x0 --rotate left --output DP-4 --off --output DP-5 --off
-exec_always --no-startup-id sh ~/.config/polybar/launch.sh
+exec_always --no-startup-id sh ~/.config/polybar/launch.sh dark
 exec nm-applet
-exec flatpak run com.symless.Synergy
+exec flatpak run com.symless.synergy
 exec blueman-applet
 exec pasystray
-exec clockify
-exec parcellite
+exec optimus-manager-qt
+#exec clockify
+exec copyq
 exec --no-startup-id dunst -config ~/.config/dunst/dunstrc
 
 default_border pixel 1
