@@ -1,10 +1,11 @@
 configuration {
-    show-icons:            false;
+    show-icons:            true;
     modi:                  "drun,window,run,ssh";
     matching:              "fuzzy";
     font:                  "Fira Code 12";
     terminal:              "kitty";
     ssh-client:            "kitty +kitten ssh";
     ssh-command:           "{terminal} {ssh-client} {host}";
+    icon-theme:            "Papirus-Dark";
 }
-@theme "custom-nord.rasi"
+@theme "rounded-nord-dark.rasi"

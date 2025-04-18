@@ -14,10 +14,12 @@ return require('packer').startup(function(use)
     }
     use {'ahmedkhalf/project.nvim'}
     use {'nvim-telescope/telescope-project.nvim'}
-    use {'nordtheme/vim'}
+    -- use {'nordtheme/vim'}
+    use {'andytechcastro/nordthemevim'}
     use('nvim-treesitter/nvim-treesitter', {run =  ':TSUpdate'})
     use('nvim-treesitter/playground')
     use('mbbill/undotree')
+    use {'airblade/vim-gitgutter'}
     use('tpope/vim-fugitive')
     use {
         'VonHeikemen/lsp-zero.nvim',
@@ -53,4 +55,46 @@ return require('packer').startup(function(use)
     use {'towolf/vim-helm'}
     use {'frazrepo/vim-rainbow'}
     use {'dgryski/vim-godef'}
+    use {'mfussenegger/nvim-dap'}
+    use {'leoluz/nvim-dap-go'}
+    use { "rcarriga/nvim-dap-ui", requires = {"mfussenegger/nvim-dap"} }
+    use {'theHamsta/nvim-dap-virtual-text'}
+    -- NerdTree
+    use {'christoomey/vim-tmux-navigator'}
+    use { "nvim-neotest/nvim-nio" }
+    use {'folke/flash.nvim'}
+    use({
+        "stevearc/oil.nvim",
+        config = function()
+           require("oil").setup()
+        end,
+        requires = { {'nvim-tree/nvim-web-devicons'} }
+    })
+     -- Required plugins
+    use 'stevearc/dressing.nvim'
+    use 'nvim-lua/plenary.nvim'
+    use 'MunifTanjim/nui.nvim'
+    use 'MeanderingProgrammer/render-markdown.nvim'
+
+    -- Optional dependencies
+    use 'HakonHarnes/img-clip.nvim'
+    use 'zbirenbaum/copilot.lua'
+
+    -- Avante.nvim with build process
+    use 'yetone/avante.nvim'
+
+    use 'folke/which-key.nvim'
+    use {
+        'goolord/alpha-nvim',
+        requires = {
+            'echasnovski/mini.icons',
+            'nvim-lua/plenary.nvim'
+        },
+    }
+    use 'Shatur/neovim-session-manager'
+    use 'akinsho/toggleterm.nvim'
+
+    use 'lewis6991/gitsigns.nvim' -- OPTIONAL: for git status
+    use 'romgrk/barbar.nvim'
+    use 'nvim-tree/nvim-tree.lua'
 end)
