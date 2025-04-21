@@ -7,6 +7,6 @@ return {
         { '<leader>fg', require('telescope.builtin').live_grep, desc = 'Telescope live grep' },
         { '<leader>fb', require('telescope.builtin').buffers, desc = 'Telescope buffers' },
         { '<leader>fh', require('telescope.builtin').help_tags, desc = 'Telescope todo comments' },
-        { '<leader>ft', ':TodoTelescope<CR>', desc = 'Telescope todo comments' }
+        { '<leader>ft', ':TodoTelescope<CR>', desc = 'Telescope todo comments' },
     }
 }

@@ -1,8 +1,8 @@
 vim.g.mapleader = " "
 -- TogleTerm
-vim.keymap.set("n", "<leader>t", ':ToggleTerm<CR>', {}) -- ToggleTerm
+vim.keymap.set("n", "<leader>t", ':ToggleTerm<CR>', { desc = "Terminal" }) -- ToggleTerm
 -- LazyGit
-vim.keymap.set("n", "<leader>g", "<cmd>lua _lazygit_toggle()<CR>", {desc = "LazyGit", noremap = true, silent = true})
+vim.keymap.set("n", "<leader>g", "<cmd>lua LazyGitToggle()<CR>", {desc = "Git", noremap = true, silent = true})
 
 -- Movements
 vim.keymap.set('n', '<C-Right>', '<c-w>l', {noremap = true, silent = true})
@@ -23,7 +23,7 @@ vim.keymap.set('','<S-t>', ':RangerNewTab<CR>',{})
 vim.keymap.set('','<F8>', ':TagbarToggle<CR>',{})
 
 -- UndoTree
-vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)
+vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle, { desc = "Undo" })
 
 -- Session Manager
 vim.keymap.set("n", "<leader>sm", ':SessionManager<CR>', { desc="Session Manager" })
@@ -31,7 +31,6 @@ vim.keymap.set("n", "<leader>sm", ':SessionManager<CR>', { desc="Session Manager
 vim.keymap.set('n', '<C-p>', ":lua require'telescope'.extensions.project.project{}<CR>", {noremap = true, silent = true})
 
 -- BarBar
-local map = vim.api.nvim_set_keymap
 local opts = { noremap = true, silent = true }
 
 -- Move to previous/next
@@ -75,15 +74,15 @@ vim.keymap.set('n', '<A-c>', '<Cmd>BufferClose<CR>', opts)
 --                 :BufferCloseBuffersRight
 
 -- Magic buffer-picking mode
-vim.keymap.set('n', '<leader>bpp',   '<Cmd>BufferPick<CR>', opts)
-vim.keymap.set('n', '<leader>bpd', '<Cmd>BufferPickDelete<CR>', opts)
+vim.keymap.set('n', '<leader>bpp',   '<Cmd>BufferPick<CR>', OptBarBar("Buffer Pick"))
+vim.keymap.set('n', '<leader>bpd', '<Cmd>BufferPickDelete<CR>', OptBarBar("Delete Buffer"))
 
 -- Sort automatically by...
-vim.keymap.set('n', '<leader>bb', '<Cmd>BufferOrderByBufferNumber<CR>', opts)
-vim.keymap.set('n', '<leader>bn', '<Cmd>BufferOrderByName<CR>', opts)
-vim.keymap.set('n', '<leader>bd', '<Cmd>BufferOrderByDirectory<CR>', opts)
-vim.keymap.set('n', '<leader>bl', '<Cmd>BufferOrderByLanguage<CR>', opts)
-vim.keymap.set('n', '<leader>bw', '<Cmd>BufferOrderByWindowNumber<CR>', opts)
+vim.keymap.set('n', '<leader>bb', '<Cmd>BufferOrderByBufferNumber<CR>', OptBarBar("Order Buffer by Buffer Number"))
+vim.keymap.set('n', '<leader>bn', '<Cmd>BufferOrderByName<CR>', OptBarBar("Order Buffer by Name"))
+vim.keymap.set('n', '<leader>bd', '<Cmd>BufferOrderByDirectory<CR>', OptBarBar("Order Buffer by Directory"))
+vim.keymap.set('n', '<leader>bl', '<Cmd>BufferOrderByLanguage<CR>', OptBarBar("Order Buffer by Language"))
+vim.keymap.set('n', '<leader>bw', '<Cmd>BufferOrderByWindowNumber<CR>', OptBarBar("Order Buffer by Window Number"))
 
 -- Other:
 -- :BarbarEnable - enables barbar (enabled by default)
