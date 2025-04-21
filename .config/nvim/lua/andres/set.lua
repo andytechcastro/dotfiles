@@ -37,11 +37,21 @@ local format_sync_grp = vim.api.nvim_create_augroup("GoFormat", {})
 vim.api.nvim_create_autocmd("BufWritePre", {
   pattern = "*.go",
   callback = function()
-   require('go.format').gofmt()
+   require('go.format').goimports()
   end,
   group = format_sync_grp,
+})
+
+-- Helm
+vim.api.nvim_create_autocmd({'BufNewFile', 'BufRead'} , {
+    pattern = 'deployment.yaml',
+    callback = function()
+          vim.opt_local.filetype = 'helm'
+    end
 })
 
 -- disable netrw at the very start of your init.lua
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
+
+require("config.lazy")
