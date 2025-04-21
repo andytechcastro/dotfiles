@@ -126,6 +126,7 @@ alias lt='ls --tree'
 alias t='terraform'
 alias vim='nvim'
 alias p='. p'
+alias dotfiles='/usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME"'
 
 fastfetch
 
