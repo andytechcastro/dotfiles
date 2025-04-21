@@ -2,7 +2,7 @@ vim.g.mapleader = " "
 -- TogleTerm
 vim.keymap.set("n", "<leader>t", ':ToggleTerm<CR>', {}) -- ToggleTerm
 -- LazyGit
-vim.keymap.set("n", "<leader>g", "<cmd>lua _lazygit_toggle()<CR>", {noremap = true, silent = true})
+vim.keymap.set("n", "<leader>g", "<cmd>lua _lazygit_toggle()<CR>", {desc = "LazyGit", noremap = true, silent = true})
 
 -- Movements
 vim.keymap.set('n', '<C-Right>', '<c-w>l', {noremap = true, silent = true})
@@ -22,19 +22,11 @@ vim.keymap.set('','<S-t>', ':RangerNewTab<CR>',{})
 -- Tagbar
 vim.keymap.set('','<F8>', ':TagbarToggle<CR>',{})
 
--- Telescope
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Telescope find files' })
-vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
-vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
-vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
-vim.keymap.set('n', '<leader>ft', ':TodoTelescope<CR>', { desc = 'Telescope todo comments' })
-
 -- UndoTree
 vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle)
 
 -- Session Manager
-vim.keymap.set("n", "<leader>sm", ':SessionManager<CR>', {})
+vim.keymap.set("n", "<leader>sm", ':SessionManager<CR>', { desc="Session Manager" })
 
 vim.keymap.set('n', '<C-p>', ":lua require'telescope'.extensions.project.project{}<CR>", {noremap = true, silent = true})
 
@@ -101,7 +93,7 @@ vim.keymap.set('n', '<leader>bw', '<Cmd>BufferOrderByWindowNumber<CR>', opts)
 --
 -- GoDebug
 vim.keymap.set('n', '<F5>', ":GoDebug -t<CR>")
-vim.keymap.set('n', '<leader>d', ":GoDebug -b<CR>")
+vim.keymap.set('n', '<leader>d', ":GoDebug -b<CR>", { desc="Go Debug" })
 
 -- nvimtree
 
@@ -115,3 +107,6 @@ end, { desc = "Next todo comment" })
 vim.keymap.set("n", "[t", function()
   require("todo-comments").jump_prev()
 end, { desc = "Previous todo comment" })
+
+
+vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
