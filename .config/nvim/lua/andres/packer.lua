@@ -53,7 +53,6 @@ return require('packer').startup(function(use)
     use 'ray-x/go.nvim'
     use 'ray-x/guihua.lua'
     use {'towolf/vim-helm'}
-    use {'frazrepo/vim-rainbow'}
     use {'dgryski/vim-godef'}
     use {'mfussenegger/nvim-dap'}
     use {'leoluz/nvim-dap-go'}
@@ -97,4 +96,5 @@ return require('packer').startup(function(use)
     use 'lewis6991/gitsigns.nvim' -- OPTIONAL: for git status
     use 'romgrk/barbar.nvim'
     use 'nvim-tree/nvim-tree.lua'
+    use 'folke/todo-comments.nvim'
 end)
