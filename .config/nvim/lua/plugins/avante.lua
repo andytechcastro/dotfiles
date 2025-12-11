@@ -10,55 +10,71 @@ return {
   -- Of course, you can reduce the request frequency by increasing `suggestion.debounce`.
   auto_suggestions_provider = "claude",
   cursor_applying_provider = nil, -- The provider used in the applying phase of Cursor Planning Mode, defaults to nil, when nil uses Config.provider as the provider for the applying phase
-  claude = {
-    endpoint = "https://api.anthropic.com",
-    model = "claude-3-haiku-20240307",
-    temperature = 1,
-    max_tokens = 4096,
-  },
-  openai = {
-    endpoint = "https://api.openai.com/v1",
-    model = "gpt-4.1-nano",
-    timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
-    temperature = 1,
-    max_completion_tokens = 16384, -- Increase this to include reasoning tokens (for reasoning models)
-    reasoning_effort = "medium", -- low|medium|high, only used for reasoning models
-  },
-  gemini = {
-    endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
-    model = "gemini-2.5-flash-preview-04-17",
-    timeout = 30000, -- Timeout in milliseconds
-    temperature = 1,
-    max_tokens = 8192,
-  },
-
-  vendors = {
+  providers = {
+      claude = {
+        endpoint = "https://api.anthropic.com",
+        model = "claude-3-haiku-20240307",
+        extra_request_body = {
+            temperature = 1,
+            max_tokens = 4096,
+        }
+      },
+      openai = {
+        endpoint = "https://api.openai.com/v1",
+        model = "gpt-4.1-nano",
+        timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
+        extra_request_body = {
+            temperature = 1,
+            max_completion_tokens = 16384, -- Increase this to include reasoning tokens (for reasoning models)
+            reasoning_effort = "medium", -- low|medium|high, only used for reasoning models
+        }
+      },
+      gemini = {
+        endpoint = "https://generativelanguage.googleapis.com/v1beta/models",
+        model = "gemini-2.5-flash-preview-04-17",
+        timeout = 30000, -- Timeout in milliseconds
+        extra_request_body = {
+            temperature = 1,
+            max_tokens = 8192,
+        }
+      },
       ["claude-35-haiku"] =  {
         __inherited_from = "claude",
         model = "claude-3-5-haiku-latest",
-        temperature = 1,
-        max_tokens = 4096,
+        extra_request_body = {
+            temperature = 1,
+            max_tokens = 4096,
+        }
       },
       ["claude-37-sonnet"] =  {
         __inherited_from = "claude",
         model = "claude-3-7-sonnet-latest",
-        temperature = 1,
-        max_tokens = 4096,
+        extra_request_body = {
+            temperature = 1,
+            max_tokens = 4096,
+        }
       },
       ["gemini-25-flash"] = {
         __inherited_from = "gemini",
         model = "gemini-2.5-flash-preview-04-17",
         timeout = 30000, -- Timeout in milliseconds
-        temperature = 1,
-        max_tokens = 8192,
+        extra_request_body = {
+            temperature = 1,
+            max_tokens = 8192,
+        }
       },
       ["gemini-25-pro"] = {
         __inherited_from = "gemini",
         model = "gemini-2.5-pro-preview-03-25",
         timeout = 30000, -- Timeout in milliseconds
-        temperature = 1,
-        max_tokens = 8192,
+        extra_request_body = {
+            temperature = 1,
+            max_tokens = 8192,
+        }
       },
+  },
+
+  vendors = {
   },
   ---Specify the special dual_boost mode
   ---1. enabled: Whether to enable dual_boost mode. Default to false.

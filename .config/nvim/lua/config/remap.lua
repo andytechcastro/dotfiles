@@ -1,14 +1,21 @@
 -- Map Leader
 vim.g.mapleader = " "
 
+-- Personal
+--vim.keymap.set({'n', 'x'}, 'gy', '"+y')
+--vim.keymap.set({'n', 'x'}, 'gp', '"+p')
+--vim.keymap.set({'n', 'x'}, 'x', '"_x')
+--vim.keymap.set({'n', 'x'}, 'X', '"_d')
 
 -- TogleTerm
-vim.keymap.set("n", "<leader>t", ':ToggleTerm<CR>', { desc = "Terminal" }) -- ToggleTerm
+vim.keymap.set("n", "<leader>tf", ':ToggleTerm<CR>', { desc = "Terminal (Float)" }) -- ToggleTerm
+vim.keymap.set("n", "<leader>th", '<cmd>lua TerminalDown()<CR>', { desc = "Terminal (Horizontal)" }) -- ToggleTerm
+
+vim.keymap.set('t', '<esc>', [[<C-\><C-n>]])
 
 
 -- LazyGit
-vim.keymap.set("n", "<leader>g", "<cmd>lua LazyGitToggle()<CR>", {desc = "Git", noremap = true, silent = true})
-
+vim.keymap.set("n", "<leader>tg", "<cmd>lua LazyGitToggle()<CR>", {desc = "Git", noremap = true, silent = true})
 
 -- Movements
 vim.keymap.set('n', '<C-Right>', '<c-w>l', {noremap = true, silent = true})
@@ -16,32 +23,14 @@ vim.keymap.set('n', '<C-Left>', '<c-w>h', {noremap = true, silent = true})
 vim.keymap.set('n', '<C-Up>', '<c-w>k', {noremap = true, silent = true})
 vim.keymap.set('n', '<C-Down>', '<c-w>j', {noremap = true, silent = true})
 
-vim.keymap.set('', '<C-l>', '<c-w>l', {noremap = true, silent = true})
-vim.keymap.set('', '<C-h>', '<c-w>h', {noremap = true, silent = true})
-vim.keymap.set('', '<C-k>', '<c-w>k', {noremap = true, silent = true})
-vim.keymap.set('', '<C-j>', '<c-w>j', {noremap = true, silent = true})
-
-
--- Ranger
-vim.keymap.set('','<S-Tab>', ':Ranger<CR>',{})
-vim.keymap.set('','<S-t>', ':RangerNewTab<CR>',{})
-
-
 -- Tagbar
 vim.keymap.set('','<F8>', ':TagbarToggle<CR>',{})
-
 
 -- UndoTree
 vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle, { desc = "Undo" })
 
-
--- Session Manager
-vim.keymap.set("n", "<leader>sm", ':SessionManager<CR>', { desc="Session Manager" })
-
-
 -- Project with Telescope
 vim.keymap.set('n', '<C-p>', ":lua require'telescope'.extensions.project.project{}<CR>", {noremap = true, silent = true})
-
 
 -- BarBar
 local opts = { noremap = true, silent = true }
@@ -81,15 +70,12 @@ vim.keymap.set('n', '<leader>bd', '<Cmd>BufferOrderByDirectory<CR>', OptBarBar("
 vim.keymap.set('n', '<leader>bl', '<Cmd>BufferOrderByLanguage<CR>', OptBarBar("Order Buffer by Language"))
 vim.keymap.set('n', '<leader>bw', '<Cmd>BufferOrderByWindowNumber<CR>', OptBarBar("Order Buffer by Window Number"))
 
-
 -- GoDebug
 vim.keymap.set('n', '<F5>', ":GoDebug -t<CR>")
 vim.keymap.set('n', '<leader>d', ":GoDebug -b<CR>", { desc="Go Debug" })
 
-
 -- nvimtree
 vim.keymap.set('n','<TAB>', ':NvimTreeToggle<CR>')
-
 
 -- TODO Comment
 vim.keymap.set("n", "]t", function()
@@ -104,3 +90,8 @@ vim.keymap.set("n", "<leader>ft", ":TodoTelescope<CR>", { desc = "Telescope Todo
 
 -- Oil
 vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
+
+-- Go
+vim.keymap.set("n", "<leader>ttr", "<cmd>lua GoRun()<CR>", {desc = "go run .", noremap = true, silent = true})
+vim.keymap.set("n", "<leader>ttt", "<cmd>lua GoTest()<CR>", {desc = "go run .", noremap = true, silent = true})
+vim.keymap.set("n", "<leader>ttg", "<cmd>lua GeminiTerm()<CR>", {desc = "Gemini", noremap = true, silent = true})
