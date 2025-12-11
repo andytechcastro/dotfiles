@@ -4,6 +4,7 @@ vim.filetype = off
 vim.filetype.plugin = on
 set.smartindent = true
 set.wrap = true
+set.breakindent = true
 set.encoding = 'utf-8'
 set.relativenumber = true
 set.number = true
@@ -27,6 +28,7 @@ vim.cmd("set splitright")
 
 -- vim-airline
 vim.cmd("let g:airline#extensions#tabline#enabled = 1")
+vim.cmd("let g:airline_theme = 'catppuccin'")
 vim.g.airline_powerline_fonts = 1
 vim.g.Powerline_symbols = 'unicode'
 vim.g.powerline_pycmd = 'py3'
@@ -48,6 +50,11 @@ vim.api.nvim_create_autocmd({'BufNewFile', 'BufRead'} , {
     callback = function()
           vim.opt_local.filetype = 'helm'
     end
+})
+
+vim.api.nvim_create_autocmd({"FocusGained","BufEnter", "CursorHold", "CursorHoldI"}, {
+    pattern = "*",
+    command = "checktime",
 })
 
 -- disable netrw at the very start of your init.lua
