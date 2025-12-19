@@ -15,4 +15,4 @@ yay -S --needed \
   mirage ml4w-hyprland \
   ncdu neovim ouch \
   papirus-folders pasystray pavucontrol superfile tldr tlp tlpui trippy \
-  visidata wezterm xh zip zsh ripgrep impala wiremix bluetui
+  visidata wezterm xh zip zsh ripgrep impala wiremix bluetui fd sd
