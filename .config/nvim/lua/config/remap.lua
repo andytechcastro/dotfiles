@@ -1,6 +1,3 @@
--- Map Leader
-vim.g.mapleader = " "
-
 -- Personal
 --vim.keymap.set({'n', 'x'}, 'gy', '"+y')
 --vim.keymap.set({'n', 'x'}, 'gp', '"+p')
@@ -31,44 +28,6 @@ vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle, { desc = "Undo" })
 
 -- Project with Telescope
 vim.keymap.set('n', '<C-p>', ":lua require'telescope'.extensions.project.project{}<CR>", {noremap = true, silent = true})
-
--- BarBar
-local opts = { noremap = true, silent = true }
-
--- Move to previous/next
-vim.keymap.set('n', '<A-,>', '<Cmd>BufferPrevious<CR>', opts)
-vim.keymap.set('n', '<A-.>', '<Cmd>BufferNext<CR>', opts)
-
--- Re-order to previous/next
-vim.keymap.set('n', '<A-<>', '<Cmd>BufferMovePrevious<CR>', opts)
-vim.keymap.set('n', '<A->>', '<Cmd>BufferMoveNext<CR>', opts)
-
--- Goto buffer in position...
-vim.keymap.set('n', '<A-1>', '<Cmd>BufferGoto 1<CR>', opts)
-vim.keymap.set('n', '<A-2>', '<Cmd>BufferGoto 2<CR>', opts)
-vim.keymap.set('n', '<A-3>', '<Cmd>BufferGoto 3<CR>', opts)
-vim.keymap.set('n', '<A-4>', '<Cmd>BufferGoto 4<CR>', opts)
-vim.keymap.set('n', '<A-5>', '<Cmd>BufferGoto 5<CR>', opts)
-vim.keymap.set('n', '<A-6>', '<Cmd>BufferGoto 6<CR>', opts)
-vim.keymap.set('n', '<A-7>', '<Cmd>BufferGoto 7<CR>', opts)
-vim.keymap.set('n', '<A-8>', '<Cmd>BufferGoto 8<CR>', opts)
-vim.keymap.set('n', '<A-9>', '<Cmd>BufferGoto 9<CR>', opts)
-vim.keymap.set('n', '<A-0>', '<Cmd>BufferLast<CR>', opts)
-
--- Pin/unpin buffer
-vim.keymap.set('n', '<A-p>', '<Cmd>BufferPin<CR>', opts)
-vim.keymap.set('n', '<A-c>', '<Cmd>BufferClose<CR>', opts)
-
--- Magic buffer-picking mode
-vim.keymap.set('n', '<leader>bpp',   '<Cmd>BufferPick<CR>', OptBarBar("Buffer Pick"))
-vim.keymap.set('n', '<leader>bpd', '<Cmd>BufferPickDelete<CR>', OptBarBar("Delete Buffer"))
-
--- Sort automatically by...
-vim.keymap.set('n', '<leader>bb', '<Cmd>BufferOrderByBufferNumber<CR>', OptBarBar("Order Buffer by Buffer Number"))
-vim.keymap.set('n', '<leader>bn', '<Cmd>BufferOrderByName<CR>', OptBarBar("Order Buffer by Name"))
-vim.keymap.set('n', '<leader>bd', '<Cmd>BufferOrderByDirectory<CR>', OptBarBar("Order Buffer by Directory"))
-vim.keymap.set('n', '<leader>bl', '<Cmd>BufferOrderByLanguage<CR>', OptBarBar("Order Buffer by Language"))
-vim.keymap.set('n', '<leader>bw', '<Cmd>BufferOrderByWindowNumber<CR>', OptBarBar("Order Buffer by Window Number"))
 
 -- GoDebug
 vim.keymap.set('n', '<F5>', ":GoDebug -t<CR>")

@@ -12,16 +12,6 @@ function LazyGitToggle()
     lazygit:toggle()
 end
 
--- OpenBarBar function for return the opt with description
-function OptBarBar(description)
-    local opt = {
-        desc = description,
-        noremap = true,
-        silent = true
-    }
-    return opt
-end
-
 -- Terminal
 function TerminalDown()
     local envs = {}
