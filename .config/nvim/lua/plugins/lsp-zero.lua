@@ -78,7 +78,26 @@ return {
             })
 
             require('mason-lspconfig').setup({
-                ensure_installed = {},
+                ensure_installed = {
+                    -- Infrastructure / DevOps
+                    'terraformls',
+                    'dockerls',
+                    'yamlls',
+                    'bashls',
+                    'helm_ls',
+                    
+                    -- Backend (Go & Rust tools handled separately or here)
+                    'gopls',
+                    'buf_ls', -- Protobuf
+                    
+                    -- Web / Misc
+                    'lua_ls',
+                    'html',
+                    'cssls',
+                    'sqlls',
+                    'templ',
+                    'jsonls',
+                },
                 handlers = {
                     -- this first function is the "default handler"
                     -- it applies to every language server without a "custom handler"
