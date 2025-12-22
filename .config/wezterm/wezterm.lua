@@ -178,6 +178,20 @@ local function bind_smart_move(key, direction)
   }
 end
 
+local function bind_smart_resize(key, direction)
+  return {
+    key = key,
+    mods = 'META',
+    action = wezterm.action_callback(function(window, pane)
+      if is_vim(pane) then
+        window:perform_action(act.SendKey({ key = key, mods = 'META' }), pane)
+      else
+        window:perform_action(act.AdjustPaneSize { direction, 3 }, pane)
+      end
+    end),
+  }
+end
+
 config.keys = {
   { mods = 'LEADER|CTRL', key = 'j', action = act.SplitVertical { domain = 'CurrentPaneDomain' } },
   { mods = 'LEADER|CTRL', key = 'l', action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
@@ -198,6 +212,12 @@ config.keys = {
   bind_smart_move('j', 'Down'),
   bind_smart_move('k', 'Up'),
   bind_smart_move('l', 'Right'),
+
+  -- Redimensionado Inteligente (Vim-Tmux-Navigator sin prefix)
+  bind_smart_resize('h', 'Left'),
+  bind_smart_resize('j', 'Down'),
+  bind_smart_resize('k', 'Up'),
+  bind_smart_resize('l', 'Right'),
   
   -- Copiar y Pegar
   { mods = 'CTRL|SHIFT', key = 'c', action = act.CopyTo 'Clipboard' },
