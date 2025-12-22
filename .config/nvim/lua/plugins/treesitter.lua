@@ -9,23 +9,23 @@ return {
         end
 
         configs.setup({
-            ensure_installed = { 
-                "lua", 
-                "vim", 
-                "vimdoc", 
+            ensure_installed = {
+                "lua",
+                "vim",
+                "vimdoc",
                 "query",
-                "go", 
-                "gomod", 
+                "go",
+                "gomod",
                 "gosum",
-                "rust", 
-                "terraform", 
-                "hcl", 
-                "yaml", 
-                "json", 
+                "rust",
+                "terraform",
+                "hcl",
+                "yaml",
+                "json",
                 "helm",
-                "dockerfile", 
-                "bash", 
-                "markdown", 
+                "dockerfile",
+                "bash",
+                "markdown",
                 "markdown_inline",
                 "proto",
                 "toml"
