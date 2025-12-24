@@ -86,16 +86,18 @@ compdef _op p
 # =============================================================================
 # System & Tools
 alias vim='nvim'
-alias ls='lsd'
-alias l='ls -l'
-alias la='ls -a'
-alias lla='ls -la'
-alias lt='ls --tree'
+alias ls='exa --icons'
+alias ll='exa -lah --icons --git'
 alias t='terraform'
 alias home="cd ~"
 alias goto="cd -P"
 alias ranger='spf'
 alias p='. p'
+alias cat='bat --paging=never'
+alias grep='rg'
+alias find='fd'
+alias cd='z'
+alias help='tldr'
 alias dotfiles='/usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME"'
 
 # Git Aliases
@@ -129,8 +131,19 @@ spf() {
 }
 
 # =============================================================================
-# 7. STARTUP LOGIC
+# 7. STARTUP LOGIC (TMUX + FASTFETCH)
 # =============================================================================
-if [ -z "$NVIM" ]; then
-    fastfetch --config /home/andres/.config/fastfetch/config.jsonc --logo-type iterm
+if [[ -z "$TMUX" ]]; then
+    # Si NO estamos en Tmux, y es una terminal interactiva compatible...
+    if [[ "$TERM_PROGRAM" != "vscode" && -n "$PS1" ]]; then
+        # Crear SIEMPRE una nueva sesión independiente al abrir terminal
+        exec tmux new-session
+    fi
+else
+    # Si ESTAMOS dentro de Tmux -> Mostrar Fastfetch
+    if [ -f "/home/andres/.config/fastfetch/config.jsonc" ]; then
+       fastfetch --config /home/andres/.config/fastfetch/config.jsonc --logo-type kitty-icat
+    else
+       fastfetch
+    fi
 fi
