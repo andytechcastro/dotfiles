@@ -1,0 +1,26 @@
+# --- Ghostty Configuration ---
+
+# Apariencia
+font-family = "FiraCode Nerd Font"
+font-size = 11
+theme = "Catppuccin Mocha"
+background-opacity = 0.9
+
+# Comportamiento Ventana
+window-decoration = false
+confirm-close-surface = false
+copy-on-select = true
+
+# Mouse
+mouse-hide-while-typing = true
+
+# Keybindings
+keybind = shift+insert=paste_from_clipboard
+keybind = ctrl+shift+v=paste_from_clipboard
+keybind = ctrl+shift+c=copy_to_clipboard
+
+# Integración Shell
+shell-integration = zsh
+shell-integration-features = no-cursor
+cursor-style = block
+cursor-style-blink = false
