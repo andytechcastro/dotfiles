@@ -133,14 +133,20 @@ spf() {
 # =============================================================================
 # 7. STARTUP LOGIC (TMUX + FASTFETCH)
 # =============================================================================
-if [[ -z "$TMUX" ]]; then
-    # Si NO estamos en Tmux, y es una terminal interactiva compatible...
+if [[ "$TERM_PROGRAM" == "WezTerm" ]]; then
+    # Si es WezTerm: NO ejecutar Tmux, SI ejecutar Fastfetch con logo iterm
+    if [ -f "/home/andres/.config/fastfetch/config.jsonc" ]; then
+        fastfetch --config /home/andres/.config/fastfetch/config.jsonc --logo-type iterm
+    else
+        fastfetch
+    fi
+elif [[ -z "$TMUX" ]]; then
+    # Si NO estamos en Tmux y NO es WezTerm...
     if [[ "$TERM_PROGRAM" != "vscode" && -n "$PS1" ]]; then
-        # Crear SIEMPRE una nueva sesión independiente al abrir terminal
         exec tmux new-session
     fi
 else
-    # Si ESTAMOS dentro de Tmux -> Mostrar Fastfetch
+    # Si ESTAMOS dentro de Tmux (y no es WezTerm) -> Mostrar Fastfetch estándar
     if [ -f "/home/andres/.config/fastfetch/config.jsonc" ]; then
        fastfetch --config /home/andres/.config/fastfetch/config.jsonc --logo-type kitty-icat
     else
