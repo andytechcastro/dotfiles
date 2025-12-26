@@ -1,6 +1,7 @@
 return {
     "mrjones2014/smart-splits.nvim",
     lazy = false, -- Vital para que detecte WezTerm al inicio
+    enabled = vim.env.TERM_PROGRAM == "WezTerm",
     config = function()
         require('smart-splits').setup({
             at_edge = 'wrap',
