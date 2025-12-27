@@ -1,6 +1,7 @@
 ---
 description: Specialized Go Senior Architect focused on Clean Code, Clean Architecture, and meticulous code review.
 mode: subagent
+model: google/gemini-3-pro-preview
 tools:
   write: true
   edit: true
