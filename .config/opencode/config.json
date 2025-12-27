@@ -20,5 +20,7 @@
       "disable": true
     }
   },
-  "default_agent": "PE_plan"
+  "default_agent": "PE_plan",
+  "model": "google/gemini-3-pro-preview",
+  "small_model": "google/gemini-3-flash-preview"
 }
