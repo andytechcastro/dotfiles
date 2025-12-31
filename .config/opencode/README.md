@@ -9,7 +9,7 @@ No editamos los ficheros de configuración (`config.json`) ni los prompts de los
 ### Estructura de Directorios
 
 - **`builder/`**: El corazón del sistema.
-  - `main.go`: Script en Go que compila los templates.
+  - `main.go`: Motor de construcción agnóstico. Reemplaza variables `${VAR}` y gestiona feature-flags (`_requires_env`).
   - `templates/`: Plantillas base para la configuración y los agentes.
     - `agent/`: Templates de los agentes (referencian a prompts comunes).
     - `config/`: Template del `config.json`.
@@ -23,13 +23,17 @@ Para generar la configuración y los agentes, necesitas ejecutar el builder.
 
 ### Prerrequisitos
 1. **Go** instalado.
-2. **Brave Search API Key** (Gratis). Consíguela en [brave.com](https://brave.com/search/api/).
+2. **Variables de Entorno**: El builder detectará automáticamente qué servicios configurar basándose en las variables que exportes.
 
 ### Pasos de Construcción
 
-1. Exporta tu clave de API:
+1. Exporta tus claves (solo las que tengas):
    ```bash
+   # Opcional: Para búsqueda web
    export BRAVE_API_KEY="BSA-xxxxxxxxxxxxxxxxxxxx"
+   
+   # Opcional: Para integraciones Jira/Confluence
+   export ATLASSIAN_API_TOKEN="tu-token"
    ```
 
 2. Ejecuta el builder:
@@ -38,15 +42,26 @@ Para generar la configuración y los agentes, necesitas ejecutar el builder.
    go run main.go
    ```
 
-3. ¡Listo! OpenCode ahora usará la configuración generada con soporte para búsqueda web y herramientas nativas.
+3. **Verificación**:
+   - Si definiste la variable, el MCP correspondiente se activará (`✅ Requirements met`).
+   - Si NO la definiste, el MCP se eliminará limpiamente del config (`🚫 Missing env`).
 
-## 🛠️ Capacidades
+## 🛠️ Capacidades Dinámicas
 
-- **Context7**: Documentación profunda de librerías.
-- **Brave Search**: Búsqueda en tiempo real de errores y versiones.
-- **Filesystem & Shell**: Ejecución nativa de comandos (Go, Rust, Kubectl) restringida al entorno de usuario.
+El sistema soporta **Feature Toggling** basado en entorno.
+En el template `config.json`, puedes definir dependencias así:
+
+```json
+"my-tool": {
+    "type": "local",
+    ...,
+    "_requires_env": ["MY_API_KEY"]
+}
+```
+
+Si `MY_API_KEY` no está en el entorno, `my-tool` desaparece del fichero final.
 
 ## ⚠️ Seguridad
 
 - `config.json` y la carpeta `agent/` están en `.gitignore`.
-- **NUNCA** subas tu `BRAVE_API_KEY` al repositorio.
+- Los secretos **NUNCA** se commitean, se inyectan en tiempo de construcción.
