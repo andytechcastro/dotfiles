@@ -1,4 +1,5 @@
 {
+    "$schema": "https://opencode.ai/config.json",
     "plugin": [
         "opencode-gemini-auth@latest"
     ],
@@ -9,9 +10,20 @@
             "type": "remote",
             "url": "https://mcp.context7.com/mcp",
             "enabled": true
+        },
+        "brave-search": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-brave-search"
+            ],
+            "environment": {
+                "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+            },
+            "enabled": true
         }
     },
-    "$schema": "https://opencode.ai/config.json",
     "agent": {
         "build": {
             "disable": true
