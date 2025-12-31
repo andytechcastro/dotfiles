@@ -209,3 +209,4 @@ snapd/
 
 # Test comment to trigger diff view
 
+.config/opencode/config.json
