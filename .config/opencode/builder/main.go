@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,20 +18,17 @@ const (
 )
 
 func main() {
-	// Ensure we are in the correct directory (optional check, but good for safety)
 	cwd, _ := os.Getwd()
-	fmt.Printf("🚀 Starting OpenCode Builder in: %s\n", cwd)
+	fmt.Printf("🚀 Starting Generic OpenCode Builder in: %s\n", cwd)
 
 	// 1. Process Agents
-	err := processAgents()
-	if err != nil {
+	if err := processAgents(); err != nil {
 		fmt.Printf("❌ Error processing agents: %v\n", err)
 		os.Exit(1)
 	}
 
 	// 2. Process Config
-	err = processConfig()
-	if err != nil {
+	if err := processConfig(); err != nil {
 		fmt.Printf("❌ Error processing config: %v\n", err)
 		os.Exit(1)
 	}
@@ -42,7 +40,6 @@ func processAgents() error {
 	agentTemplatesDir := filepath.Join(TemplatesDir, "agent")
 	outputAgentDir := filepath.Join(OutputDir, "agent")
 
-	// Create output dir if not exists
 	if err := os.MkdirAll(outputAgentDir, 0755); err != nil {
 		return err
 	}
@@ -52,15 +49,13 @@ func processAgents() error {
 		return err
 	}
 
-	// Regex to match {file:path/to/file}
-	// We want to capture the path inside
-	re := regexp.MustCompile(`\{file:([^}]+)\}`)
+	// Regex for {file:path} include directive
+	reInclude := regexp.MustCompile(`\{file:([^}]+)\}`)
 
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
-
 		fmt.Printf("🔨 Building Agent: %s\n", file.Name())
 
 		content, err := ioutil.ReadFile(filepath.Join(agentTemplatesDir, file.Name()))
@@ -68,58 +63,28 @@ func processAgents() error {
 			return err
 		}
 
-		// Replace function
-		newContent := re.ReplaceAllStringFunc(string(content), func(match string) string {
-			// Extract path from {file:path}
+		newContent := reInclude.ReplaceAllStringFunc(string(content), func(match string) string {
 			refPath := strings.TrimSuffix(strings.TrimPrefix(match, "{file:"), "}")
-
-			// Handle absolute vs relative paths
-			// In the templates, we will use relative paths to PROMPTS directory
-			// e.g. ../prompts/identity.md
-
-			// Resolve the absolute path of the referenced file
-			// We assume the reference is relative to the config root or builder root.
-			// Let's assume standardizing on paths relative to .config/opencode/
-
 			var absPath string
-			// Handle both absolute paths (starting with /) and relative paths
 			if filepath.IsAbs(refPath) {
 				absPath = refPath
 			} else {
-				// Resolve relative to the template file location? Or fixed prompts dir?
-				// Let's implement a smart resolver.
-				// If it starts with ../prompts, we know where it is.
-				// We are in builder/templates/agent.
-				// ../prompts in the file means it wants to go up one level from opencode/agent
-
-				// However, let's fix the resolution to be robust.
-				// We will look for the file relative to the project root or PromptsDir
-
-				// If path contains "prompts/", look in PromptsDir
 				if strings.Contains(refPath, "prompts/") {
-					// Normalize path to just filename if needed or keep subpath
 					_, fname := filepath.Split(refPath)
 					absPath = filepath.Join(PromptsDir, fname)
 				} else {
-					// Fallback: try to resolve relative to current directory
 					absPath = refPath
 				}
 			}
-
-			// Read referenced file
 			refContent, err := ioutil.ReadFile(absPath)
 			if err != nil {
-				fmt.Printf("   ⚠️  Warning: Could not read included file '%s' (resolved: %s): %v\n", refPath, absPath, err)
-				return match // Return original string if fail
+				fmt.Printf("   ⚠️  Warning: Could not read included file '%s': %v\n", refPath, err)
+				return match
 			}
-
-			// Return content of referenced file
 			return string(refContent)
 		})
 
-		// Write to output
-		err = ioutil.WriteFile(filepath.Join(outputAgentDir, file.Name()), []byte(newContent), 0644)
-		if err != nil {
+		if err := ioutil.WriteFile(filepath.Join(outputAgentDir, file.Name()), []byte(newContent), 0644); err != nil {
 			return err
 		}
 	}
@@ -130,50 +95,93 @@ func processConfig() error {
 	configTemplate := filepath.Join(TemplatesDir, "config", "config.json")
 	outputConfig := filepath.Join(OutputDir, "config.json")
 
-	fmt.Printf("🔧 Building Config: config.json\n")
+	fmt.Printf("🔧 Building Config from Template\n")
 
 	content, err := ioutil.ReadFile(configTemplate)
 	if err != nil {
 		return err
 	}
+	contentStr := string(content)
 
-	// Targeted replacement to avoid nuking $schema or other JSON fields
-	// We only replace variables that we explicitly know about.
-	varsToReplace := []string{
-		"ATLASSIAN_DOMAIN",
-		"ATLASSIAN_EMAIL",
-		"ATLASSIAN_API_TOKEN",
-		"BRAVE_API_KEY",
-	}
+	// ---------------------------------------------------------
+	// 1. GENERIC VARIABLE REPLACEMENT (Regex)
+	// ---------------------------------------------------------
+	// Finds patterns like ${MY_VAR} or $MY_VAR
+	// We handle ${VAR} specifically to be safe
+	reVars := regexp.MustCompile(`\$\{([A-Z0-9_]+)\}`)
 
-	newContentStr := string(content)
-	missingVars := []string{}
+	// Track what we found for logging
+	foundVars := make(map[string]bool)
 
-	for _, v := range varsToReplace {
-		val := os.Getenv(v)
+	contentStr = reVars.ReplaceAllStringFunc(contentStr, func(match string) string {
+		varName := strings.TrimSuffix(strings.TrimPrefix(match, "${"), "}")
+		val := os.Getenv(varName)
+		foundVars[varName] = true
+
 		if val == "" {
-			missingVars = append(missingVars, v)
-			// Don't replace if empty? Or replace with empty string?
-			// Replacing with empty might break JSON syntax if it's inside quotes ""
-			// but keeping ${VAR} is also invalid JSON usually.
-			// Let's replace with empty string but warn.
+			// If empty, we replace with empty string, but logic below handles removal
+			return ""
 		}
-		// Replace ${VAR}
-		newContentStr = strings.ReplaceAll(newContentStr, "${"+v+"}", val)
-		// Replace $VAR (just in case used without braces)
-		newContentStr = strings.ReplaceAll(newContentStr, "$"+v, val)
+		return val
+	})
+
+	// ---------------------------------------------------------
+	// 2. INTELLIGENT MCP & FEATURE TOGGLING
+	// ---------------------------------------------------------
+	var configMap map[string]interface{}
+	if err := json.Unmarshal([]byte(contentStr), &configMap); err != nil {
+		return fmt.Errorf("failed to parse config JSON after substitution: %v", err)
 	}
 
-	if len(missingVars) > 0 {
-		fmt.Printf("   ⚠️  Warning: The following environment variables are missing: %v\n", missingVars)
-		fmt.Printf("       Generated config.json will have empty values for these fields.\n")
+	// Helper function to process any map that might contain "_requires_env"
+	processMap := func(data map[string]interface{}) {
+		for key, val := range data {
+			// Check if value is a map (like an MCP definition)
+			if itemMap, ok := val.(map[string]interface{}); ok {
+				// Check for magic field "_requires_env"
+				if reqs, hasReqs := itemMap["_requires_env"]; hasReqs {
+					// It should be a list of strings
+					shouldKeep := true
+					if reqList, validList := reqs.([]interface{}); validList {
+						for _, reqVar := range reqList {
+							if envName, isString := reqVar.(string); isString {
+								if os.Getenv(envName) == "" {
+									fmt.Printf("   🚫 Missing env '%s': Removing entry '%s'\n", envName, key)
+									shouldKeep = false
+									break
+								}
+							}
+						}
+					}
+
+					// Clean up the magic field regardless (it's not valid for Opencode schema)
+					delete(itemMap, "_requires_env")
+
+					if !shouldKeep {
+						delete(data, key)
+					} else {
+						fmt.Printf("   ✅ Requirements met for '%s'\n", key)
+					}
+				}
+			}
+		}
 	}
 
-	err = ioutil.WriteFile(outputConfig, []byte(newContentStr), 0644)
+	// Process MCPs
+	if mcp, ok := configMap["mcp"].(map[string]interface{}); ok {
+		processMap(mcp)
+	}
+
+	// Process Providers (if you ever add custom providers with keys)
+	if provider, ok := configMap["provider"].(map[string]interface{}); ok {
+		processMap(provider)
+	}
+
+	// 3. Write Output
+	finalJSON, err := json.MarshalIndent(configMap, "", "    ")
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("   🔒 Secrets injected (targeted replacement)")
-	return nil
+	return ioutil.WriteFile(outputConfig, finalJSON, 0644)
 }

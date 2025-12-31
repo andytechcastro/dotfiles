@@ -11,6 +11,25 @@
             "url": "https://mcp.context7.com/mcp",
             "enabled": true
         },
+        "atlassian": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@xuandev/atlassian-mcp"
+            ],
+            "environment": {
+                "ATLASSIAN_DOMAIN": "${ATLASSIAN_DOMAIN}",
+                "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}",
+                "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
+            },
+            "_requires_env": [
+                "ATLASSIAN_DOMAIN",
+                "ATLASSIAN_EMAIL",
+                "ATLASSIAN_API_TOKEN"
+            ],
+            "enabled": true
+        },
         "brave-search": {
             "type": "local",
             "command": [
@@ -21,6 +40,9 @@
             "environment": {
                 "BRAVE_API_KEY": "${BRAVE_API_KEY}"
             },
+            "_requires_env": [
+                "BRAVE_API_KEY"
+            ],
             "enabled": true
         }
     },
