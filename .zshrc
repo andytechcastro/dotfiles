@@ -86,8 +86,8 @@ compdef _op p
 # =============================================================================
 # System & Tools
 alias vim='nvim'
-alias ls='exa --icons'
-alias ll='exa -lah --icons --git'
+alias ls='eza --icons'
+alias ll='eza -lah --icons --git'
 alias t='terraform'
 alias home="cd ~"
 alias goto="cd -P"
@@ -98,6 +98,11 @@ alias grep='rg'
 alias find='fd'
 alias cd='z'
 alias help='tldr'
+alias curl='xh'
+alias jq='jaq'
+alias top='btm'
+alias ps='procs'
+alias du='dust'
 alias dotfiles='/usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME"'
 
 # Git Aliases
