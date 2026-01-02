@@ -158,6 +158,7 @@ Prompt minimalista escrito en Rust.
 | **fastfetch** | Neofetch más rápido |
 | **lazygit** | TUI para Git |
 | **btop** | Monitor de sistema |
+| **jless** | Visor de JSON interactivo |
 
 ### 8. **OpenCode: Sistema de Agentes IA**
 
@@ -193,14 +194,19 @@ go run main.go
 ### Alias del Sistema
 ```bash
 alias vim='nvim'
-alias ls='exa --icons'
-alias ll='exa -lah --icons --git'
+alias ls='eza --icons'
+alias ll='eza -lah --icons --git'
 alias cat='bat --paging=never'
 alias grep='rg'
 alias find='fd'
 alias cd='z'           # zoxide
 alias help='tldr'      # TL;DR pages
 alias ranger='spf'     # superfile
+alias curl='xh'
+alias jq='jaq'
+alias top='btm'
+alias ps='procs'
+alias du='dust'
 ```
 
 ### Alias Git
@@ -305,7 +311,8 @@ yay -S --needed \
   hyprland dank-material-shell \
   eza bat rg fd sd zoxide atuin broot superfile fastfetch tldr \
   fzf ripgrep \
-  exa dust btop ncdu
+  dust btop ncdu \
+  xh jaq bottom procs jless
 ```
 
 ---

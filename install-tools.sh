@@ -14,5 +14,5 @@ yay -S --needed \
   gemini-cli htop lazydocker lazygit lf lsd lxappearance \
   mirage ml4w-hyprland \
   ncdu neovim ouch \
-  papirus-folders pasystray pavucontrol superfile tldr tlp tlpui trippy \
-  visidata wezterm xh zip zsh ripgrep impala wiremix bluetui fd sd
+  papirus-folders pasystray pavucontrol procs superfile tldr tlp tlpui trippy \
+  visidata wezterm xh zip zsh ripgrep impala wiremix bluetui fd sd jaq bottom jless
