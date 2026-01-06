@@ -17,6 +17,13 @@ config.font = wezterm.font_with_fallback {
 config.font_size = 11.0
 config.color_scheme = 'Catppuccin Mocha'
 
+-- Cursor Config (Simulando un poco de fluidez)
+config.default_cursor_style = 'BlinkingBlock'
+config.cursor_blink_rate = 700
+config.cursor_blink_ease_in = 'EaseIn'
+config.cursor_blink_ease_out = 'EaseOut'
+config.animation_fps = 60 -- Asegurar que las animaciones de la GUI sean fluidas
+
 config.window_background_opacity = 0.90
 config.window_padding = {
     left = 0,

@@ -28,5 +28,17 @@ return {
     },
     
     -- Nui (UI components, useful library to have around)
-    { "MunifTanjim/nui.nvim", lazy = true }
+    { "MunifTanjim/nui.nvim", lazy = true },
+
+    -- Cursor trail effect for terminals without native support (Wezterm)
+    {
+        "sphamba/smear-cursor.nvim",
+        cond = not vim.g.neovide,
+        opts = {
+            smear_between_buffers = true,
+            stiffness = 0.8,
+            trailing_stiffness = 0.5,
+            distance_stop_animating = 0.1,
+        },
+    }
 }
