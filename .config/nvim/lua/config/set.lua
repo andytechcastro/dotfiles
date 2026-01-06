@@ -55,4 +55,9 @@ vim.api.nvim_create_autocmd({"FocusGained","BufEnter", "CursorHold", "CursorHold
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
+-- Neovide config
+if vim.g.neovide then
+    vim.o.guifont = "FiraCode Nerd Font:h11"
+end
+
 require("config.lazy")
