@@ -30,6 +30,9 @@ return {
     -- Nui (UI components, useful library to have around)
     { "MunifTanjim/nui.nvim", lazy = true },
 
+    -- Icons
+    { "echasnovski/mini.icons", version = false },
+
     -- Cursor trail effect for terminals without native support (Wezterm)
     {
         "sphamba/smear-cursor.nvim",

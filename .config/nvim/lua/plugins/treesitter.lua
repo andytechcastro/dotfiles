@@ -17,6 +17,7 @@ return {
                 "go",
                 "gomod",
                 "gosum",
+                "gowork",
                 "rust",
                 "terraform",
                 "hcl",
@@ -28,7 +29,10 @@ return {
                 "markdown",
                 "markdown_inline",
                 "proto",
-                "toml"
+                "toml",
+                "sql",
+                "gotmpl",
+                "comment"
             },
             sync_install = false,
             auto_install = true,

@@ -1,60 +1,30 @@
 return {
     "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
+    dependencies = { "nvim-tree/nvim-web-devicons", "catppuccin" },
     config = function()
         local lualine = require("lualine")
         local lazy_status = require("lazy.status") -- to configure lazy pending updates count
 
-        local colors = {
-            blue = "#65D1FF",
-            green = "#3EFFDC",
-            violet = "#FF61EF",
-            yellow = "#FFDA7B",
-            red = "#FF4A4A",
-            fg = "#c3ccdc",
-            bg = "#112638",
-            inactive_bg = "#2c3043",
-        }
+        -- Asegurarnos de que el tema de catppuccin esté disponible para lualine
+        local ok, _ = pcall(require, "catppuccin")
+        if not ok then
+            vim.notify("Catppuccin no encontrado, lualine podría fallar", vim.log.levels.WARN)
+        end
 
-        local my_lualine_theme = {
-            normal = {
-                a = { bg = colors.blue, fg = colors.bg, gui = "bold" },
-                b = { bg = colors.bg, fg = colors.fg },
-                c = { bg = colors.bg, fg = colors.fg },
-            },
-            insert = {
-                a = { bg = colors.green, fg = colors.bg, gui = "bold" },
-                b = { bg = colors.bg, fg = colors.fg },
-                c = { bg = colors.bg, fg = colors.fg },
-            },
-            visual = {
-                a = { bg = colors.violet, fg = colors.bg, gui = "bold" },
-                b = { bg = colors.bg, fg = colors.fg },
-                c = { bg = colors.bg, fg = colors.fg },
-            },
-            command = {
-                a = { bg = colors.yellow, fg = colors.bg, gui = "bold" },
-                b = { bg = colors.bg, fg = colors.fg },
-                c = { bg = colors.bg, fg = colors.fg },
-            },
-            replace = {
-                a = { bg = colors.red, fg = colors.bg, gui = "bold" },
-                b = { bg = colors.bg, fg = colors.fg },
-                c = { bg = colors.bg, fg = colors.fg },
-            },
-            inactive = {
-                a = { bg = colors.inactive_bg, fg = colors.semilightgray, gui = "bold" },
-                b = { bg = colors.inactive_bg, fg = colors.semilightgray },
-                c = { bg = colors.inactive_bg, fg = colors.semilightgray },
-            },
-        }
+        local lualine_theme = "catppuccin"
+        local theme_ok, _ = pcall(require, "lualine.themes." .. lualine_theme)
+        if not theme_ok then
+            lualine_theme = "auto"
+        end
 
-        -- configure lualine with modified theme
         lualine.setup({
             options = {
-                theme = "catppuccin",
-                component_separators = { left = '', right = ''},
-                section_separators = { left = '', right = ''},
+                theme = lualine_theme,
+                component_separators = { left = "", right = "" },
+                section_separators = { left = "", right = "" },
+                disabled_filetypes = {
+                    statusline = { "alpha", "dashboard", "nvim-tree", "Outline" },
+                },
             },
             sections = {
                 lualine_x = {
