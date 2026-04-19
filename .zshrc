@@ -24,10 +24,11 @@ export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 # 3. PATH CONFIGURATION
 # =============================================================================
 export GOPATH=$HOME/go
+export GOBIN=$GOPATH/bin
 
 # Append to PATH (Clean and consolidated)
 export PATH="${PATH}:${HOME}/.krew/bin"
-export PATH="${PATH}:$(go env GOPATH)/bin"
+export PATH="${PATH}:${GOBIN}"
 export PATH="${PATH}:/snap/bin"
 export PATH="${PATH}:${HOME}/.local/bin"
 

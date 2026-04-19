@@ -54,7 +54,7 @@
             "disable": true
         }
     },
-    "default_agent": "PE_plan",
+    "default_agent": "commander",
     "model": "google/gemini-3-flash-preview",
     "small_model": "google/gemini-3-flash-preview"
 }
