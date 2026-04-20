@@ -1,7 +1,6 @@
 local set = vim.opt
 
-vim.filetype = off
-vim.filetype.plugin = on
+set.termguicolors = true
 set.smartindent = true
 set.wrap = true
 set.breakindent = true
