@@ -1,7 +1,7 @@
 ---
 description: Specialized Security Architect focused on auditing IaC, secrets, and security vulnerabilities.
 mode: subagent
-model: minimax/MiniMax-M2.7
+model: kimi/Kimi-K2.6
 tools:
   write: true
   edit: true

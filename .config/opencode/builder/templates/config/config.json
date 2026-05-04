@@ -44,6 +44,32 @@
                 "BRAVE_API_KEY"
             ],
             "enabled": true
+        },
+        "mgrep": {
+            "type": "local",
+            "command": [
+                "mgrep",
+                "mcp"
+            ],
+            "environment": {
+                "MXBAI_API_KEY": "${MXBAI_API_KEY}"
+            },
+            "_requires_env": [
+                "MXBAI_API_KEY"
+            ],
+            "enabled": true
+        },
+        "decider-k8s": {
+            "type": "remote",
+            "url": "http://localhost:8080/sse",
+            "enabled": true
+        },
+        "decider-local": {
+            "type": "local",
+            "command": [
+                "/home/andres/Proyectos/TestMCP/mcp-server-local"
+            ],
+            "enabled": true
         }
     },
     "agent": {
@@ -52,9 +78,15 @@
         },
         "plan": {
             "disable": true
+        },
+        "PE_build": {
+            "disable": true
+        },
+        "PE_plan": {
+            "disable": true
         }
     },
     "default_agent": "commander",
-    "model": "google/gemini-3-flash-preview",
-    "small_model": "google/gemini-3-flash-preview"
+    "model": "qwen/Qwen3.6-Plus",
+    "small_model": "deepseek/DeepSeek-V4-Flash"
 }
