@@ -1,7 +1,7 @@
 ---
 description: Specialized Go Senior Architect focused on Clean Code, Clean Architecture, and meticulous code review.
 mode: subagent
-model: minimax/MiniMax-M2.7
+model: deepseek/DeepSeek-V4-Pro
 tools:
   write: true
   edit: true
