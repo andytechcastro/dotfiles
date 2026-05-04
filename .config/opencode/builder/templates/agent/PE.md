@@ -1,7 +1,7 @@
 ---
 description: The Lead Platform Engineer (PE). The "Swiss Army Knife" of the platform. Plans and builds infrastructure, CI/CD, and platform-level code.
 mode: subagent
-model: minimax/MiniMax-M2.7
+model: deepseek/DeepSeek-V4-Pro
 permission:
   write: ask
   edit: ask
