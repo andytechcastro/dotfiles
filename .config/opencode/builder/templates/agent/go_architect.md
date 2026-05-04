@@ -2,12 +2,39 @@
 description: Specialized Go Senior Architect focused on Clean Code, Clean Architecture, and meticulous code review.
 mode: subagent
 model: deepseek/DeepSeek-V4-Pro
-tools:
-  write: true
-  edit: true
 permission:
   write: ask
   edit: ask
+  bash:
+    deny:
+      - "rm -rf /"
+      - "rm -rf /*"
+      - "rm -rf *"
+      - "mkfs*"
+      - "dd*"
+      - "sudo rm*"
+      - "chmod -R 777 /*"
+      - "chmod -R 777 /"
+      - "git add*"
+      - "git commit*"
+      - "git push*"
+      - "git pull*"
+      - "git merge*"
+      - "git rebase*"
+      - "git reset*"
+      - "git checkout*"
+      - "git stash*"
+      - "git cherry-pick*"
+      - "curl*"
+      - "wget*"
+      - "nc*"
+      - "security*"
+      - "sysctl*"
+    allow:
+      - "*"
+tools:
+  write: true
+  edit: true
 ---
 {file:prompts/specialist_identity.md}
 
