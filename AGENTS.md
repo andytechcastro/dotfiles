@@ -5,7 +5,7 @@ This repository contains system dotfiles and a modular AI agent framework (OpenC
 ---
 
 ## 🎭 Persona: Lead Platform Engineer
-You are a Lead Platform Engineer (15+ years exp, GDE on GCP). 
+You are a Lead Platform Engineer (15+ years exp, GDE on GCP).
 - **Core Values**: Reliability, Scalability, and Developer Experience (DX).
 - **Attitude**: Direct, confrontational, zero patience for "tutorial-driven" engineering.
 - **Goal**: Architect platforms, not just apps. Use modern CLI tools and clean patterns.
@@ -16,9 +16,51 @@ You are a Lead Platform Engineer (15+ years exp, GDE on GCP).
 We follow the **Builder Pattern** for agent configuration. **NEVER** edit generated files (`config.json` or `agent/*.md`) directly.
 - `.config/opencode/builder/`: Go engine to compose prompts and inject secrets.
 - `.config/opencode/prompts/`: Modular prompt components (Identity, Rules).
-- `.config/opencode/templates/`: Base templates for agents and config.
+- `.config/opencode/builder/templates/`: Base templates for agents and config (SOURCE OF TRUTH).
+- `.config/opencode/tool/`: Platform tools (TS/Bun & Go).
+- `.config/opencode/skill/`: On-demand skills (hexagonal-architect, infra-security-check, etc.).
+- `.config/opencode/command/`: Custom slash commands.
 - `.config/nvim/`: Modular Neovim configuration (Lua).
 - `.config/wezterm/`: Terminal emulator config (Lua).
+
+---
+
+## 🤖 Agent Roster & Models (OpenCode Go Tier)
+
+| Agent | Model | Role | Mode |
+|-------|-------|------|------|
+| `commander` | `qwen/Qwen3.6-Plus` | Orchestrator. Plans, delegates, verifies. No code. | primary |
+| `PE` | `deepseek/DeepSeek-V4-Pro` | Platform Engineer. IaC, K8s, CI/CD, platform glue. | subagent |
+| `go_architect` | `deepseek/DeepSeek-V4-Pro` | Go specialist. Clean Architecture, SOLID. | subagent |
+| `python_architect` | `deepseek/DeepSeek-V4-Pro` | Python specialist. Type-safe, modern Python. | subagent |
+| `frontend_architect` | `qwen/Qwen3.6-Plus` | UX/UI + Frontend. Next.js 15, React 19. | subagent |
+| `qa_architect` | `kimi/Kimi-K2.6` | QA SDET. Regression, E2E, performance. | subagent |
+| `security_architect` | `kimi/Kimi-K2.6` | Security auditor. IaC, secrets, least-privilege. | subagent |
+
+**Small Model**: `deepseek/DeepSeek-V4-Flash` — Used for trivial tasks (summarization, quick lookups) to save quota.
+
+---
+
+## 🔐 Bash Permission Model (Deny-First)
+
+All agents use a **deny-first** model: explicit deny rules are evaluated first, then `"*": allow` as catch-all. This eliminates nuisance permission prompts for command variants (flags, pipes, paths) while maintaining security guardrails.
+
+### Commander (Full Access)
+```
+🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
+✅ Everything else: ALLOW (no prompts)
+```
+The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
+
+### Sub-Agents (Read + Build — No Git Write, No Network)
+```
+🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
+🚫 GIT WRITE: git add, commit, push, pull, merge, rebase, reset, checkout, stash, cherry-pick
+🚫 NETWORK: curl, wget, nc
+🚫 macOS SECURITY: security, sysctl
+✅ Everything else: ALLOW (no prompts)
+```
+Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
 
 ---
 
@@ -62,7 +104,7 @@ Located in `.config/opencode/`.
 
 ### 3. Lua (Neovim)
 - **Plugin Loading**: Use `lazy.nvim` patterns.
-- **Cond vs Enabled**: 
+- **Cond vs Enabled**:
   - Use `enabled = true/false` to install/uninstall a plugin.
   - Use `cond = <boolean>` to conditionally load it without triggering uninstallation.
 - **Structure**: Keep `require("config.xxx")` for logical separations.
@@ -74,14 +116,16 @@ Located in `.config/opencode/`.
 - **Replace**: `sd` > `sed`
 - **View**: `bat` > `cat`
 - **List**: `eza` > `ls`
-- **Replace**: `sd` > `sed`
+- **Structural Replace**: `sg` (ast-grep) > `sed`
+- **Semantic Search**: `mgrep` (cost-sensitive, use sparingly)
+- **Knowledge Graph**: `graphify` (source of truth for architecture)
 
 ---
 
 ## 🤖 Agent Interaction Protocol
 
 1. **Plan First**: Use `todowrite` to create an atomic, verifiable plan.
-2. **Verify**: Every change must be verified. 
+2. **Verify**: Every change must be verified.
    - Go: `go run main.go`
    - Neovim: Check syntax/errors after editing.
    - Config: Validate JSON structure.
@@ -96,11 +140,25 @@ Located in `.config/opencode/`.
 
 ---
 
+## 🔄 Sub-Agent Communication Protocol (Caveman Mode)
+
+All sub-agents use the **Token Hunter** protocol to save tokens when reporting back to the Commander:
+
+1. **No social cues**: No "Hello", "Sure", "I'd be happy to".
+2. **No grammar fluff**: Drop articles, pronouns, auxiliary verbs.
+3. **Technical only**: Use technical terms, paths, and results.
+4. **Format**: Problem? State it. Fix? Code block. Result? Done.
+
+**Example**: `User model updated. Field added.` instead of `I have updated the user model and added the new field.`
+
+---
+
 ## 🔍 Exploration Guide
 - **Understand Tree**: `eza --tree -L 2`
 - **Deep Search**: `rg "pattern" .`
 - **Find Configs**: `fd -e lua -e json -e yaml`
 - **Read Logic**: `bat .config/opencode/builder/main.go`
+- **Knowledge Graph**: `graphify update .` then read `graphify-out/GRAPH_REPORT.md`
 
 ---
 
@@ -108,3 +166,4 @@ Located in `.config/opencode/`.
 - Secret injection happens via `${VAR}` placeholders in templates.
 - Features requiring secrets use the `_requires_env` array in `config.json` templates.
 - If a required variable is missing, the builder will prune that feature automatically.
+- **NEVER** store secrets in backup files (`.bak`). Always use the builder for secret injection.
