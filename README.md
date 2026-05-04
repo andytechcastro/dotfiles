@@ -2,7 +2,7 @@
 
 Configuración de un entorno de desarrollo **Linux (Arch-based)** optimizado para un Platform Engineer/Golang Developer. Enfocado en productividad, velocidad y minimalismo con integración visual consistente (Catppuccin Mocha).
 
-> **Nota**: Estas configs están pensadas para usar `stow` o un bare git repo para gestionar los symlinks.
+> **Nota**: Estas configs están pensadas para usar un **bare git repo** para gestionar los symlinks.
 
 ---
 
@@ -10,7 +10,7 @@ Configuración de un entorno de desarrollo **Linux (Arch-based)** optimizado par
 
 ```bash
 # Clonar como bare repo
-git clone --bare https://github.com/andres/dotfiles.git $HOME/.dotfiles
+git clone --bare https://github.com/andytechcastro/dotfiles.git $HOME/.dotfiles
 
 # Definir alias para gestión
 alias dotfiles='/usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME"'
@@ -83,9 +83,9 @@ dotfiles checkout
 
 **Archivo**: `.tmux.conf`
 
-### 4. **Editor: Neovim** 
+### 4. **Editor: Neovim**
 
-Setup completo con **LazyVim** como base (plugin manager: lazy.nvim).
+Setup modular con **lazy.nvim** como plugin manager.
 
 #### LSPs Configurados:
 | Lenguaje | LSP |
@@ -102,12 +102,12 @@ Setup completo con **LazyVim** como base (plugin manager: lazy.nvim).
 #### Plugins Principales:
 | Categoría | Plugins |
 |-----------|---------|
-| **Navegación** | Telescope (fuzzy finder), Harpoon (nav rápida), nvim-tree |
+| **Navegación** | Telescope (fuzzy finder), Harpoon (nav rápida), Snacks Explorer |
 | **Git** | Fugitive, gitsigns, diffview, lazygit |
 | **Debug** | dap (DAP), nvim-dap-ui |
-| **UI** | lualine, catppuccin, alpha (dashboard), todo-comments |
-| **Utilidades** | oil (file manager), toggleterm, undotree, flash, autopairs |
-| **Terminal** | toggleterm (integrado en `<C-\>`) |
+| **UI** | lualine, catppuccin, todo-comments, whichkey |
+| **Utilidades** | oil (file manager), undotree, flash, autopairs, smart-splits |
+| **Terminal** | Snacks Terminal (integrado) |
 
 **Archivo**: `.config/nvim/init.lua` y subdirectorios
 
@@ -131,7 +131,7 @@ Setup completo con **LazyVim** como base (plugin manager: lazy.nvim).
 | `Super + Shift + Q` | Cerrar ventana |
 | `Super + 1-9` | Workspaces |
 
-**Archivos**: 
+**Archivos**:
 - `.config/hypr/hyprland.conf`
 - `.config/hypr/monitors.conf`
 - `.config/hypr/workspaces.conf`
@@ -162,19 +162,29 @@ Prompt minimalista escrito en Rust.
 
 ### 8. **OpenCode: Sistema de Agentes IA**
 
-Framework de agentes de IA modular y extensible para Platform Engineering.
+Framework de agentes de IA modular y extensible para Platform Engineering, con modelo de permisos **Deny-First** y asignación de modelos optimizada para el tier **OpenCode Go**.
 
-> 📄 **Documentación detallada**: Ver [`.config/opencode/README.md`](.config/opencode/README.md) para arquitectura builder, configuración de secretos y MCPs.
+> 📄 **Documentación detallada**: Ver [`AGENTS.md`](AGENTS.md) para arquitectura builder, configuración de secretos, MCPs y protocolo de agentes.
 
 #### 🤖 Agentes Disponibles
 
-| Agente | Rol |
-|--------|-----|
-| **PE_plan** | Arquitecto Estratégico (solo planificación) |
-| **PE_build** | Ejecutor Táctico (implementación) |
-| **PE** | Ingeniero Full-Stack (consultas generales) |
-| **go_architect** | Go Senior (Clean Architecture) |
-| **python_architect** | Python Senior (Type Hinting estricto) |
+| Agente | Modelo | Rol |
+|--------|--------|-----|
+| **commander** | `qwen/Qwen3.6-Plus` | Orquestador principal. Planifica, delega y verifica. |
+| **PE** | `deepseek/DeepSeek-V4-Pro` | Platform Engineer. IaC, K8s, CI/CD, infra. |
+| **go_architect** | `deepseek/DeepSeek-V4-Pro` | Go Senior. Clean Architecture, SOLID. |
+| **python_architect** | `deepseek/DeepSeek-V4-Pro` | Python Senior. Type-safe, modern Python. |
+| **frontend_architect** | `qwen/Qwen3.6-Plus` | UX/UI + Frontend. Next.js 15, React 19. |
+| **qa_architect** | `kimi/Kimi-K2.6` | QA SDET. Regression, E2E, performance. |
+| **security_architect** | `kimi/Kimi-K2.6` | Security Auditor. IaC, secrets, vulnerabilidades. |
+
+#### 🔐 Modelo de Permisos (Deny-First)
+
+- **Commander**: Acceso total a bash (excepto comandos destructivos: `rm -rf /`, `mkfs`, `dd`, etc.).
+- **Sub-Agentes**: Pueden leer, editar, compilar y testear. **NO** pueden:
+  - Escribir en Git (`add`, `commit`, `push`, `pull`, etc.)
+  - Hacer llamadas a la red (`curl`, `wget`, `nc`)
+  - Acceder a seguridad del SO (`security`, `sysctl`)
 
 #### 🚀 Despliegue
 
@@ -254,6 +264,11 @@ spf() {
 | `<Leader>fh` | Harpoon marks |
 | `<Leader>tt` | Toggle trouble |
 | `<Leader>tp` | Toggle Telescope projects |
+| `<TAB>` | Snacks Explorer (file tree) |
+| `-` | Oil (file manager) |
+| `<Leader>og` | Graphify Update |
+| `<Leader>oh` | Hexagonal Check |
+| `<Leader>ob` | OpenCode Build |
 
 ### Hyprland
 | Atajo | Acción |
@@ -284,18 +299,24 @@ dotfiles/
 ├── .gitignore
 ├── install-tools.sh            # Script instalación Arch
 ├── starship.toml               # Starship config
+├── README.md
+├── AGENTS.md                   # Guía técnica para agentes IA
 ├── .config/
-│   ├── nvim/                   # Neovim (LazyVim style)
+│   ├── nvim/                   # Neovim (lazy.nvim style)
 │   ├── wezterm/                # WezTerm config
 │   ├── hypr/                   # Hyprland + DMS
 │   ├── ghostty/                # Ghostty config
 │   ├── fastfetch/              # Fastfetch config
-│   ├── opencode/               # Sistema de agentes IA (builder + prompts)
+│   ├── opencode/               # Sistema de agentes IA
 │   │   ├── builder/            # Motor Go (inyección de secretos)
-│   │   ├── prompts/            # Módulos de prompts
+│   │   │   └── templates/      # SOURCE OF TRUTH
+│   │   ├── prompts/            # Módulos de prompts reutilizables
+│   │   ├── tool/               # Herramientas platform (TS/Go)
+│   │   ├── skill/              # Skills on-demand
+│   │   ├── command/            # Slash commands personalizados
 │   │   └── agent/              # Agentes generados (gitignored)
 │   └── superfile/              # Superfile themes
-└── README.md
+└── graphify-out/               # Knowledge graph del proyecto
 ```
 
 ---
