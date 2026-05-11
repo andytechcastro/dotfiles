@@ -5,17 +5,16 @@ permission:
   write: ask
   edit: ask
   bash:
-    deny:
-      - "rm -rf /"
-      - "rm -rf /*"
-      - "rm -rf *"
-      - "mkfs*"
-      - "dd*"
-      - "sudo rm*"
-      - "chmod -R 777 /*"
-      - "chmod -R 777 /"
-    allow:
-      - "*"
+    # --- Destructive operations (ALWAYS DENY — evaluated first) ---
+    "rm -rf /": deny
+    "rm -rf *": deny
+    "rm -rf /*": deny
+    "mkfs*": deny
+    "dd *": deny
+    "sudo rm*": deny
+    "chmod -R 777 /": deny
+    # --- Commander has FULL access. No asking. ---
+    "*": allow
 tools:
   write: true
   edit: true
@@ -29,5 +28,6 @@ tools:
 {file:prompts/commander_behavior.md}
 
 {file:prompts/language.md}
+{file:prompts/engram_memory.md}
 {file:prompts/tools_rules.md}
 {file:prompts/behavior.md}
