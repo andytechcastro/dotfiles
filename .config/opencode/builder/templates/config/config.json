@@ -62,14 +62,14 @@
         "decider-k8s": {
             "type": "remote",
             "url": "http://localhost:8080/sse",
-            "enabled": true
+            "enabled": false
         },
         "decider-local": {
             "type": "local",
             "command": [
                 "/home/andres/Proyectos/TestMCP/mcp-server-local"
             ],
-            "enabled": true
+            "enabled": false
         }
     },
     "agent": {
