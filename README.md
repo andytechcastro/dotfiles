@@ -178,13 +178,31 @@ Framework de agentes de IA modular y extensible para Platform Engineering, con m
 | **qa_architect** | `kimi/Kimi-K2.6` | QA SDET. Regression, E2E, performance. |
 | **security_architect** | `kimi/Kimi-K2.6` | Security Auditor. IaC, secrets, vulnerabilidades. |
 
+#### 🧠 Memoria Persistente (Engram)
+
+Sistema de memoria local SQLite con protocolo **Ask-First**:
+- El agente **propone** memorias, el usuario **aprueba** o rechaza.
+- Review batch obligatorio al cerrar sesión.
+- Trigger manual: "guarda esto" → guarda inmediatamente.
+- Todo queda en `~/.engram/engram.db`. Sin cloud.
+
 #### 🔐 Modelo de Permisos (Deny-First)
 
-- **Commander**: Acceso total a bash (excepto comandos destructivos: `rm -rf /`, `mkfs`, `dd`, etc.).
+- **Commander**: Acceso total a bash (excepto comandos destructivos: `rm -rf /`, `mkfs*`, `dd *`, etc.).
 - **Sub-Agentes**: Pueden leer, editar, compilar y testear. **NO** pueden:
   - Escribir en Git (`add`, `commit`, `push`, `pull`, etc.)
   - Hacer llamadas a la red (`curl`, `wget`, `nc`)
   - Acceder a seguridad del SO (`security`, `sysctl`)
+
+Formato inline con comentarios por sección en los templates:
+```yaml
+bash:
+  # --- Destructive operations (ALWAYS DENY) ---
+  "rm -rf /": deny
+  "dd *": deny
+  # --- Sub-agents get full access to everything else ---
+  "*": allow
+```
 
 #### 🚀 Despliegue
 
@@ -311,6 +329,8 @@ dotfiles/
 │   │   ├── builder/            # Motor Go (inyección de secretos)
 │   │   │   └── templates/      # SOURCE OF TRUTH
 │   │   ├── prompts/            # Módulos de prompts reutilizables
+│   │   │   └── engram_memory.md # Protocolo Ask-First de memoria
+│   │   ├── plugins/            # Plugins OpenCode (engram.ts)
 │   │   ├── tool/               # Herramientas platform (TS/Go)
 │   │   ├── skill/              # Skills on-demand
 │   │   ├── command/            # Slash commands personalizados
@@ -333,7 +353,8 @@ yay -S --needed \
   eza bat rg fd sd zoxide atuin broot superfile fastfetch tldr \
   fzf ripgrep \
   dust btop ncdu \
-  xh jaq bottom procs jless
+  xh jaq bottom procs jless \
+  engram-bin
 ```
 
 ---

@@ -15,7 +15,7 @@ You are a Lead Platform Engineer (15+ years exp, GDE on GCP).
 ## 🏗️ Repository Architecture
 We follow the **Builder Pattern** for agent configuration. **NEVER** edit generated files (`config.json` or `agent/*.md`) directly.
 - `.config/opencode/builder/`: Go engine to compose prompts and inject secrets.
-- `.config/opencode/prompts/`: Modular prompt components (Identity, Rules).
+- `.config/opencode/prompts/`: Modular prompt components (Identity, Rules, Engram Memory Protocol).
 - `.config/opencode/builder/templates/`: Base templates for agents and config (SOURCE OF TRUTH).
 - `.config/opencode/tool/`: Platform tools (TS/Bun & Go).
 - `.config/opencode/skill/`: On-demand skills (hexagonal-architect, infra-security-check, etc.).
@@ -45,22 +45,74 @@ We follow the **Builder Pattern** for agent configuration. **NEVER** edit genera
 
 All agents use a **deny-first** model: explicit deny rules are evaluated first, then `"*": allow` as catch-all. This eliminates nuisance permission prompts for command variants (flags, pipes, paths) while maintaining security guardrails.
 
+### Format (inline map with comments)
+
+Permissions use an inline key-value format with section comments for readability:
+
+```yaml
+permission:
+  write: ask
+  edit: ask
+  bash:
+    # --- Destructive operations (ALWAYS DENY — evaluated first) ---
+    "rm -rf /": deny
+    "rm -rf *": deny
+    "rm -rf /*": deny
+    "mkfs*": deny
+    "dd *": deny
+    "sudo rm*": deny
+    "chmod -R 777 /": deny
+    # --- Git write operations (sub-agents are read-only on git) ---
+    "git add*": deny
+    ...
+    # --- Network (no outbound from sub-agents) ---
+    "curl*": deny
+    ...
+    # --- Sub-agents get full access to everything else ---
+    "*": allow
+```
+
 ### Commander (Full Access)
 ```
-🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
+🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd *, sudo rm*, chmod -R 777 /
 ✅ Everything else: ALLOW (no prompts)
 ```
 The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
 
 ### Sub-Agents (Read + Build — No Git Write, No Network)
 ```
-🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
+🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd *, sudo rm*, chmod -R 777 /
 🚫 GIT WRITE: git add, commit, push, pull, merge, rebase, reset, checkout, stash, cherry-pick
 🚫 NETWORK: curl, wget, nc
 🚫 macOS SECURITY: security, sysctl
 ✅ Everything else: ALLOW (no prompts)
 ```
 Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
+
+---
+
+## 🧠 Persistent Memory (Engram)
+
+All agents have access to **Engram** — a local SQLite-based persistent memory system via MCP tools.
+
+### Protocol: Ask-First Mode
+
+Agents follow a strict **propose, don't auto-save** protocol:
+
+1. **During session**: Agent proposes valuable observations ("💡 Worth remembering: ..."). Waits for user approval before calling `mem_save`.
+2. **Session end**: Mandatory batch review — agent presents numbered list of potential memories with `[type]` tags. User chooses which to save.
+3. **On-demand**: User can ask for a summary at any point ("¿qué llevamos?", "hazme un resumen"). Same batch review flow.
+4. **Manual trigger**: If user says "guarda esto" / "remember this" → save immediately, no questions.
+5. **After compaction**: Call `mem_context` to recover session state.
+
+### MCP Tools Available
+- `mem_save`, `mem_search`, `mem_context`, `mem_session_summary`
+- `mem_update`, `mem_delete`, `mem_suggest_topic_key`
+- `mem_judge`, `mem_compare` (conflict resolution)
+- `mem_timeline`, `mem_get_observation`, `mem_stats`
+
+### Storage
+All data stays local in `~/.engram/engram.db`. No cloud sync unless explicitly configured.
 
 ---
 
@@ -167,3 +219,27 @@ All sub-agents use the **Token Hunter** protocol to save tokens when reporting b
 - Features requiring secrets use the `_requires_env` array in `config.json` templates.
 - If a required variable is missing, the builder will prune that feature automatically.
 - **NEVER** store secrets in backup files (`.bak`). Always use the builder for secret injection.
+
+---
+
+## 🧠 Engram Setup (One-Time)
+
+```bash
+# Install binary (AUR)
+yay -S engram-bin
+
+# Setup OpenCode integration (plugin + MCP server)
+engram setup opencode
+
+# Start HTTP server for session tracking
+engram serve &
+
+# Verify
+engram version
+engram tui
+```
+
+The plugin (`~/.config/opencode/plugins/engram.ts`) uses the **Ask-First** memory protocol:
+- Agent proposes → user approves → `mem_save`
+- Batch review at session end
+- Manual trigger: "guarda esto" → immediate save
