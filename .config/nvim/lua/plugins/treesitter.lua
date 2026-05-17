@@ -10,14 +10,9 @@ return {
 
         configs.setup({
             ensure_installed = {
-                "lua",
-                "vim",
-                "vimdoc",
-                "query",
                 "go",
                 "gomod",
                 "gosum",
-                "gowork",
                 "rust",
                 "terraform",
                 "hcl",
@@ -26,21 +21,21 @@ return {
                 "helm",
                 "dockerfile",
                 "bash",
-                "markdown",
-                "markdown_inline",
                 "proto",
                 "toml",
                 "sql",
-                "gotmpl",
-                "comment"
+                -- Markdown rendering
+                "markdown",
+                "markdown_inline",
+                "html",
             },
-            sync_install = false,
-            auto_install = true,
-            highlight = {
-                enable = true,
-                additional_vim_regex_highlighting = false,
-            },
-            indent = { enable = true },
-        })
-    end
+			sync_install = false,
+			auto_install = true,
+			highlight = {
+				enable = true,
+				additional_vim_regex_highlighting = false,
+			},
+			indent = { enable = true },
+		})
+	end,
 }

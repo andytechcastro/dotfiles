@@ -1,43 +1,62 @@
 return {
-    "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons", "catppuccin" },
-    config = function()
-        local lualine = require("lualine")
-        local lazy_status = require("lazy.status") -- to configure lazy pending updates count
+	"nvim-lualine/lualine.nvim",
+	dependencies = { "nvim-tree/nvim-web-devicons", "catppuccin" },
+	config = function()
+		local lualine = require("lualine")
+		local lazy_status = require("lazy.status")
+		local cp = require("catppuccin.palettes").get_palette("mocha")
 
-        -- Asegurarnos de que el tema de catppuccin esté disponible para lualine
-        local ok, _ = pcall(require, "catppuccin")
-        if not ok then
-            vim.notify("Catppuccin no encontrado, lualine podría fallar", vim.log.levels.WARN)
-        end
+		local my_lualine_theme = {
+			normal = {
+				a = { bg = cp.blue, fg = cp.mantle, gui = "bold" },
+				b = { bg = cp.surface0, fg = cp.text },
+				c = { bg = cp.base, fg = cp.text },
+			},
+			insert = {
+				a = { bg = cp.green, fg = cp.mantle, gui = "bold" },
+				b = { bg = cp.surface0, fg = cp.text },
+				c = { bg = cp.base, fg = cp.text },
+			},
+			visual = {
+				a = { bg = cp.mauve, fg = cp.mantle, gui = "bold" },
+				b = { bg = cp.surface0, fg = cp.text },
+				c = { bg = cp.base, fg = cp.text },
+			},
+			command = {
+				a = { bg = cp.peach, fg = cp.mantle, gui = "bold" },
+				b = { bg = cp.surface0, fg = cp.text },
+				c = { bg = cp.base, fg = cp.text },
+			},
+			replace = {
+				a = { bg = cp.red, fg = cp.mantle, gui = "bold" },
+				b = { bg = cp.surface0, fg = cp.text },
+				c = { bg = cp.base, fg = cp.text },
+			},
+			inactive = {
+				a = { bg = cp.mantle, fg = cp.overlay0, gui = "bold" },
+				b = { bg = cp.mantle, fg = cp.overlay0 },
+				c = { bg = cp.mantle, fg = cp.overlay0 },
+			},
+		}
 
-        local lualine_theme = "catppuccin"
-        local theme_ok, _ = pcall(require, "lualine.themes." .. lualine_theme)
-        if not theme_ok then
-            lualine_theme = "auto"
-        end
-
-        lualine.setup({
-            options = {
-                theme = lualine_theme,
-                component_separators = { left = "", right = "" },
-                section_separators = { left = "", right = "" },
-                disabled_filetypes = {
-                    statusline = { "alpha", "dashboard", "nvim-tree", "Outline" },
-                },
-            },
-            sections = {
-                lualine_x = {
-                    {
-                        lazy_status.updates,
-                        cond = lazy_status.has_updates,
-                        color = { fg = "#ff9e64" },
-                    },
-                    { "encoding" },
-                    { "fileformat" },
-                    { "filetype" },
-                },
-            },
-        })
-    end,
+		lualine.setup({
+			options = {
+				theme = my_lualine_theme,
+				component_separators = { left = "", right = "" },
+				section_separators = { left = "", right = "" },
+			},
+			sections = {
+				lualine_x = {
+					{
+						lazy_status.updates,
+						cond = lazy_status.has_updates,
+						color = { fg = "#ff9e64" },
+					},
+					{ "encoding" },
+					{ "fileformat" },
+					{ "filetype" },
+				},
+			},
+		})
+	end,
 }

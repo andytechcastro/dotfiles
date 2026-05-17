@@ -1,5 +1,5 @@
 return {
-    'nvim-telescope/telescope.nvim', tag = '0.1.8',
+    'nvim-telescope/telescope.nvim',
     dependencies = { 'nvim-lua/plenary.nvim' },
     cmd = "Telescope",
     keys = {
@@ -7,6 +7,6 @@ return {
         { '<leader>fg', require('telescope.builtin').live_grep, desc = 'Telescope live grep' },
         { '<leader>fb', require('telescope.builtin').buffers, desc = 'Telescope buffers' },
         { '<leader>fh', require('telescope.builtin').help_tags, desc = 'Telescope todo comments' },
-        { '<leader>fr', require('telescope.builtin').registers, desc = 'Register' },
+        { '<leader>fr', require('telescope.builtin').registers, desc = 'Telescope Registers' },
     }
 }

@@ -8,7 +8,6 @@ return {
         },
         config = function()
             require("go").setup({
-
                 disable_defaults = false, -- true|false when true set false to all boolean settings and replace all tables
                 remap_commands = {}, -- Vim commands to remap or disable, e.g. `{ GoFmt = "GoFormat", GoDoc = false }`
                 -- settings with {}; string will be set to ''. user need to setup ALL the settings
@@ -64,7 +63,14 @@ return {
                         severity = vim.diagnostic.severity.WARN, -- severity level of the diagnostics
                     },
                 },
-                diagnostic = false,
+                diagnostic = {  -- set diagnostic to false to disable vim.diagnostic.config setup,
+                    -- true: default nvim setup
+                    hdlr = false, -- hook lsp diag handler and send diag to quickfix
+                    underline = true,
+                    virtual_text = false,
+                    signs = {'', '', '', ''},  -- set to true to use default signs, an array of 4 to specify custom signs
+                    update_in_insert = false,
+                },
                 -- if you need to setup your ui for input and select, you can do it here
                 -- go_input = require('guihua.input').input -- set to vim.ui.input to disable guihua input
                 -- go_select = require('guihua.select').select -- vim.ui.select to disable guihua select
@@ -92,6 +98,7 @@ return {
                 build_tags = "tag1,tag2", -- set default build tags
                 textobjects = true, -- enable default text objects through treesittter-text-objects
                 test_runner = 'go', -- one of {`go`,  `dlv`, `ginkgo`, `gotestsum`}
+                verbose_tests = true, -- set to add verbose flag to tests deprecated, see '-v' option
                 run_in_floaterm = false, -- set to true to run in a float window. :GoTermClose closes the floatterm
                 -- float term recommend if you use gotestsum ginkgo with terminal color
 
@@ -120,6 +127,6 @@ return {
         build = ':lua require("go.install").update_all_sync()' -- if you need to install/update all binaries
     },
     {
-        "rogpeppe/godef",
+        "dgryski/vim-godef",
     }
 }

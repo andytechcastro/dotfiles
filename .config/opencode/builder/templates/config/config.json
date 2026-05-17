@@ -1,11 +1,24 @@
 {
     "$schema": "https://opencode.ai/config.json",
     "plugin": [
-        "opencode-gemini-auth@latest"
+        "opencode-gemini-auth@latest",
+        "opencode-snip@latest",
+        "envsitter-guard@latest",
+        "opencode-notify@latest",
+        "opencode-snippets@latest"
     ],
     "theme": "catppuccin",
     "autoupdate": true,
     "mcp": {
+        "engram": {
+            "type": "local",
+            "command": [
+                "/home/andres/.local/bin/engram",
+                "mcp",
+                "--tools=agent"
+            ],
+            "enabled": true
+        },
         "context7": {
             "type": "remote",
             "url": "https://mcp.context7.com/mcp",
@@ -56,6 +69,43 @@
             },
             "_requires_env": [
                 "MXBAI_API_KEY"
+            ],
+            "enabled": true
+        },
+        "gh_grep": {
+            "type": "remote",
+            "url": "https://mcp.grep.app",
+            "enabled": true
+        },
+        "postgres": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-postgres",
+                "${POSTGRES_MCP_URL}"
+            ],
+            "environment": {
+                "POSTGRES_MCP_URL": "${POSTGRES_MCP_URL}"
+            },
+            "_requires_env": [
+                "POSTGRES_MCP_URL"
+            ],
+            "enabled": true
+        },
+        "redis": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-redis",
+                "${REDIS_MCP_URL}"
+            ],
+            "environment": {
+                "REDIS_MCP_URL": "${REDIS_MCP_URL}"
+            },
+            "_requires_env": [
+                "REDIS_MCP_URL"
             ],
             "enabled": true
         },

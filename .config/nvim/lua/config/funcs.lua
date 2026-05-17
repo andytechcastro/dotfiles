@@ -1,73 +1,29 @@
 -- LazyGitToggle run a lazygit app into a terminal
 function LazyGitToggle()
-    local envs = {}
-    envs["NVIM"] = "TRUE"
-    local Terminal  = require('toggleterm.terminal').Terminal
-    local lazygit = Terminal:new({
-        cmd = "lazygit",
-        hidden = true,
-        direction = "float",
-        env = envs
-    })
-    lazygit:toggle()
+    Snacks.lazygit()
 end
 
 -- Terminal
 function TerminalDown()
-    local envs = {}
-    envs["NVIM"] = "TRUE"
-    local Terminal = require('toggleterm.terminal').Terminal
-    local horizontal = Terminal:new({
-        hidden = true,
-        direction = "horizontal",
-        env = envs
-    })
-    horizontal:toggle()
+    Snacks.terminal(nil, { win = { position = "bottom", height = 15 } })
 end
---
+
 -- Go Run execute a terminal with go run .
 function GoRun()
-    local envs = {}
-    envs["NVIM"] = "TRUE"
-    local Terminal  = require('toggleterm.terminal').Terminal
-    local lazygit = Terminal:new({
-        cmd = "go run .",
-        hidden = true,
-        direction = "float",
-        env = envs
-    })
-    lazygit:toggle()
+    Snacks.terminal("go run .", { interactive = true })
 end
+
 -- Go Test execute a terminal with gotest
 function GoTest()
-    local envs = {}
-    envs["NVIM"] = "TRUE"
-    local Terminal  = require('toggleterm.terminal').Terminal
-    local lazygit = Terminal:new({
-        cmd = "gotest ./... -v",
-        hidden = true,
-        direction = "float",
-        env = envs,
-        close_on_exit = false
-    })
-    lazygit:toggle()
+    Snacks.terminal("gotest ./... -v", { interactive = true })
 end
 
 -- Gemini Term
 function GeminiTerm()
-    local envs = {}
-    envs["NVIM"] = "TRUE"
-    local Terminal = require('toggleterm.terminal').Terminal
-    local gemini = Terminal:new({
-        cmd = "gemini",
-        hidden = true,
-        direction = "vertical",
-        on_open = function(term)
-            vim.cmd("vertical resize " .. math.floor(vim.o.columns * 0.25))
-            -- Dobles ESC for normal mode in terminal
-            vim.api.nvim_buf_set_keymap(term.bufnr, "t", "<Esc><Esc>",[[<C-\><C-n>]], { noremap = true, silent = true })
-        end,
-        env = envs
+    Snacks.terminal("gemini", { 
+        win = { 
+            position = "right", 
+            width = math.floor(vim.o.columns * 0.25)
+        }
     })
-    gemini:toggle()
 end
