@@ -1,22 +1,4 @@
 return {
-    -- Better UI for vim.ui.select and vim.ui.input
-    {
-        "stevearc/dressing.nvim",
-        lazy = true,
-        init = function()
-            ---@diagnostic disable-next-line: duplicate-set-field
-            vim.ui.select = function(...)
-                require("lazy").load({ plugins = { "dressing.nvim" } })
-                return vim.ui.select(...)
-            end
-            ---@diagnostic disable-next-line: duplicate-set-field
-            vim.ui.input = function(...)
-                require("lazy").load({ plugins = { "dressing.nvim" } })
-                return vim.ui.input(...)
-            end
-        end,
-    },
-
     -- Markdown rendering
     {
         "MeanderingProgrammer/render-markdown.nvim",
@@ -26,12 +8,49 @@ return {
             file_types = { "markdown" },
         },
     },
-    
+
+    -- Image rendering in Neovim (required for diagram.nvim)
+    {
+        "3rd/image.nvim",
+        build = false,
+        opts = {
+            backend = "kitty",
+            processor = "magick_cli",
+            integrations = {
+                markdown = {
+                    enabled = true,
+                    clear_in_insert_mode = false,
+                    download_remote_images = true,
+                    only_render_image_at_cursor = false,
+                    filetypes = { "markdown", "vimwiki" },
+                },
+            },
+            hijack_file_patterns = { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp" },
+        },
+    },
+
+    -- Mermaid & diagram rendering
+    {
+        "3rd/diagram.nvim",
+        dependencies = { "3rd/image.nvim" },
+        ft = { "markdown" },
+        opts = {
+            events = {
+                render_buffer = { "InsertLeave", "BufWinEnter", "TextChanged" },
+                clear_buffer = { "BufLeave" },
+            },
+            renderer_options = {
+                mermaid = {
+                    background = "transparent",
+                    theme = "dark",
+                    scale = 2,
+                },
+            },
+        },
+    },
+
     -- Nui (UI components, useful library to have around)
     { "MunifTanjim/nui.nvim", lazy = true },
-
-    -- Icons
-    { "echasnovski/mini.icons", version = false },
 
     -- Cursor trail effect for terminals without native support (Wezterm)
     {

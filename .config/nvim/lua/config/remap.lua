@@ -4,9 +4,9 @@
 --vim.keymap.set({'n', 'x'}, 'x', '"_x')
 --vim.keymap.set({'n', 'x'}, 'X', '"_d')
 
--- TogleTerm
-vim.keymap.set("n", "<leader>tf", ':ToggleTerm<CR>', { desc = "Terminal (Float)" }) -- ToggleTerm
-vim.keymap.set("n", "<leader>th", '<cmd>lua TerminalDown()<CR>', { desc = "Terminal (Horizontal)" }) -- ToggleTerm
+-- Terminal
+vim.keymap.set("n", "<leader>tf", function() Snacks.terminal() end, { desc = "Terminal (Float)" })
+vim.keymap.set("n", "<leader>th", function() TerminalDown() end, { desc = "Terminal (Horizontal)" })
 
 vim.keymap.set('t', '<esc>', [[<C-\><C-n>]])
 
@@ -33,8 +33,8 @@ vim.keymap.set('n', '<C-p>', ":lua require'telescope'.extensions.project.project
 vim.keymap.set('n', '<F5>', ":GoDebug -t<CR>")
 vim.keymap.set('n', '<leader>d', ":GoDebug -b<CR>", { desc="Go Debug" })
 
--- nvimtree
-vim.keymap.set('n','<TAB>', ':NvimTreeToggle<CR>')
+-- Explorer (Snacks)
+vim.keymap.set('n','<TAB>', function() Snacks.explorer() end, { desc = "File Explorer" })
 
 -- TODO Comment
 vim.keymap.set("n", "]t", function()
@@ -49,8 +49,14 @@ vim.keymap.set("n", "<leader>ft", ":TodoTelescope<CR>", { desc = "Telescope Todo
 
 -- Oil
 vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
+vim.keymap.set("n", "<leader>-", "<CMD>Oil --float<CR>", { desc = "Open parent directory (float)" })
 
 -- Go
 vim.keymap.set("n", "<leader>ttr", "<cmd>lua GoRun()<CR>", {desc = "go run .", noremap = true, silent = true})
 vim.keymap.set("n", "<leader>ttt", "<cmd>lua GoTest()<CR>", {desc = "go run .", noremap = true, silent = true})
 vim.keymap.set("n", "<leader>ttg", "<cmd>lua GeminiTerm()<CR>", {desc = "Gemini", noremap = true, silent = true})
+
+-- OpenCode
+vim.keymap.set("n", "<leader>og", ":GraphifyUpdate<CR>", {desc = "Graphify Update", noremap = true, silent = true})
+vim.keymap.set("n", "<leader>oh", ":HexCheck<CR>", {desc = "Hexagonal Check", noremap = true, silent = true})
+vim.keymap.set("n", "<leader>ob", ":OpenCodeBuild<CR>", {desc = "OpenCode Build", noremap = true, silent = true})
