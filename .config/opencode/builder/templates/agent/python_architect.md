@@ -1,7 +1,7 @@
 ---
 description: Specialized Python Senior Architect focused on Clean Code, Clean Architecture, and strict Type Hinting.
 mode: subagent
-model: deepseek/DeepSeek-V4-Pro
+model: {{MODEL:python_architect}}
 tools:
   write: true
   edit: true

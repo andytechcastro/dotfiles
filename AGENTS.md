@@ -1,87 +1,169 @@
-# AGENTS.md - Technical Instructions for AI Agents
+# OpenCode Agent Engineering Guide
 
-This repository contains system dotfiles and a modular AI agent framework (OpenCode). You are an agentic coding assistant operating in this environment.
+> **WARNING:** DO NOT EDIT FILES IN `.config/opencode/agent/` DIRECTLY.
+> They are generated artifacts. Your changes will be overwritten.
+> Edit templates in `.config/opencode/builder/templates/` instead.
 
----
+## 🏗 Architecture
 
-## 🎭 Persona: Lead Platform Engineer
-You are a Lead Platform Engineer (15+ years exp, GDE on GCP).
-- **Core Values**: Reliability, Scalability, and Developer Experience (DX).
-- **Attitude**: Direct, confrontational, zero patience for "tutorial-driven" engineering.
-- **Goal**: Architect platforms, not just apps. Use modern CLI tools and clean patterns.
+This repository uses a **GitOps-style Builder Pattern** to generate AI Agent configurations. It also contains platform tools and dotfiles.
 
----
+```text
+.config/opencode/
+├── builder/                  # The Build System (Go)
+│   ├── main.go               # The Compiler — compiles templates → agents + config
+│   └── templates/            # SOURCE OF TRUTH
+│       ├── agent/            # Agent templates (YAML frontmatter + {file:} includes)
+│       │   ├── commander.md
+│       │   ├── PE.md
+│       │   ├── go_architect.md
+│       │   ├── python_architect.md
+│       │   ├── frontend_architect.md
+│       │   ├── qa_architect.md
+│       │   └── security_architect.md
+│       ├── config/
+│       │   └── config.json   # Config template (${VAR} substitution + _requires_env)
+│       └── model_profiles.json # Model profiles (opencodego, gemini, etc.)
+├── prompts/                 # Reusable Behavior Libraries (included via {file:})
+│   ├── behavior.md           # Shared behavioral rules (never be a yes-man, wait for user)
+│   ├── commander_behavior.md # Commander-specific orchestration protocol
+│   ├── commander_identity.md # Commander persona
+│   ├── pe_behavior.md        # PE operating protocol
+│   ├── pe_identity.md        # PE persona
+│   ├── specialist_identity.md # Shared identity for all sub-agents
+│   ├── frontend_behavior.md  # Frontend architect protocol
+│   ├── qa_behavior.md        # QA SDET protocol
+│   ├── security_behavior.md # Security architect protocol
+│   ├── caveman_behavior.md   # Token-saving protocol for sub-agents
+│   ├── engram_memory.md      # Engram Ask-First memory protocol
+│   ├── lean_technical_behavior.md # Concise communication rules
+│   ├── language.md           # Language detection (Spanish ↔ English)
+│   ├── subagent_behavior.md  # Sub-agent integrity rules
+│   └── tools_rules.md        # Preferred CLI tools (bat, rg, fd, etc.)
+├── agent/                    # ⚠️ GENERATED OUTPUT (Do not edit — run builder)
+├── tool/                     # Platform Tools (TS/Bun & Go)
+│   ├── hex_check.go         # Hexagonal architecture validator (Go)
+│   ├── hexagonal-validator.ts # OpenCode tool wrapper for hex_check.go
+│   ├── k8s-pod-doctor.ts    # Kubernetes pod diagnostic tool
+│   ├── mgrep.ts              # Semantic search tool (MxBai API)
+│   ├── tofu-scan.ts          # Trivy-based IaC security scanner
+│   └── graphify.sh           # Graphify wrapper (ensures PATH)
+├── skill/                   # OpenCode Skills (loaded on-demand)
+│   ├── hexagonal-architect/  # Go hexagonal architecture enforcement
+│   ├── infra-security-check/ # Trivy security scanning skill
+│   └── production-log-analyzer/ # Datadog log analysis skill
+├── command/                  # Custom slash commands
+│   ├── infra-scan.md         # Security & infra scan (uses PE agent)
+│   └── k8s-doctor.md         # K8s pod diagnostics (uses PE agent)
+├── plugins/                  # OpenCode TUI + Runtime Plugins
+│   ├── graphify.js            # Knowledge graph reminders
+│   └── engram.ts              # Engram session tracking + compaction hooks
+├── opencode.json             # ⚠️ GENERATED (secrets injected — gitignored)
+└── tui.json                  # TUI theme + plugins config
+```
 
-## 🏗️ Repository Architecture
-We follow the **Builder Pattern** for agent configuration. **NEVER** edit generated files (`config.json` or `agent/*.md`) directly.
-- `.config/opencode/builder/`: Go engine to compose prompts and inject secrets.
-- `.config/opencode/prompts/`: Modular prompt components (Identity, Rules, Engram Memory Protocol).
-- `.config/opencode/builder/templates/`: Base templates for agents and config (SOURCE OF TRUTH).
-- `.config/opencode/tool/`: Platform tools (TS/Bun & Go).
-- `.config/opencode/skill/`: On-demand skills (hexagonal-architect, infra-security-check, etc.).
-- `.config/opencode/command/`: Custom slash commands.
-- `.config/nvim/`: Modular Neovim configuration (Lua).
-- `.config/wezterm/`: Terminal emulator config (Lua).
+## 🛠 Build System
 
----
+### How It Works
 
-## 🤖 Agent Roster & Models (OpenCode Go Tier)
+1. **Agent Templates** (`.md` files) contain YAML frontmatter + `{file:prompts/...}` include directives.
+2. **Model Profiles** (`model_profiles.json`) define which model each agent uses. Templates reference models via `{{MODEL:key}}` placeholders.
+3. The **Go Builder** (`main.go`) reads all agent templates, resolves `{file:}` includes and `{{MODEL:xxx}}` placeholders, and writes the compiled output to `agent/`.
+4. The **Config Template** (`config.json`) uses `${ENV_VAR}` substitution, `{{MODEL:xxx}}` resolution, and `_requires_env` arrays. If a required env var is missing, the entire MCP entry is removed from the output.
 
-| Agent | Model | Role | Mode |
-|-------|-------|------|------|
-| `commander` | `qwen/Qwen3.6-Plus` | Orchestrator. Plans, delegates, verifies. No code. | primary |
-| `PE` | `deepseek/DeepSeek-V4-Pro` | Platform Engineer. IaC, K8s, CI/CD, platform glue. | subagent |
-| `go_architect` | `deepseek/DeepSeek-V4-Pro` | Go specialist. Clean Architecture, SOLID. | subagent |
-| `python_architect` | `deepseek/DeepSeek-V4-Pro` | Python specialist. Type-safe, modern Python. | subagent |
-| `frontend_architect` | `qwen/Qwen3.6-Plus` | UX/UI + Frontend. Next.js 15, React 19. | subagent |
-| `qa_architect` | `kimi/Kimi-K2.6` | QA SDET. Regression, E2E, performance. | subagent |
-| `security_architect` | `kimi/Kimi-K2.6` | Security auditor. IaC, secrets, least-privilege. | subagent |
+### Building
 
-**Small Model**: `deepseek/DeepSeek-V4-Flash` — Used for trivial tasks (summarization, quick lookups) to save quota.
+```bash
+# 1. Export secrets
+export ATLASSIAN_DOMAIN='...'
+export ATLASSIAN_EMAIL='...'
+export ATLASSIAN_API_TOKEN='...'
+export TAVILY_API_KEY='...'
+export MXBAI_API_KEY='...'
 
----
+# 2. Run the builder (default profile: opencodego)
+cd .config/opencode/builder && go run main.go
 
-## 🔐 Bash Permission Model (Deny-First)
+# Or use a specific model profile
+MODEL_PROFILE=gemini go run main.go
+```
+
+The builder will:
+- Load the active model profile from `model_profiles.json`
+- Compile all agent templates → `agent/*.md`
+- Resolve `{{MODEL:xxx}}` placeholders with profile values
+- Generate `opencode.json` with env vars substituted
+- Remove MCP entries with missing required env vars
+- Log ✅/🚫 for each MCP entry's status
+
+### Model Profiles
+
+Models are **not hardcoded** in agent templates. Instead, each profile in `model_profiles.json` defines the full roster:
+
+```bash
+# Default profile (current setup)
+go run main.go
+
+# Switch to Gemini
+MODEL_PROFILE=gemini go run main.go
+```
+
+| Profile | Commander | Workers | small_model |
+|---------|-----------|---------|-------------|
+| `opencodego` | qwen3.6-plus | deepseek-v4-pro / kimi-k2.6 | deepseek-v4-flash |
+| `gemini` | gemini-3.1-pro | gemini-3.1-pro / gemini-3.5-flash | gemini-3.5-flash |
+
+To add a new profile, add an entry to `model_profiles.json` with keys matching all `{{MODEL:key}}` placeholders used in templates.
+
+### Adding a New Agent
+
+1. Create `.config/opencode/builder/templates/agent/my_agent.md` with YAML frontmatter.
+2. Use `{file:prompts/...}` to include shared behavior libraries.
+3. Add `permission.bash` allow/deny rules.
+4. Run `cd .config/opencode/builder && go run main.go` to regenerate.
+
+### Adding a New MCP
+
+1. Add the MCP entry to `.config/opencode/builder/templates/config/config.json`.
+2. Use `${ENV_VAR}` for secrets and add `"_requires_env": ["ENV_VAR"]` to conditionally include it.
+3. Re-export secrets and rebuild.
+
+### Adding a New Plugin
+
+1. Place the plugin file in `.config/opencode/builder/templates/plugins/` (e.g., `engram.ts`).
+2. Add the relative path to the `plugin` array in `config.json` (e.g., `"./plugins/engram.ts"`).
+3. For TUI plugins, also install via npm: `npm install <plugin-name>` in `.config/opencode/`.
+4. Add the plugin name to `tui.json` `plugin` array.
+5. Re-export secrets and rebuild.
+
+## 🤖 Agent Roster & Permissions
+
+### Agent Roles
+
+| Agent | Model (opencodego) | Model (gemini) | Role | Mode |
+|-------|-------------------|----------------|------|------|
+| `commander` | qwen3.6-plus | gemini-3.1-pro | Orchestrator. Plans, delegates, verifies. No code. | primary |
+| `PE` | deepseek-v4-pro | gemini-3.1-pro | Platform Engineer. Infra, CI/CD, platform glue. | subagent |
+| `go_architect` | deepseek-v4-pro | gemini-3.1-pro | Go specialist. Clean Architecture, SOLID. | subagent |
+| `python_architect` | deepseek-v4-pro | gemini-3.1-pro | Python specialist. Type-safe, modern Python. | subagent |
+| `frontend_architect` | qwen3.6-plus | gemini-3.1-pro | UX/UI + Frontend. Next.js 15, React 19. | subagent |
+| `qa_architect` | kimi-k2.6 | gemini-3.5-flash | QA SDET. Regression, resilience, performance. Long context for logs. | subagent |
+| `security_architect` | kimi-k2.6 | gemini-3.5-flash | Security auditor. IaC, secrets, least-privilege. Long context for scans. | subagent |
+
+### Bash Permission Model
 
 All agents use a **deny-first** model: explicit deny rules are evaluated first, then `"*": allow` as catch-all. This eliminates nuisance permission prompts for command variants (flags, pipes, paths) while maintaining security guardrails.
 
-### Format (inline map with comments)
-
-Permissions use an inline key-value format with section comments for readability:
-
-```yaml
-permission:
-  write: ask
-  edit: ask
-  bash:
-    # --- Destructive operations (ALWAYS DENY — evaluated first) ---
-    "rm -rf /": deny
-    "rm -rf *": deny
-    "rm -rf /*": deny
-    "mkfs*": deny
-    "dd *": deny
-    "sudo rm*": deny
-    "chmod -R 777 /": deny
-    # --- Git write operations (sub-agents are read-only on git) ---
-    "git add*": deny
-    ...
-    # --- Network (no outbound from sub-agents) ---
-    "curl*": deny
-    ...
-    # --- Sub-agents get full access to everything else ---
-    "*": allow
+#### Commander (Full Access)
 ```
-
-### Commander (Full Access)
-```
-🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd *, sudo rm*, chmod -R 777 /
+🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
 ✅ Everything else: ALLOW (no prompts)
 ```
 The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
 
-### Sub-Agents (Read + Build — No Git Write, No Network)
+#### Sub-Agents (Read + Build — No Git Write, No Network)
 ```
-🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd *, sudo rm*, chmod -R 777 /
+🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
 🚫 GIT WRITE: git add, commit, push, pull, merge, rebase, reset, checkout, stash, cherry-pick
 🚫 NETWORK: curl, wget, nc
 🚫 macOS SECURITY: security, sysctl
@@ -89,110 +171,7 @@ The Commander is the orchestrator — it needs unrestricted bash access to coord
 ```
 Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
 
----
-
-## 🧠 Persistent Memory (Engram)
-
-All agents have access to **Engram** — a local SQLite-based persistent memory system via MCP tools.
-
-### Protocol: Ask-First Mode
-
-Agents follow a strict **propose, don't auto-save** protocol:
-
-1. **During session**: Agent proposes valuable observations ("💡 Worth remembering: ..."). Waits for user approval before calling `mem_save`.
-2. **Session end**: Mandatory batch review — agent presents numbered list of potential memories with `[type]` tags. User chooses which to save.
-3. **On-demand**: User can ask for a summary at any point ("¿qué llevamos?", "hazme un resumen"). Same batch review flow.
-4. **Manual trigger**: If user says "guarda esto" / "remember this" → save immediately, no questions.
-5. **After compaction**: Call `mem_context` to recover session state.
-
-### MCP Tools Available
-- `mem_save`, `mem_search`, `mem_context`, `mem_session_summary`
-- `mem_update`, `mem_delete`, `mem_suggest_topic_key`
-- `mem_judge`, `mem_compare` (conflict resolution)
-- `mem_timeline`, `mem_get_observation`, `mem_stats`
-
-### Storage
-All data stays local in `~/.engram/engram.db`. No cloud sync unless explicitly configured.
-
----
-
-## 🛠️ Build & Development Commands
-
-### 1. OpenCode Builder (Go)
-Located in `.config/opencode/builder/`.
-- **Run Builder**: `go run main.go` (Builds agents and config)
-- **Lint**: `go vet ./...`
-- **Format**: `go fmt ./...`
-- **Test (All)**: `go test ./...`
-- **Test (Single)**: `go test -v -run <TestName> ./path/to/package`
-- **Build Binary**: `go build -o builder main.go`
-
-### 2. OpenCode SDK (Node/Bun)
-Located in `.config/opencode/`.
-- **Install**: `bun install`
-- **Update**: `bun update`
-- **Test**: `bun test`
-- **Test (Single File)**: `bun test <path/to/file.test.ts>`
-
-### 3. System Management
-- **Sync Dotfiles**: `./install-tools.sh` (Arch Linux focus)
-- **Check Status**: `alias dotfiles='/usr/bin/git --git-dir="$HOME/.dotfiles/" --work-tree="$HOME"'; dotfiles status`
-- **Reload Shell**: `source ~/.zshrc`
-
----
-
-## 📜 Code Style & Guidelines
-
-### 1. General Principles
-- **Clean Architecture**: Keep logic (Builder) separated from data (templates/prompts).
-- **CLI over GUI**: Prefer terminal-based solutions. Always use modern alternatives.
-- **Minimalism**: Standard library first. Avoid external dependencies unless strictly necessary.
-
-### 2. Go (Golang)
-- **Error Handling**: **ALWAYS** handle errors explicitly. Use error wrapping: `fmt.Errorf("context: %w", err)`.
-- **Imports**: Group stdlib first, then external/local. Use `goimports`.
-- **Naming**: `PascalCase` for constants and exports; `camelCase` for locals.
-- **Modularity**: Avoid package-level state. Use structs and methods.
-
-### 3. Lua (Neovim)
-- **Plugin Loading**: Use `lazy.nvim` patterns.
-- **Cond vs Enabled**:
-  - Use `enabled = true/false` to install/uninstall a plugin.
-  - Use `cond = <boolean>` to conditionally load it without triggering uninstallation.
-- **Structure**: Keep `require("config.xxx")` for logical separations.
-
-### 4. Shell (Modern Toolchain)
-**NEVER** use legacy commands when modern alternatives exist:
-- **Search**: `rg` (ripgrep) > `grep`
-- **Find**: `fd` > `find`
-- **Replace**: `sd` > `sed`
-- **View**: `bat` > `cat`
-- **List**: `eza` > `ls`
-- **Structural Replace**: `sg` (ast-grep) > `sed`
-- **Semantic Search**: `mgrep` (cost-sensitive, use sparingly)
-- **Knowledge Graph**: `graphify` (source of truth for architecture)
-
----
-
-## 🤖 Agent Interaction Protocol
-
-1. **Plan First**: Use `todowrite` to create an atomic, verifiable plan.
-2. **Verify**: Every change must be verified.
-   - Go: `go run main.go`
-   - Neovim: Check syntax/errors after editing.
-   - Config: Validate JSON structure.
-3. **Git Protocol**:
-   - Only commit when explicitly requested.
-   - Conventional Commits: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`.
-   - **SECURITY**: Never commit `config.json` or `.env` files. Check `.gitignore`.
-4. **Tool Mastery**:
-   - Use `rg --json` for programmatic parsing.
-   - Use `fd -x` to execute commands on multiple files.
-   - Use `bat -p` for clean output when piping.
-
----
-
-## 🔄 Sub-Agent Communication Protocol (Caveman Mode)
+### Sub-Agent Communication Protocol (Caveman Mode)
 
 All sub-agents use the **Token Hunter** protocol to save tokens when reporting back to the Commander:
 
@@ -201,45 +180,159 @@ All sub-agents use the **Token Hunter** protocol to save tokens when reporting b
 3. **Technical only**: Use technical terms, paths, and results.
 4. **Format**: Problem? State it. Fix? Code block. Result? Done.
 
-**Example**: `User model updated. Field added.` instead of `I have updated the user model and added the new field.`
+**Example:** `User model updated. Field added.` instead of `I have updated the user model and added the new field.`
 
----
+## 🧠 Persistent Memory (Engram)
 
-## 🔍 Exploration Guide
-- **Understand Tree**: `eza --tree -L 2`
-- **Deep Search**: `rg "pattern" .`
-- **Find Configs**: `fd -e lua -e json -e yaml`
-- **Read Logic**: `bat .config/opencode/builder/main.go`
-- **Knowledge Graph**: `graphify update .` then read `graphify-out/GRAPH_REPORT.md`
+All agents have access to **Engram** persistent memory via MCP tools + the OpenCode plugin. Memory survives sessions and compactions.
 
----
+### How It Works
 
-## 🛡️ Security & Environment
-- Secret injection happens via `${VAR}` placeholders in templates.
-- Features requiring secrets use the `_requires_env` array in `config.json` templates.
-- If a required variable is missing, the builder will prune that feature automatically.
-- **NEVER** store secrets in backup files (`.bak`). Always use the builder for secret injection.
+| Component | Role |
+|-----------|------|
+| **Plugin (`engram.ts`)** | Session tracking, prompt capture, auto-compaction recovery, system prompt injection |
+| **MCP Server (`engram mcp --tools=agent`)** | 15 memory tools available to agents (save, search, context, sessions) |
+| **SQLite (`~/.engram/engram.db`)** | Local storage — no cloud, no sync unless explicitly configured |
 
----
+### Ask-First Protocol
 
-## 🧠 Engram Setup (One-Time)
+Agents **NEVER save automatically**. The protocol is:
+
+1. **Propose:** Agent says `"💡 I noticed something worth remembering: <brief>. Save it?"`
+2. **Approve:** User says "yes" → agent calls `mem_save`
+3. **Reject:** User says "no" → nothing saved
+
+**Immediate saves:** If the user says "remember this", "save this", "guarda esto" — agent saves immediately without asking.
+
+### Session End Protocol
+
+Before ending a session, agents MUST:
+1. Present a numbered list of potential memories with `[type]` tags
+2. Ask the user which ones to save
+3. Call `mem_save` only for approved items
+4. Call `mem_session_summary` with a concise recap
+
+### After Compaction
+
+If context is reset, agents call `mem_session_summary` first, then `mem_context` to recover state. The plugin also injects context automatically during compaction.
+
+### CLI Commands
 
 ```bash
-# Install binary (AUR)
-yay -S engram-bin
-
-# Setup OpenCode integration (plugin + MCP server)
-engram setup opencode
-
-# Start HTTP server for session tracking
-engram serve &
-
-# Verify
-engram version
-engram tui
+engram tui                    # Visual memory browser
+engram search "auth bug"      # Search from terminal
+engram projects list          # List all projects with memory counts
+engram sync                   # Export memories to .engram/ for git sharing
+engram sync --import          # Import memories on another machine
 ```
 
-The plugin (`~/.config/opencode/plugins/engram.ts`) uses the **Ask-First** memory protocol:
-- Agent proposes → user approves → `mem_save`
-- Batch review at session end
-- Manual trigger: "guarda esto" → immediate save
+### TUI Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `opencode-subagent-statusline` | Shows sub-agent activity in sidebar (time, tokens, status) |
+| `opencode-sdd-engram-manage` | SDD profile management + Engram memory browser from TUI |
+
+> **Note:** TUI plugins require OpenCode >= 1.14.48. They are installed via npm but won't activate until OpenCode is updated.
+
+## 🔐 Secrets & Security
+
+### What's Gitignored
+
+- `opencode.json` — Contains API tokens (generated from template)
+- `agent/` directory — Generated output (rebuilt from templates)
+- `*.bak` files — Never commit backups
+- `node_modules`, `package.json`, `bun.lock` — NPM artifacts
+- `~/.engram/` — Local SQLite memory database (never committed)
+
+### The `.bak` Lesson
+
+A `opencode.json.tui-migration.bak` file was found containing plaintext API tokens. **Never store secrets in backup files.** The builder handles secret injection via `${ENV_VAR}` substitution — always use the builder, never hand-edit `opencode.json`.
+
+## 📜 Code Style & Tooling Guidelines
+
+### Preferred Tooling (Updated May 2026)
+We do not use legacy commands. Use these modern alternatives:
+
+| Legacy | Modern | Purpose | Install | Notes |
+|--------|--------|---------|---------|-------|
+| `cat` | `bat` | Syntax-highlighted file viewing | `yay -S bat` | Use `bat -p` for plain output |
+| `grep` | `rg` (ripgrep) | Fast content search | `yay -S ripgrep` | Use `rg -t ts` to filter by file type |
+| `find` | `fd` | Fast file search | `yay -S fd` | Use `fd -e ts` for extensions |
+| `sed` | `sd` | In-place find/replace | `yay -S sd` | Supports regex groups: `sd '(\w+)' '$1_suffix'` |
+| `ls` | `eza` | Beautiful file listing | `yay -S eza` | Use `eza --tree` for directory trees |
+| `grep -A` | `grep-ast` | Context-aware search with scope | `pip install grep-ast` | Shows function/class context around matches |
+| `sed` (structural) | `sg` (ast-grep) | AST-based code search/replace | `yay -S ast-grep` | For complex refactoring where regex breaks syntax |
+| — | `mgrep` | Semantic search (cost-sensitive) | Custom tool | Use for concepts, NOT exact strings |
+| — | `graphify` | Knowledge graph (source of truth) | `yay -S graphify` | Always check before architecture work |
+| — | `repomix` | Pack directories for LLM consumption | `npm install -g repomix` | Use `repomix src/ -o context.xml` |
+| `pip` | `uv` | Ultra-fast Python package manager | `yay -S uv` | Drop-in replacement, much faster |
+| `make` | `just` | Modern command runner | `yay -S just` | Better syntax than Makefiles |
+
+### General Principles
+*   **Platform over Apps:** Build tools that other developers can use.
+*   **Reliability & DX:** If a tool is hard to run or fails silently, it's trash.
+*   **Hexagonal Architecture:** Dependencies flow inwards. Domain must NOT import infrastructure.
+
+### Go Style
+*   **Imports:** Group standard library first, then third-party. Use `goimports`.
+*   **Formatting:** Strict `gofmt`.
+*   **Error Handling:**
+    *   Always check `if err != nil`.
+    *   In CLI tools: Print error to stderr and `os.Exit(1)`.
+    *   In libraries: Wrap errors with context: `fmt.Errorf("failed to process X: %w", err)`.
+*   **Naming:**
+    *   Structs/Interfaces: `CamelCase`.
+    *   Receivers: Short (e.g., `p` for `Processor`).
+    *   Variables: Concise but descriptive.
+*   **Modern Go:** Use `os.ReadFile`/`os.WriteFile` (NOT `ioutil` — deprecated since Go 1.16). Use `os.ReadDir` (NOT `ioutil.ReadDir`).
+
+### TypeScript (Bun) Style
+*   **Environment:** Use `Bun` APIs (e.g., `Bun.$`, `Bun.file`) over Node.js equivalents.
+*   **Tools:** Define tools using the `@opencode-ai/plugin` SDK.
+*   **Types:** Strict typing with TypeScript. Use `zod` for argument validation.
+*   **Formatting:** 2 spaces, no semicolons (unless required).
+
+### Lua (Neovim/Wezterm) Style
+*   **Modularity:** Keep `config/set.lua`, `config/remap.lua`, etc., separate.
+*   **Lazy Loading:** Use `lazy.nvim` for all plugin configurations.
+*   **Convention:** Use `local` variables to avoid polluting the global namespace.
+
+## 🤖 Rules for Agents (Cursor/Copilot/OpenCode)
+
+1.  **Context First:** Before touching code, ALWAYS check if there is an `AGENTS.md` or `graphify-out/` in the current project root.
+2.  **Graphify is MANDATORY:** `graphify` (aka `graphifyy`) is a global tool available at `~/.local/bin/graphify`. It is the source of truth for architecture and god nodes.
+    - **Bootstrap new projects:** If `graphify-out/` is missing, run `graphify opencode install && graphify update .`.
+    - **Handling Dot-Folders:** `graphify` ignores folders starting with `.`. If the code is in `.config/` or similar, use a temporary symlink: `ln -s .config/foo src_foo && graphify update src_foo && rm src_foo`.
+    - **NO Platform Skills:** DO NOT run `graphify gemini install`, `graphify cursor install`, etc. We use the **OpenCode integration** (`graphify opencode install`) which uses `.opencode/plugins/graphify.js`.
+3.  **Persona:** All agents are "Spaniard Platform Engineers". Use Spain-Spanish (Castellano) slang if the user writes in Spanish.
+4.  **Zero Patience for Mediocrity:** If code violates architectural rules (like Hexagonal), fail the build and explain WHY.
+5.  **Shebang Convention:** Use `#!/usr/bin/env bash` (portable) instead of `#!/bin/bash` (macOS-specific).
+
+## 🚫 Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Generated files missing | Run `cd .config/opencode/builder && go run main.go` |
+| Missing Tools | Ensure `bun`, `go`, and `envsubst` are installed |
+| Architecture Violation | Run `go run .config/opencode/tool/hex_check.go` in the project root |
+| MCP server fails to connect | Check that the required env vars are set for that MCP entry |
+| `tavily` MCP not appearing | Export `TAVILY_API_KEY` and rebuild: `cd .config/opencode/builder && go run main.go` |
+| Agent can't execute commands | Check `permission.bash` in the agent template — may need to add `bash: true` to `tools` |
+| Custom command uses disabled agent | Check `command/*.md` — ensure `agent:` field points to an enabled agent |
+| Builder uses deprecated Go APIs | Use `os.ReadFile`/`os.WriteFile`/`os.ReadDir` instead of `ioutil` |
+| Model profile not found | Check `model_profiles.json` — profile name must match exactly. Set `MODEL_PROFILE=opencodego` or `MODEL_PROFILE=gemini` |
+| Unknown model key warning | Template uses `{{MODEL:xxx}}` but key is missing from active profile in `model_profiles.json` |
+| Engram plugin not working | Ensure `engram` binary is installed (`yay -S engram-bin`) |
+| TUI plugins not visible | Requires OpenCode >= 1.14.48. Check with `opencode --version` |
+| Agent saves memories without asking | Verify `engram_memory.md` prompt includes Ask-First rules. Rebuild if needed. |
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+- If "No code files found", try specific directories: `graphify update src/` or adapt to project structure

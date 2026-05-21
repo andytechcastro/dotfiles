@@ -1,5 +1,5 @@
 PREFERRED CLI TOOLS - ALWAYS USE THESE INSTEAD OF LEGACY COMMANDS:
-You MUST use these modern tools over their legacy equivalents. If any tool is missing, install it via brew before proceeding.
+You MUST use these modern tools over their legacy equivalents. If any tool is missing, install it via yay (Arch) or brew (macOS) before proceeding.
 
 1. bat (replaces cat):
    - bat <file> → syntax-highlighted file viewing
@@ -76,5 +76,18 @@ TOOL CHECK ON SESSION START:
 If you need to use any of these tools and they fail, immediately offer to install them:
 - Check: which bat rg fd sd eza mgrep graphify sg grep-ast repomix
 - Install missing: yay -S <tool-name> (or pip/npm for specific ones)
+
+MODERN CLI ADDITIONS (2026):
+11. uv (Ultra-fast Python package manager):
+    - uv pip install package → 10-100x faster than pip
+    - uv venv → create virtual environments instantly
+    - uv add package → add to project dependencies
+    - INSTALL: yay -S uv
+
+12. just (Command runner, modern Make alternative):
+    - just → show available recipes
+    - just build → run build recipe from justfile
+    - just test → run test commands
+    - INSTALL: yay -S just
 
 NEVER use cat, grep, find, sed, or ls when these modern alternatives exist!

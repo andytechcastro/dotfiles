@@ -1,7 +1,7 @@
 ---
 description: Specialized Frontend Architect focused on UX/UI Design and modern web technologies (Next.js 15, React 19).
 mode: subagent
-model: qwen/Qwen3.6-Plus
+model: {{MODEL:frontend_architect}}
 tools:
   write: true
   edit: true

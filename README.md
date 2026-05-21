@@ -97,7 +97,7 @@ Setup modular con **lazy.nvim** como plugin manager.
 | **Python** | pyright |
 | **YAML/JSON** | yamlls/jsonls |
 | **SQL** | sqlls |
-| **CSV** | csv-ls |
+| **CSV** | rainbow_csv.nvim (coloreado por columnas) |
 
 #### Plugins Principales:
 | Categoría | Plugins |
@@ -106,7 +106,7 @@ Setup modular con **lazy.nvim** como plugin manager.
 | **Git** | Fugitive, gitsigns, diffview, lazygit |
 | **Debug** | dap (DAP), nvim-dap-ui |
 | **UI** | lualine, catppuccin, todo-comments, whichkey |
-| **Utilidades** | oil (file manager), undotree, flash, autopairs, smart-splits |
+| **Utilidades** | oil (file manager), undotree, flash, autopairs, smart-splits, fidget (LSP progress), lazydev (Lua types) |
 | **Terminal** | Snacks Terminal (integrado) |
 
 **Archivo**: `.config/nvim/init.lua` y subdirectorios
@@ -162,21 +162,33 @@ Prompt minimalista escrito en Rust.
 
 ### 8. **OpenCode: Sistema de Agentes IA**
 
-Framework de agentes de IA modular y extensible para Platform Engineering, con modelo de permisos **Deny-First** y asignación de modelos optimizada para el tier **OpenCode Go**.
+Framework de agentes de IA modular y extensible para Platform Engineering, con modelo de permisos **Deny-First** y **Model Profiles** para cambiar de proveedor sin tocar templates.
 
 > 📄 **Documentación detallada**: Ver [`AGENTS.md`](AGENTS.md) para arquitectura builder, configuración de secretos, MCPs y protocolo de agentes.
 
 #### 🤖 Agentes Disponibles
 
-| Agente | Modelo | Rol |
-|--------|--------|-----|
-| **commander** | `qwen/Qwen3.6-Plus` | Orquestador principal. Planifica, delega y verifica. |
-| **PE** | `deepseek/DeepSeek-V4-Pro` | Platform Engineer. IaC, K8s, CI/CD, infra. |
-| **go_architect** | `deepseek/DeepSeek-V4-Pro` | Go Senior. Clean Architecture, SOLID. |
-| **python_architect** | `deepseek/DeepSeek-V4-Pro` | Python Senior. Type-safe, modern Python. |
-| **frontend_architect** | `qwen/Qwen3.6-Plus` | UX/UI + Frontend. Next.js 15, React 19. |
-| **qa_architect** | `kimi/Kimi-K2.6` | QA SDET. Regression, E2E, performance. |
-| **security_architect** | `kimi/Kimi-K2.6` | Security Auditor. IaC, secrets, vulnerabilidades. |
+| Agente | Modelo (opencodego) | Modelo (gemini) | Rol |
+|--------|---------------------|-----------------|-----|
+| **commander** | `qwen/Qwen3.6-Plus` | `google/gemini-3.1-pro` | Orquestador principal. Planifica, delega y verifica. |
+| **PE** | `deepseek/DeepSeek-V4-Pro` | `google/gemini-3.1-pro` | Platform Engineer. IaC, K8s, CI/CD, infra. |
+| **go_architect** | `deepseek/DeepSeek-V4-Pro` | `google/gemini-3.1-pro` | Go Senior. Clean Architecture, SOLID. |
+| **python_architect** | `deepseek/DeepSeek-V4-Pro` | `google/gemini-3.1-pro` | Python Senior. Type-safe, modern Python. |
+| **frontend_architect** | `qwen/Qwen3.6-Plus` | `google/gemini-3.1-pro` | UX/UI + Frontend. Next.js 15, React 19. |
+| **qa_architect** | `kimi/Kimi-K2.6` | `google/gemini-3.5-flash` | QA SDET. Regression, E2E, performance. |
+| **security_architect** | `kimi/Kimi-K2.6` | `google/gemini-3.5-flash` | Security Auditor. IaC, secrets, vulnerabilidades. |
+
+#### 🔄 Model Profiles
+
+Los modelos no están hardcodeados. Se gestionan via `model_profiles.json`:
+
+```bash
+# Default (opencodego)
+cd .config/opencode/builder && go run main.go
+
+# Cambiar a Gemini
+MODEL_PROFILE=gemini go run main.go
+```
 
 #### 🧠 Memoria Persistente (Engram)
 
@@ -210,9 +222,12 @@ bash:
 # Exporta tus claves (solo las que tengas)
 export BRAVE_API_KEY="BSA-xxxxx"
 
-# Regenerar agentes y configs
+# Regenerar agentes y configs (default: opencodego)
 cd .config/opencode/builder
 go run main.go
+
+# O cambiar a Gemini
+MODEL_PROFILE=gemini go run main.go
 ```
 
 ---
@@ -326,10 +341,16 @@ dotfiles/
 │   ├── ghostty/                # Ghostty config
 │   ├── fastfetch/              # Fastfetch config
 │   ├── opencode/               # Sistema de agentes IA
-│   │   ├── builder/            # Motor Go (inyección de secretos)
+│   │   ├── builder/            # Motor Go (inyección de secretos + model profiles)
+│   │   │   ├── main.go         # Builder engine
 │   │   │   └── templates/      # SOURCE OF TRUTH
-│   │   ├── prompts/            # Módulos de prompts reutilizables
-│   │   │   └── engram_memory.md # Protocolo Ask-First de memoria
+│   │   │       ├── agent/      # Agent templates ({{MODEL:xxx}} placeholders)
+│   │   │       ├── config/     # Config template (${VAR} + _requires_env)
+│   │   │       └── model_profiles.json # Perfiles de modelos (opencodego, gemini)
+│   │   ├── prompts/            # Módulos de prompts reutilizables (16 archivos)
+│   │   │   ├── behavior.md     # Reglas compartidas (no yes-man, planning)
+│   │   │   ├── commander_*.md  # Identity + behavior del Commander
+│   │   │   ├── engram_memory.md # Protocolo Ask-First de memoria
 │   │   ├── plugins/            # Plugins OpenCode (engram.ts)
 │   │   ├── tool/               # Herramientas platform (TS/Go)
 │   │   ├── skill/              # Skills on-demand
@@ -354,7 +375,7 @@ yay -S --needed \
   fzf ripgrep \
   dust btop ncdu \
   xh jaq bottom procs jless \
-  engram-bin
+  engram-bin graphify
 ```
 
 ---

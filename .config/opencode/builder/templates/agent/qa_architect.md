@@ -1,7 +1,7 @@
 ---
 description: Specialized QA SDET Architect focused on integration, E2E, and performance testing.
 mode: subagent
-model: kimi/Kimi-K2.6
+model: {{MODEL:qa_architect}}
 tools:
   write: true
   edit: true

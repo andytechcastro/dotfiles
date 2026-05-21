@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,9 +16,18 @@ const (
 	OutputDir    = "../"        // Relative to builder/ (.config/opencode/)
 )
 
+// ModelProfile holds the resolved model assignments for the active profile
+var ModelProfile map[string]string
+
 func main() {
 	cwd, _ := os.Getwd()
 	fmt.Printf("🚀 Starting Generic OpenCode Builder in: %s\n", cwd)
+
+	// 0. Load Model Profile
+	if err := loadModelProfile(); err != nil {
+		fmt.Printf("❌ Error loading model profile: %v\n", err)
+		os.Exit(1)
+	}
 
 	// 1. Process Agents
 	if err := processAgents(); err != nil {
@@ -36,6 +44,67 @@ func main() {
 	fmt.Println("✅ Build completed successfully!")
 }
 
+// loadModelProfile reads model_profiles.json and resolves the active profile
+func loadModelProfile() error {
+	profileName := os.Getenv("MODEL_PROFILE")
+
+	profilesPath := filepath.Join(TemplatesDir, "model_profiles.json")
+	data, err := os.ReadFile(profilesPath)
+	if err != nil {
+		return fmt.Errorf("could not read model_profiles.json: %w", err)
+	}
+
+	var profiles map[string]interface{}
+	if err := json.Unmarshal(data, &profiles); err != nil {
+		return fmt.Errorf("could not parse model_profiles.json: %w", err)
+	}
+
+	// Resolve default from config, fallback to "opencodego"
+	if profileName == "" {
+		if def, ok := profiles["default_profile"].(string); ok {
+			profileName = def
+		} else {
+			profileName = "opencodego"
+		}
+	}
+
+	// Strip the default_profile key so it doesn't interfere with profile lookup
+	delete(profiles, "default_profile")
+
+	profile, exists := profiles[profileName]
+	if !exists {
+		available := make([]string, 0, len(profiles))
+		for k := range profiles {
+			available = append(available, k)
+		}
+		return fmt.Errorf("profile '%s' not found. Available: %s", profileName, strings.Join(available, ", "))
+	}
+
+	// Type-assert the profile to map[string]string
+	profileMap := make(map[string]string)
+	for k, v := range profile.(map[string]interface{}) {
+		profileMap[k] = v.(string)
+	}
+
+	ModelProfile = profileMap
+	fmt.Printf("📋 Model Profile: '%s' (%d entries)\n", profileName, len(profileMap))
+	return nil
+}
+
+// resolveModelPlaceholders replaces {{MODEL:key}} with the value from the active profile
+func resolveModelPlaceholders(content string) string {
+	reModel := regexp.MustCompile(`\{\{MODEL:([a-zA-Z0-9_]+)\}\}`)
+	return reModel.ReplaceAllStringFunc(content, func(match string) string {
+		key := strings.TrimSuffix(strings.TrimPrefix(match, "{{MODEL:"), "}}")
+		val, exists := ModelProfile[key]
+		if !exists {
+			fmt.Printf("   ⚠️  Warning: Unknown model key '%s' in profile — leaving as-is\n", key)
+			return match
+		}
+		return val
+	})
+}
+
 func processAgents() error {
 	agentTemplatesDir := filepath.Join(TemplatesDir, "agent")
 	outputAgentDir := filepath.Join(OutputDir, "agent")
@@ -44,7 +113,7 @@ func processAgents() error {
 		return err
 	}
 
-	files, err := ioutil.ReadDir(agentTemplatesDir)
+	files, err := os.ReadDir(agentTemplatesDir)
 	if err != nil {
 		return err
 	}
@@ -58,7 +127,7 @@ func processAgents() error {
 		}
 		fmt.Printf("🔨 Building Agent: %s\n", file.Name())
 
-		content, err := ioutil.ReadFile(filepath.Join(agentTemplatesDir, file.Name()))
+		content, err := os.ReadFile(filepath.Join(agentTemplatesDir, file.Name()))
 		if err != nil {
 			return err
 		}
@@ -76,7 +145,7 @@ func processAgents() error {
 					absPath = refPath
 				}
 			}
-			refContent, err := ioutil.ReadFile(absPath)
+			refContent, err := os.ReadFile(absPath)
 			if err != nil {
 				fmt.Printf("   ⚠️  Warning: Could not read included file '%s': %v\n", refPath, err)
 				return match
@@ -84,7 +153,10 @@ func processAgents() error {
 			return string(refContent)
 		})
 
-		if err := ioutil.WriteFile(filepath.Join(outputAgentDir, file.Name()), []byte(newContent), 0644); err != nil {
+		// Resolve {{MODEL:xxx}} placeholders
+		newContent = resolveModelPlaceholders(newContent)
+
+		if err := os.WriteFile(filepath.Join(outputAgentDir, file.Name()), []byte(newContent), 0644); err != nil {
 			return err
 		}
 	}
@@ -93,11 +165,11 @@ func processAgents() error {
 
 func processConfig() error {
 	configTemplate := filepath.Join(TemplatesDir, "config", "config.json")
-	outputConfig := filepath.Join(OutputDir, "config.json")
+	outputConfig := filepath.Join(OutputDir, "opencode.json")
 
 	fmt.Printf("🔧 Building Config from Template\n")
 
-	content, err := ioutil.ReadFile(configTemplate)
+	content, err := os.ReadFile(configTemplate)
 	if err != nil {
 		return err
 	}
@@ -124,6 +196,9 @@ func processConfig() error {
 		}
 		return val
 	})
+
+	// Resolve {{MODEL:xxx}} placeholders (for model and small_model)
+	contentStr = resolveModelPlaceholders(contentStr)
 
 	// ---------------------------------------------------------
 	// 2. INTELLIGENT MCP & FEATURE TOGGLING
@@ -183,5 +258,5 @@ func processConfig() error {
 		return err
 	}
 
-	return ioutil.WriteFile(outputConfig, finalJSON, 0644)
+	return os.WriteFile(outputConfig, finalJSON, 0644)
 }
