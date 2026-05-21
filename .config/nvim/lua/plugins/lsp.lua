@@ -1,10 +1,4 @@
 return {
-	{
-		"williamboman/mason.nvim",
-		lazy = false,
-		opts = {},
-	},
-
 	-- Autocompletion
 	{
 		"hrsh7th/nvim-cmp",

@@ -1,23 +1,29 @@
 {
     "$schema": "https://opencode.ai/config.json",
+    "experimental": {
+        "mcp_timeout": 3600000
+    },
     "plugin": [
         "opencode-gemini-auth@latest",
+        "opencode-snippets@latest",
         "opencode-snip@latest",
-        "envsitter-guard@latest",
         "opencode-notify@latest",
-        "opencode-snippets@latest"
+        "envsitter-guard@latest",
+        "@ykaratkou/opencode-worktree@0.1.0",
+        "./plugins/graphify.js",
+        "./plugins/engram.ts"
     ],
     "theme": "catppuccin",
     "autoupdate": true,
     "mcp": {
-        "engram": {
+        "cw-ai-gateway": {
             "type": "local",
             "command": [
-                "/home/andres/.local/bin/engram",
-                "mcp",
-                "--tools=agent"
+                "/usr/local/bin/mcp-k8s-proxy"
             ],
-            "enabled": true
+            "timeout": 3600000,
+            "reconnect": true,
+            "enabled": false
         },
         "context7": {
             "type": "remote",
@@ -40,6 +46,21 @@
                 "ATLASSIAN_DOMAIN",
                 "ATLASSIAN_EMAIL",
                 "ATLASSIAN_API_TOKEN"
+            ],
+            "enabled": true
+        },
+        "tavily": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "tavily-mcp"
+            ],
+            "environment": {
+                "TAVILY_API_KEY": "${TAVILY_API_KEY}"
+            },
+            "_requires_env": [
+                "TAVILY_API_KEY"
             ],
             "enabled": true
         },
@@ -69,6 +90,15 @@
             },
             "_requires_env": [
                 "MXBAI_API_KEY"
+            ],
+            "enabled": true
+        },
+        "engram": {
+            "type": "local",
+            "command": [
+                "/home/andres/.local/bin/engram",
+                "mcp",
+                "--tools=agent"
             ],
             "enabled": true
         },
@@ -108,18 +138,6 @@
                 "REDIS_MCP_URL"
             ],
             "enabled": true
-        },
-        "decider-k8s": {
-            "type": "remote",
-            "url": "http://localhost:8080/sse",
-            "enabled": false
-        },
-        "decider-local": {
-            "type": "local",
-            "command": [
-                "/home/andres/Proyectos/TestMCP/mcp-server-local"
-            ],
-            "enabled": false
         }
     },
     "agent": {
@@ -137,6 +155,6 @@
         }
     },
     "default_agent": "commander",
-    "model": "qwen/Qwen3.6-Plus",
-    "small_model": "deepseek/DeepSeek-V4-Flash"
+    "model": "{{MODEL:model}}",
+    "small_model": "{{MODEL:small_model}}"
 }

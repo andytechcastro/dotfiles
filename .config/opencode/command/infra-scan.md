@@ -1,6 +1,6 @@
 ---
 description: Security and Infrastructure Scan (Tofu/Terraform)
-agent: PE_plan
+agent: PE
 ---
 Analiza la seguridad de la infraestructura y el estado del repositorio actual.
 
