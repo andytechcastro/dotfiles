@@ -207,7 +207,11 @@ private_key_forgatech
 prueba.m3u
 snapd/
 
-# Test comment to trigger diff view
-
+# OpenCode generated files
 .config/opencode/config.json
+.config/opencode/opencode.json
 .config/opencode/agent/
+
+# Graphify output (regenerated on demand)
+graphify-out/
+**/graphify-out/
