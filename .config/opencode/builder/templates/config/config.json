@@ -10,6 +10,9 @@
         "opencode-notify@latest",
         "envsitter-guard@latest",
         "@ykaratkou/opencode-worktree@0.1.0",
+        "@tarquinen/opencode-dcp@latest",
+        "opencode-antigravity-auth@latest",
+        "opencode-autotitle@latest",
         "./plugins/graphify.js",
         "./plugins/engram.ts"
     ],
@@ -120,6 +123,16 @@
             },
             "_requires_env": [
                 "POSTGRES_MCP_URL"
+            ],
+            "enabled": true
+        },
+        "echo": {
+            "type": "local",
+            "command": [
+                "echo-mcp",
+                "serve",
+                "--mode=embeddings",
+                "--log-level=debug"
             ],
             "enabled": true
         },

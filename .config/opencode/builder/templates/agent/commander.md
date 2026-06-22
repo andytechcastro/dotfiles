@@ -1,6 +1,7 @@
 ---
 description: The Orchestrator (Commander). Analyzes, plans, and delegates to specialized agents.
 mode: primary
+model: {{MODEL:commander}}
 permission:
   write: ask
   edit: ask

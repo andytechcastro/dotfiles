@@ -10,8 +10,12 @@ This repository uses a **GitOps-style Builder Pattern** to generate AI Agent con
 
 ```text
 .config/opencode/
+├── bin/                      # CLI Tools
+│   └── oc                    # OpenCode builder + launcher wrapper (symlinked to ~/.local/bin/oc)
 ├── builder/                  # The Build System (Go)
 │   ├── main.go               # The Compiler — compiles templates → agents + config
+│   ├── current_profile       # Persistent profile choice (user-managed)
+│   ├── README.md             # Builder documentation
 │   └── templates/            # SOURCE OF TRUTH
 │       ├── agent/            # Agent templates (YAML frontmatter + {file:} includes)
 │       │   ├── commander.md
@@ -73,6 +77,27 @@ This repository uses a **GitOps-style Builder Pattern** to generate AI Agent con
 
 ### Building
 
+**Recommended: Use the `oc` wrapper** (symlinked to `~/.local/bin/oc`):
+
+```bash
+# Launch opencode (auto-rebuilds if config is stale)
+oc
+
+# Rebuild with specific profile, then launch
+oc --profile gemini
+
+# Set persistent default profile (no launch)
+oc --set-current gemini
+
+# Force rebuild without launching
+oc --rebuild
+
+# List available profiles
+oc --list-profiles
+```
+
+**Manual build** (if you need fine-grained control):
+
 ```bash
 # 1. Export secrets
 export ATLASSIAN_DOMAIN='...'
@@ -81,12 +106,18 @@ export ATLASSIAN_API_TOKEN='...'
 export TAVILY_API_KEY='...'
 export MXBAI_API_KEY='...'
 
-# 2. Run the builder (default profile: opencodego)
+# 2. Run the builder (uses current_profile or default: opencodego)
 cd .config/opencode/builder && go run main.go
 
-# Or use a specific model profile
+# Or override with env var
 MODEL_PROFILE=gemini go run main.go
 ```
+
+**Profile Resolution Priority:**
+1. `MODEL_PROFILE` env var (temporary override)
+2. `builder/current_profile` file (persistent choice)
+3. `default_profile` in `model_profiles.json`
+4. Hardcoded fallback: `opencodego`
 
 The builder will:
 - Load the active model profile from `model_profiles.json`
@@ -100,14 +131,6 @@ The builder will:
 
 Models are **not hardcoded** in agent templates. Instead, each profile in `model_profiles.json` defines the full roster:
 
-```bash
-# Default profile (current setup)
-go run main.go
-
-# Switch to Gemini
-MODEL_PROFILE=gemini go run main.go
-```
-
 | Profile | Commander | Workers | small_model |
 |---------|-----------|---------|-------------|
 | `opencodego` | qwen3.6-plus | deepseek-v4-pro / kimi-k2.6 | deepseek-v4-flash |
@@ -120,7 +143,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 1. Create `.config/opencode/builder/templates/agent/my_agent.md` with YAML frontmatter.
 2. Use `{file:prompts/...}` to include shared behavior libraries.
 3. Add `permission.bash` allow/deny rules.
-4. Run `cd .config/opencode/builder && go run main.go` to regenerate.
+4. Run `oc --rebuild` to regenerate (or `cd .config/opencode/builder && go run main.go`).
 
 ### Adding a New MCP
 
@@ -313,19 +336,20 @@ We do not use legacy commands. Use these modern alternatives:
 
 | Problem | Solution |
 |---------|----------|
-| Generated files missing | Run `cd .config/opencode/builder && go run main.go` |
+| Generated files missing | Run `oc --rebuild` or `cd .config/opencode/builder && go run main.go` |
 | Missing Tools | Ensure `bun`, `go`, and `envsubst` are installed |
 | Architecture Violation | Run `go run .config/opencode/tool/hex_check.go` in the project root |
 | MCP server fails to connect | Check that the required env vars are set for that MCP entry |
-| `tavily` MCP not appearing | Export `TAVILY_API_KEY` and rebuild: `cd .config/opencode/builder && go run main.go` |
+| `tavily` MCP not appearing | Export `TAVILY_API_KEY` and rebuild: `oc --rebuild` |
 | Agent can't execute commands | Check `permission.bash` in the agent template — may need to add `bash: true` to `tools` |
 | Custom command uses disabled agent | Check `command/*.md` — ensure `agent:` field points to an enabled agent |
 | Builder uses deprecated Go APIs | Use `os.ReadFile`/`os.WriteFile`/`os.ReadDir` instead of `ioutil` |
-| Model profile not found | Check `model_profiles.json` — profile name must match exactly. Set `MODEL_PROFILE=opencodego` or `MODEL_PROFILE=gemini` |
+| Model profile not found | Check `model_profiles.json` — profile name must match exactly. Use `oc --set-current <name>` or `MODEL_PROFILE=<name>` |
 | Unknown model key warning | Template uses `{{MODEL:xxx}}` but key is missing from active profile in `model_profiles.json` |
 | Engram plugin not working | Ensure `engram` binary is installed (`yay -S engram-bin`) |
 | TUI plugins not visible | Requires OpenCode >= 1.14.48. Check with `opencode --version` |
 | Agent saves memories without asking | Verify `engram_memory.md` prompt includes Ask-First rules. Rebuild if needed. |
+| `oc` command not found | Symlink missing. Run: `ln -sf $(pwd)/.config/opencode/bin/oc ~/.local/bin/oc` |
 
 ## graphify
 

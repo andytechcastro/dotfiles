@@ -14,9 +14,6 @@ return {
       treesitter = true,
       notify = true,
       lualine = true,
-      telescope = {
-        enabled = true,
-      },
       mason = true,
       native_lsp = {
         enabled = true,

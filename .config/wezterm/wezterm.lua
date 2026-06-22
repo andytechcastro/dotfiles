@@ -146,7 +146,7 @@ wezterm.on('update-right-status', function(window, pane)
     end
 
     -- 2. Workspace
-    push(' ' .. window:get_workspace(), colors.blue, colors.crust)
+    push(' ' .. window:active_workspace(), colors.blue, colors.crust)
 
     -- 3. Host
     push(' ' .. wezterm.hostname(), colors.lavender, colors.crust)
@@ -158,6 +158,36 @@ wezterm.on('update-right-status', function(window, pane)
     window:set_right_status(wezterm.format(cells))
 end)
 
+
+-- =========================================================================
+-- MOUSE BINDINGS (Selección → Clipboard automático)
+-- =========================================================================
+config.mouse_bindings = {
+    -- Click izquierdo al soltar → completa selección + copia al clipboard
+    {
+        event = { Up = { streak = 1, button = 'Left' } },
+        mods = 'NONE',
+        action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'Clipboard',
+    },
+    -- Doble click → selecciona palabra completa
+    {
+        event = { Up = { streak = 2, button = 'Left' } },
+        mods = 'NONE',
+        action = act.CompleteSelection 'Clipboard',
+    },
+    -- Triple click → selecciona línea completa
+    {
+        event = { Up = { streak = 3, button = 'Left' } },
+        mods = 'NONE',
+        action = act.CompleteSelection 'Clipboard',
+    },
+    -- Click medio → pega desde Clipboard
+    {
+        event = { Up = { streak = 1, button = 'Middle' } },
+        mods = 'NONE',
+        action = act.PasteFrom 'Clipboard',
+    },
+}
 
 -- =========================================================================
 -- FUNCIONALIDAD (Tmux-like)
@@ -223,6 +253,8 @@ config.keys = {
     -- Copiar y Pegar
     { mods = 'CTRL|SHIFT', key = 'c', action = act.CopyTo 'Clipboard' },
     { mods = 'CTRL|SHIFT', key = 'v', action = act.PasteFrom 'Clipboard' },
+    -- Shift+Insert → pega desde Clipboard (comportamiento clásico terminal)
+    { key = 'Insert', mods = 'SHIFT', action = act.PasteFrom 'Clipboard' },
 
     -- WORKSPACES (Sesiones estilo Tmux)
     -- C-b s -> Listar Workspaces (Cambiar de sesión)
@@ -237,7 +269,7 @@ config.keys = {
             description = 'Renombrar Workspace',
             action = wezterm.action_callback(function(window, pane, line)
                 if line then
-                    wezterm.mux.rename_workspace(window:mux_window():get_workspace(), line)
+                    wezterm.mux.rename_workspace(window:active_workspace(), line)
                 end
             end),
         }

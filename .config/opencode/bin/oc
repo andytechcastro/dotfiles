@@ -1,0 +1,476 @@
+#!/usr/bin/env bash
+# oc — OpenCode config builder + launcher wrapper
+# Version: 0.1.0
+# Lives at: <repo>/.config/opencode/bin/oc
+# Symlinked from: ~/.local/bin/oc
+#
+# Usage:
+#   oc                          Launch opencode (no rebuild)
+#   oc --profile <name>         Rebuild config with profile, then launch opencode
+#   oc --rebuild                Rebuild only (use last-used or default profile)
+#   oc --list-profiles          Show available profiles
+#   oc --help | -h              Show help
+#   oc --version                Print script version
+
+set -euo pipefail
+IFS=$'\n\t'
+
+# ---- Constants ----
+readonly SCRIPT_VERSION="0.3.0"
+readonly DEFAULT_PROFILE="opencodego"
+
+# ---- Color setup ----
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+  # ANSI-C quoting ($'...') expands \033 to the real ESC byte at assignment
+  # time. This makes the variables work in ALL contexts: echo -e, printf,
+  # and heredocs (cat <<EOF). Without $'...', heredocs print '\033[1m'
+  # literally because cat doesn't interpret escape sequences.
+  RED=$'\033[0;31m'
+  GREEN=$'\033[0;32m'
+  YELLOW=$'\033[1;33m'
+  BLUE=$'\033[0;34m'
+  BOLD=$'\033[1m'
+  RESET=$'\033[0m'
+else
+  RED=''
+  GREEN=''
+  YELLOW=''
+  BLUE=''
+  BOLD=''
+  RESET=''
+fi
+
+# ---- Helpers ----
+die() {
+  echo -e "${RED}Error:${RESET} $*" >&2
+  exit 1
+}
+
+info() {
+  echo -e "${BLUE}ℹ${RESET} $*"
+}
+
+warn() {
+  echo -e "${YELLOW}Warning:${RESET} $*" >&2
+}
+
+# ---- Repo resolution ----
+resolve_repo_root() {
+  local script_path
+  # Follow symlinks to get the real path of this script
+  if command -v readlink >/dev/null 2>&1; then
+    # Portable readlink loop (macOS readlink -f not available on bash 3.2)
+    script_path="${BASH_SOURCE[0]}"
+    while [[ -L "$script_path" ]]; do
+      script_path="$(readlink "$script_path")"
+      # Handle relative symlinks
+      if [[ "$script_path" != /* ]]; then
+        script_path="$(dirname "${BASH_SOURCE[0]}")/$script_path"
+      fi
+    done
+  else
+    script_path="${BASH_SOURCE[0]}"
+  fi
+
+  # script lives at <repo>/.config/opencode/bin/oc
+  # 3 levels up: bin/ -> opencode/ -> .config/ -> <repo>
+  local script_dir
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  echo "$(cd "$script_dir/../../.." && pwd)"
+}
+
+# ---- Path computation ----
+REPO_ROOT="$(resolve_repo_root)"
+BUILDER_DIR="$REPO_ROOT/.config/opencode/builder"
+# model_profiles.json lives at templates/ (NOT templates/config/)
+PROFILES_JSON="$BUILDER_DIR/templates/model_profiles.json"
+CONFIG_TEMPLATE="$BUILDER_DIR/templates/config/config.json"
+LAST_PROFILE_FILE="$HOME/.config/opencode/.last-profile"
+# Builder's persistent profile file — user-managed, source of truth for "current"
+BUILDER_CURRENT_PROFILE="$BUILDER_DIR/current_profile"
+
+# ---- Dependency checks ----
+require_jq_go() {
+  local missing=()
+  if ! command -v jq >/dev/null 2>&1; then
+    missing+=("jq (install: brew install jq)")
+  fi
+  if ! command -v go >/dev/null 2>&1; then
+    missing+=("go (install: brew install go OR https://go.dev/dl/)")
+  fi
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    die "Missing required tools:\n$(printf '  • %s\n' "${missing[@]}")"
+  fi
+}
+
+require_opencode() {
+  if ! command -v opencode >/dev/null 2>&1; then
+    die "'opencode' not found in PATH. Install it first."
+  fi
+}
+
+# ---- Profile validation ----
+validate_profile() {
+  local profile_name="$1"
+  require_jq_go
+
+  if [[ ! -f "$PROFILES_JSON" ]]; then
+    die "Profiles file not found: $PROFILES_JSON"
+  fi
+
+  local exists
+  exists="$(jq -r --arg p "$profile_name" 'del(.default_profile) | has($p)' "$PROFILES_JSON")"
+
+  if [[ "$exists" != "true" ]]; then
+    local available
+    available="$(jq -r 'del(.default_profile) | keys | join(", ")' "$PROFILES_JSON")"
+    die "Profile '${BOLD}${profile_name}${RESET}' not found.\n  Available: ${available}"
+  fi
+}
+
+# ---- Env vars check ----
+check_env_vars() {
+  require_jq_go
+
+  if [[ ! -f "$CONFIG_TEMPLATE" ]]; then
+    warn "Config template not found: $CONFIG_TEMPLATE — skipping env var check."
+    return 0
+  fi
+
+  # Collect all _requires_env values, deduplicated
+  local required_vars
+  required_vars="$(jq -r '
+    [.. | objects | select(has("_requires_env")) | ._requires_env[]] | unique | .[]
+  ' "$CONFIG_TEMPLATE")"
+
+  if [[ -z "$required_vars" ]]; then
+    return 0
+  fi
+
+  local missing=()
+  while IFS= read -r var; do
+    if [[ -z "${!var:-}" ]]; then
+      missing+=("$var")
+    fi
+  done <<< "$required_vars"
+
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  warn "The following env vars are missing (MCP entries requiring them will be skipped):"
+  printf "  ${YELLOW}•${RESET} %s\n" "${missing[@]}" >&2
+
+  # If not a TTY → abort automatically
+  if [[ ! -t 0 ]]; then
+    echo -e "${RED}Aborted.${RESET} Set the missing env vars and retry." >&2
+    exit 1
+  fi
+
+  local answer
+  read -r -p "Continue anyway? [y/N] " answer
+  case "${answer,,}" in
+    y|yes) ;;
+    *)
+      echo -e "${RED}Aborted.${RESET} Set the missing env vars and retry." >&2
+      exit 1
+      ;;
+  esac
+}
+
+# ---- Resolve "current" profile via cascade ----
+# Priority:
+#   1. builder/current_profile file (user-managed persistent choice)
+#   2. ~/.config/opencode/.last-profile (managed by oc itself)
+#   3. default_profile key from model_profiles.json
+#   4. Hardcoded fallback: opencodego
+# Echoes the resolved profile name to stdout. Never fails.
+resolve_current_profile() {
+  local p=""
+
+  # 1. builder/current_profile
+  if [[ -f "$BUILDER_CURRENT_PROFILE" && -s "$BUILDER_CURRENT_PROFILE" ]]; then
+    p="$(tr -d '[:space:]' < "$BUILDER_CURRENT_PROFILE")"
+    if [[ -n "$p" ]]; then
+      echo "$p"
+      return 0
+    fi
+  fi
+
+  # 2. ~/.config/opencode/.last-profile
+  if [[ -f "$LAST_PROFILE_FILE" && -s "$LAST_PROFILE_FILE" ]]; then
+    p="$(tr -d '[:space:]' < "$LAST_PROFILE_FILE")"
+    if [[ -n "$p" ]]; then
+      echo "$p"
+      return 0
+    fi
+  fi
+
+  # 3. default_profile from JSON (only if jq is available)
+  if command -v jq >/dev/null 2>&1 && [[ -f "$PROFILES_JSON" ]]; then
+    p="$(jq -r '.default_profile // empty' "$PROFILES_JSON" 2>/dev/null)"
+    if [[ -n "$p" && "$p" != "null" ]]; then
+      echo "$p"
+      return 0
+    fi
+  fi
+
+  # 4. Hardcoded fallback
+  echo "$DEFAULT_PROFILE"
+}
+
+# ---- Rebuild ----
+do_rebuild() {
+  local profile_name="$1"
+  require_jq_go
+
+  echo -e "${BOLD}🔨 Rebuilding OpenCode config with profile: ${BLUE}${profile_name}${RESET}"
+
+  check_env_vars
+
+  if MODEL_PROFILE="$profile_name" go -C "$BUILDER_DIR" run main.go; then
+    # Save last-used profile
+    mkdir -p "$(dirname "$LAST_PROFILE_FILE")"
+    printf '%s' "$profile_name" > "$LAST_PROFILE_FILE"
+    echo -e "${GREEN}✅ Build OK. Profile saved: ${profile_name}${RESET}"
+  else
+    local exit_code=$?
+    echo -e "${RED}❌ Build failed (exit ${exit_code}). Profile NOT saved.${RESET}" >&2
+    exit "$exit_code"
+  fi
+}
+
+# ---- Subcommands ----
+cmd_help() {
+  cat <<EOF
+${BOLD}oc${RESET} — OpenCode config builder + launcher v${SCRIPT_VERSION}
+
+${BOLD}USAGE${RESET}
+  oc                            Launch opencode (rebuild only if current ≠ last build)
+  oc --profile <name>           Rebuild config with profile, then launch opencode
+  oc --set-current <name>       Set persistent current_profile (no rebuild, no launch)
+  oc --rebuild                  Force rebuild (last-used profile or '${DEFAULT_PROFILE}'), no launch
+  oc --list-profiles            Show available model profiles
+  oc --help | -h                Show this help
+  oc --version                  Print script version
+
+${BOLD}CURRENT PROFILE RESOLUTION${RESET} (used by 'oc' with no args)
+  1. ${BUILDER_DIR}/current_profile  (user-managed, source of truth)
+  2. ${LAST_PROFILE_FILE}  (managed by oc)
+  3. .default_profile in model_profiles.json
+  4. Hardcoded fallback: ${DEFAULT_PROFILE}
+
+${BOLD}FRESH-CONFIG CHECK${RESET} ('oc' with no args)
+  If resolved current profile == contents of .last-profile, the rebuild is
+  skipped (the config was already built with that profile). If you edited
+  templates or model_profiles.json and need a forced rebuild, use:
+    oc --rebuild      # rebuild only, no launch
+    oc --profile X    # rebuild with profile X, then launch
+
+${BOLD}EXAMPLES${RESET}
+  oc                                  # Launch opencode (skips rebuild if config is fresh)
+  oc --profile anthropic_soft         # Rebuild with anthropic_soft profile, then launch
+  oc --profile opencodego             # Rebuild with opencodego profile, then launch
+  oc --set-current anthropic_soft     # Make anthropic_soft the persistent default
+  oc --set-current anthropic_soft && oc   # ...and immediately apply it (rebuild + launch)
+  oc --rebuild                        # Force rebuild with last-used profile (no launch)
+  oc --list-profiles                  # See all profiles with model details
+  NO_COLOR=1 oc --list-profiles       # No ANSI colors in output
+
+${BOLD}PATHS${RESET}
+  Script:      ${BASH_SOURCE[0]}
+  Repo root:   ${REPO_ROOT}
+  Builder:     ${BUILDER_DIR}
+  Profiles:    ${PROFILES_JSON}
+  Last profile: ${LAST_PROFILE_FILE}
+
+${BOLD}NOTES${RESET}
+  • Missing env vars for MCP entries cause those entries to be skipped (not a hard error).
+  • Use NO_COLOR=1 to disable ANSI output.
+  • The script will NOT create the ~/.local/bin/oc symlink — do that manually:
+      ln -sf ${BASH_SOURCE[0]} ~/.local/bin/oc
+EOF
+}
+
+cmd_version() {
+  echo "oc version ${SCRIPT_VERSION}"
+}
+
+cmd_list_profiles() {
+  require_jq_go
+
+  if [[ ! -f "$PROFILES_JSON" ]]; then
+    die "Profiles file not found: $PROFILES_JSON"
+  fi
+
+  # Determine current/default label
+  local current_profile=""
+  if [[ -f "$LAST_PROFILE_FILE" && -s "$LAST_PROFILE_FILE" ]]; then
+    current_profile="$(cat "$LAST_PROFILE_FILE")"
+  fi
+
+  echo -e "${BOLD}Available model profiles:${RESET}"
+  echo ""
+
+  # Read all profiles (excluding default_profile key)
+  local profiles
+  profiles="$(jq -r 'del(.default_profile) | keys[]' "$PROFILES_JSON")"
+
+  while IFS= read -r profile; do
+    # Build label
+    local label=""
+    if [[ -n "$current_profile" && "$profile" == "$current_profile" ]]; then
+      label=" ${GREEN}(current)${RESET}"
+    elif [[ -z "$current_profile" && "$profile" == "$DEFAULT_PROFILE" ]]; then
+      label=" ${YELLOW}(default)${RESET}"
+    fi
+
+    echo -e "  ${BOLD}${profile}${RESET}${label}"
+
+    # Print all key-value pairs under this profile
+    local keys
+    keys="$(jq -r --arg p "$profile" '.[$p] | keys[]' "$PROFILES_JSON")"
+
+    while IFS= read -r key; do
+      local value
+      value="$(jq -r --arg p "$profile" --arg k "$key" '.[$p][$k]' "$PROFILES_JSON")"
+      printf "    %-20s %s\n" "${key}:" "$value"
+    done <<< "$keys"
+
+    echo ""
+  done <<< "$profiles"
+}
+
+cmd_rebuild() {
+  local profile_name
+
+  # Determine profile to use
+  if [[ -f "$LAST_PROFILE_FILE" && -s "$LAST_PROFILE_FILE" ]]; then
+    profile_name="$(cat "$LAST_PROFILE_FILE")"
+  else
+    profile_name="$DEFAULT_PROFILE"
+    info "No previous profile found. Using default: ${DEFAULT_PROFILE}"
+  fi
+
+  validate_profile "$profile_name"
+  do_rebuild "$profile_name"
+}
+
+cmd_set_current() {
+  local profile_name="$1"
+
+  # Validate profile against model_profiles.json (jq required)
+  validate_profile "$profile_name"
+
+  # Read previous value (if any) for feedback
+  local previous=""
+  if [[ -f "$BUILDER_CURRENT_PROFILE" && -s "$BUILDER_CURRENT_PROFILE" ]]; then
+    previous="$(tr -d '[:space:]' < "$BUILDER_CURRENT_PROFILE")"
+  fi
+
+  # No-op if already set to the same value
+  if [[ "$previous" == "$profile_name" ]]; then
+    info "current_profile is already set to '${BOLD}${profile_name}${RESET}'. Nothing to do."
+    return 0
+  fi
+
+  # Ensure parent dir exists and write atomically (no trailing newline)
+  mkdir -p "$(dirname "$BUILDER_CURRENT_PROFILE")"
+  printf '%s' "$profile_name" > "$BUILDER_CURRENT_PROFILE"
+
+  if [[ -n "$previous" ]]; then
+    echo -e "${GREEN}✅ current_profile:${RESET} ${previous} → ${BOLD}${profile_name}${RESET}"
+  else
+    echo -e "${GREEN}✅ current_profile set:${RESET} ${BOLD}${profile_name}${RESET}"
+  fi
+  info "File updated: ${BUILDER_CURRENT_PROFILE}"
+  info "Run 'oc' to rebuild and launch with this profile."
+}
+
+cmd_profile() {
+  local profile_name="$1"
+  shift  # remaining args forwarded to opencode
+
+  validate_profile "$profile_name"
+  do_rebuild "$profile_name"
+
+  require_opencode
+  exec opencode "$@"
+}
+
+# ---- Argument parsing ----
+main() {
+  # No args → maybe rebuild + launch opencode.
+  # "Current" is resolved via cascade: builder/current_profile > .last-profile > default_profile > opencodego.
+  # Optimization: if .last-profile matches the resolved current, skip the rebuild
+  # (the config on disk was already built with this profile). Escape hatch:
+  # 'oc --rebuild' forces a rebuild manually.
+  if [[ $# -eq 0 ]]; then
+    local current_profile last_profile=""
+    current_profile="$(resolve_current_profile)"
+    info "Resolved current profile: ${BOLD}${current_profile}${RESET}"
+
+    if [[ -f "$LAST_PROFILE_FILE" && -s "$LAST_PROFILE_FILE" ]]; then
+      last_profile="$(tr -d '[:space:]' < "$LAST_PROFILE_FILE")"
+    fi
+
+    if [[ -n "$last_profile" && "$last_profile" == "$current_profile" ]]; then
+      info "Config is fresh (last build was '${current_profile}'). ${YELLOW}Skipping rebuild.${RESET}"
+      info "Use ${BOLD}oc --rebuild${RESET} to force a rebuild."
+    else
+      validate_profile "$current_profile"
+      do_rebuild "$current_profile"
+    fi
+
+    require_opencode
+    exec opencode
+  fi
+
+  case "$1" in
+    --help|-h)
+      cmd_help
+      exit 0
+      ;;
+    --version)
+      cmd_version
+      exit 0
+      ;;
+    --list-profiles)
+      cmd_list_profiles
+      exit 0
+      ;;
+    --rebuild)
+      cmd_rebuild
+      exit 0
+      ;;
+    --profile)
+      if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        die "--profile requires a profile name argument.\n  Run 'oc --list-profiles' to see available profiles."
+      fi
+      local profile_name="$2"
+      shift 2
+      # Remaining args passed through to opencode
+      cmd_profile "$profile_name" "$@"
+      ;;
+    --set-current)
+      if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        die "--set-current requires a profile name argument.\n  Run 'oc --list-profiles' to see available profiles."
+      fi
+      cmd_set_current "$2"
+      exit 0
+      ;;
+    --*)
+      echo -e "${RED}Error:${RESET} Unknown flag: '$1'" >&2
+      echo "" >&2
+      cmd_help >&2
+      exit 2
+      ;;
+    *)
+      # Non-flag args → pass to opencode directly
+      require_opencode
+      exec opencode "$@"
+      ;;
+  esac
+}
+
+main "$@"

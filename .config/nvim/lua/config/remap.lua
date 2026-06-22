@@ -26,9 +26,6 @@ vim.keymap.set('','<F8>', ':TagbarToggle<CR>',{})
 -- UndoTree
 vim.keymap.set("n", "<leader>u", vim.cmd.UndotreeToggle, { desc = "Undo" })
 
--- Project with Telescope
-vim.keymap.set('n', '<C-p>', ":lua require'telescope'.extensions.project.project{}<CR>", {noremap = true, silent = true})
-
 -- GoDebug
 vim.keymap.set('n', '<F5>', ":GoDebug -t<CR>")
 vim.keymap.set('n', '<leader>d', ":GoDebug -b<CR>", { desc="Go Debug" })
@@ -44,8 +41,6 @@ end, { desc = "Next todo comment" })
 vim.keymap.set("n", "[t", function()
   require("todo-comments").jump_prev()
 end, { desc = "Previous todo comment" })
-
-vim.keymap.set("n", "<leader>ft", ":TodoTelescope<CR>", { desc = "Telescope Todo Comments" })
 
 -- Oil
 vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open parent directory" })

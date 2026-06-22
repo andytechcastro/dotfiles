@@ -44,9 +44,35 @@ func main() {
 	fmt.Println("✅ Build completed successfully!")
 }
 
-// loadModelProfile reads model_profiles.json and resolves the active profile
+// loadModelProfile reads model_profiles.json and resolves the active profile.
+// Priority order:
+//  1. MODEL_PROFILE env var (explicit override, highest priority)
+//  2. current_profile file (persistent default for repeated builds)
+//  3. default_profile from model_profiles.json
+//  4. Hardcoded fallback "opencodego"
 func loadModelProfile() error {
-	profileName := os.Getenv("MODEL_PROFILE")
+	var profileName string
+
+	// Priority 2 (read first to know whether env overrides it): current_profile file
+	currentProfilePath := "current_profile"
+	var fileProfile string
+	if data, err := os.ReadFile(currentProfilePath); err == nil {
+		fileProfile = strings.TrimSpace(string(data))
+	}
+
+	// Priority 1: MODEL_PROFILE env var (explicit override)
+	if env := strings.TrimSpace(os.Getenv("MODEL_PROFILE")); env != "" {
+		profileName = env
+		if fileProfile != "" && fileProfile != env {
+			fmt.Printf("🔧 Using profile from MODEL_PROFILE env: '%s' (overrides current_profile)\n", profileName)
+		} else {
+			fmt.Printf("🔧 Using profile from MODEL_PROFILE env: '%s'\n", profileName)
+		}
+	} else if fileProfile != "" {
+		// Priority 2: fall back to current_profile file
+		profileName = fileProfile
+		fmt.Printf("📌 Using profile from current_profile file: '%s'\n", profileName)
+	}
 
 	profilesPath := filepath.Join(TemplatesDir, "model_profiles.json")
 	data, err := os.ReadFile(profilesPath)
@@ -59,12 +85,15 @@ func loadModelProfile() error {
 		return fmt.Errorf("could not parse model_profiles.json: %w", err)
 	}
 
-	// Resolve default from config, fallback to "opencodego"
+	// Priority 3: default_profile from JSON
 	if profileName == "" {
 		if def, ok := profiles["default_profile"].(string); ok {
 			profileName = def
+			fmt.Printf("📋 Using default_profile from JSON: '%s'\n", profileName)
 		} else {
+			// Priority 4: hardcoded fallback
 			profileName = "opencodego"
+			fmt.Printf("⚠️ No profile specified, falling back to hardcoded: '%s'\n", profileName)
 		}
 	}
 

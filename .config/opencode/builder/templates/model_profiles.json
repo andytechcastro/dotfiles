@@ -1,15 +1,15 @@
 {
   "default_profile": "opencodego",
   "opencodego": {
-    "commander": "qwen/Qwen3.6-Plus",
-    "pe": "deepseek/DeepSeek-V4-Pro",
-    "go_architect": "deepseek/DeepSeek-V4-Pro",
-    "python_architect": "deepseek/DeepSeek-V4-Pro",
-    "frontend_architect": "qwen/Qwen3.6-Plus",
-    "qa_architect": "kimi/Kimi-K2.6",
-    "security_architect": "kimi/Kimi-K2.6",
-    "model": "deepseek/DeepSeek-V4-Pro",
-    "small_model": "deepseek/DeepSeek-V4-Flash"
+    "commander": "opencode-go/qwen3.7-plus",
+    "pe": "opencode-go/deepseek-v4-pro",
+    "go_architect": "opencode-go/deepseek-v4-pro",
+    "python_architect": "opencode-go/deepseek-v4-pro",
+    "frontend_architect": "opencode-go/qwen3.7-plus",
+    "qa_architect": "opencode-go/qwen3.7-plus",
+    "security_architect": "opencode-go/qwen3.7-plus",
+    "model": "opencode-go/deepseek-v4-pro",
+    "small_model": "opencode-go/deepseek-v4-flash"
   },
   "gemini": {
     "commander": "google/gemini-3.1-pro",
