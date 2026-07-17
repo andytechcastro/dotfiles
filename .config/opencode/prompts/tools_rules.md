@@ -90,4 +90,33 @@ MODERN CLI ADDITIONS (2026):
     - just test → run test commands
     - INSTALL: yay -S just
 
+13. gh (GitHub CLI — replaces manual PR/issue/Actions management):
+    - gh pr create --title "..." --body "..." → Open PR with flags
+    - gh pr list / gh pr view <num> → List/show PRs
+    - gh issue create / gh issue list → Issue management
+    - gh run list / gh run view <id> → GitHub Actions workflows
+    - INSTALL: yay -S github-cli
+
+14. lazygit (Terminal UI for git — replaces git CLI for interactive ops):
+    - lazygit → TUI with stages, commits, branches, log, diff, push
+    - Use for: complex rebases, conflict resolution, history exploration
+    - INSTALL: yay -S lazygit
+
+15. fzf (Fuzzy finder for everything):
+    - command <TAB> or Ctrl+R → fuzzy history
+    - fd . | fzf → fuzzy file pick
+    - INSTALL: yay -S fzf
+
+16. zoxide (Smarter cd — replaces cd):
+    - z <partial-name> → jumps to most-used dir matching name
+    - INSTALL: yay -S zoxide
+
+17. delta (Better git diff viewer):
+    - git diff | delta → syntax-highlighted, side-by-side diff
+    - INSTALL: yay -S git-delta
+
+18. btop (System monitor — replaces htop):
+    - btop → CPU, RAM, disk, network, processes in TUI
+    - INSTALL: yay -S btop
+
 NEVER use cat, grep, find, sed, or ls when these modern alternatives exist!

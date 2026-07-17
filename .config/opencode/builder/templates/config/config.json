@@ -5,95 +5,26 @@
     },
     "plugin": [
         "opencode-gemini-auth@latest",
+        "opencode-claude-auth@latest",
         "opencode-snippets@latest",
-        "opencode-snip@latest",
         "opencode-notify@latest",
         "envsitter-guard@latest",
         "@ykaratkou/opencode-worktree@0.1.0",
         "@tarquinen/opencode-dcp@latest",
-        "opencode-antigravity-auth@latest",
         "opencode-autotitle@latest",
         "./plugins/graphify.js",
-        "./plugins/engram.ts"
+        "./plugins/engram.ts",
+        "./plugins/squeez.js",
+        "opencode-vibeguard@latest",
+        ["@plannotator/opencode@latest", { "workflow": "all-agents" }],
+        "@nick-vi/opencode-type-inject@latest"
     ],
     "theme": "catppuccin",
     "autoupdate": true,
     "mcp": {
-        "cw-ai-gateway": {
-            "type": "local",
-            "command": [
-                "/usr/local/bin/mcp-k8s-proxy"
-            ],
-            "timeout": 3600000,
-            "reconnect": true,
-            "enabled": false
-        },
         "context7": {
             "type": "remote",
             "url": "https://mcp.context7.com/mcp",
-            "enabled": true
-        },
-        "atlassian": {
-            "type": "local",
-            "command": [
-                "npx",
-                "-y",
-                "@xuandev/atlassian-mcp"
-            ],
-            "environment": {
-                "ATLASSIAN_DOMAIN": "${ATLASSIAN_DOMAIN}",
-                "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}",
-                "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
-            },
-            "_requires_env": [
-                "ATLASSIAN_DOMAIN",
-                "ATLASSIAN_EMAIL",
-                "ATLASSIAN_API_TOKEN"
-            ],
-            "enabled": true
-        },
-        "tavily": {
-            "type": "local",
-            "command": [
-                "npx",
-                "-y",
-                "tavily-mcp"
-            ],
-            "environment": {
-                "TAVILY_API_KEY": "${TAVILY_API_KEY}"
-            },
-            "_requires_env": [
-                "TAVILY_API_KEY"
-            ],
-            "enabled": true
-        },
-        "brave-search": {
-            "type": "local",
-            "command": [
-                "npx",
-                "-y",
-                "@modelcontextprotocol/server-brave-search"
-            ],
-            "environment": {
-                "BRAVE_API_KEY": "${BRAVE_API_KEY}"
-            },
-            "_requires_env": [
-                "BRAVE_API_KEY"
-            ],
-            "enabled": true
-        },
-        "mgrep": {
-            "type": "local",
-            "command": [
-                "mgrep",
-                "mcp"
-            ],
-            "environment": {
-                "MXBAI_API_KEY": "${MXBAI_API_KEY}"
-            },
-            "_requires_env": [
-                "MXBAI_API_KEY"
-            ],
             "enabled": true
         },
         "engram": {
@@ -110,46 +41,16 @@
             "url": "https://mcp.grep.app",
             "enabled": true
         },
-        "postgres": {
+        "codebase-memory-mcp": {
             "type": "local",
             "command": [
-                "npx",
-                "-y",
-                "@modelcontextprotocol/server-postgres",
-                "${POSTGRES_MCP_URL}"
-            ],
-            "environment": {
-                "POSTGRES_MCP_URL": "${POSTGRES_MCP_URL}"
-            },
-            "_requires_env": [
-                "POSTGRES_MCP_URL"
+                "/home/andres/.local/bin/codebase-memory-mcp"
             ],
             "enabled": true
         },
-        "echo": {
-            "type": "local",
-            "command": [
-                "echo-mcp",
-                "serve",
-                "--mode=embeddings",
-                "--log-level=debug"
-            ],
-            "enabled": true
-        },
-        "redis": {
-            "type": "local",
-            "command": [
-                "npx",
-                "-y",
-                "@modelcontextprotocol/server-redis",
-                "${REDIS_MCP_URL}"
-            ],
-            "environment": {
-                "REDIS_MCP_URL": "${REDIS_MCP_URL}"
-            },
-            "_requires_env": [
-                "REDIS_MCP_URL"
-            ],
+        "gcp": {
+            "type": "remote",
+            "url": "https://run.googleapis.com/mcp",
             "enabled": true
         }
     },

@@ -9,7 +9,11 @@ You are the **Security Architect**. Your goal is to be the paranoid guardian of 
 -   **Vulnerability Scanning:** Continuous monitoring with Trivy/Grype/Snyk
 -   **Dependency Pinning:** Lock all dependencies to specific versions with checksums
 -   **Policy Enforcement:** OPA Gatekeeper policies for Kubernetes admission control
+    - **OPA Gatekeeper**: Rego-based, mature, complex. Use for custom CRDs.
+    - **Kyverno** (rising in 2025+): YAML-based (no Rego), simpler, validates/mutates/generates resources. **Default choice for most K8s policies**.
+    - **Conftest** (OPA-based): test Rego policies locally with `conftest test`. Use in pre-commit hooks.
 -   **Runtime Security:** Falco rules for detecting anomalous behavior
+    - **Tetragon** (Cilium, eBPF-based, 2024+): newer alternative to Falco. Lower overhead, richer kernel context, K8s-aware. Use for runtime security in Cilium-managed clusters.
 
 ## THE SECURITY STRATEGY
 

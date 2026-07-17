@@ -109,6 +109,14 @@ Setup modular con **lazy.nvim** como plugin manager.
 | **Utilidades** | oil (file manager), undotree, flash, autopairs, smart-splits, fidget (LSP progress), lazydev (Lua types) |
 | **Terminal** | Snacks Terminal (integrado) |
 
+#### Comandos Personalizados:
+| Comando | Función |
+|---------|---------|
+| `:GraphifyUpdate` | Actualiza el knowledge graph |
+| `:HexCheck` | Verifica arquitectura hexagonal |
+| `:OpenCodeBuild` | Reconstruye configuración OpenCode |
+| `:MasonInstallEssentials` | Instala todas las herramientas Mason de una vez |
+
 **Archivo**: `.config/nvim/init.lua` y subdirectorios
 
 ### 5. **Window Manager: Hyprland + Dank Material Shell**
@@ -159,6 +167,8 @@ Prompt minimalista escrito en Rust.
 | **lazygit** | TUI para Git |
 | **btop** | Monitor de sistema |
 | **jless** | Visor de JSON interactivo |
+| **squeez** | Compresión de output (95% reducción tokens) |
+| **codebase-memory-mcp** | Knowledge graph del codebase |
 
 ### 8. **OpenCode: Sistema de Agentes IA**
 
@@ -177,6 +187,33 @@ Framework de agentes de IA modular y extensible para Platform Engineering, con m
 | **frontend_architect** | `qwen/Qwen3.6-Plus` | `google/gemini-3.1-pro` | UX/UI + Frontend. Next.js 15, React 19. |
 | **qa_architect** | `kimi/Kimi-K2.6` | `google/gemini-3.5-flash` | QA SDET. Regression, E2E, performance. |
 | **security_architect** | `kimi/Kimi-K2.6` | `google/gemini-3.5-flash` | Security Auditor. IaC, secrets, vulnerabilidades. |
+
+#### 🔌 MCPs Integrados
+
+| MCP | Propósito |
+|-----|-----------|
+| **context7** | Documentación actualizada de librerías/frameworks |
+| **engram** | Memoria persistente local (SQLite) |
+| **gh_grep** | Búsqueda semántica en GitHub |
+| **gcp** | Google Cloud Platform (OAuth) |
+| **codebase-memory-mcp** | Knowledge graph del codebase (tree-sitter + SQLite) |
+
+#### 🧩 Plugins OpenCode
+
+| Plugin | Función |
+|--------|---------|
+| **opencode-gemini-auth** | Autenticación Gemini |
+| **opencode-claude-auth** | Autenticación Claude |
+| **opencode-snippets** | Expansión de snippets con `#hashtag` |
+| **opencode-notify** | Notificaciones del sistema |
+| **envsitter-guard** | Protección de archivos .env |
+| **@ykaratkou/opencode-worktree** | Gestión de git worktrees |
+| **@tarquinen/opencode-dcp** | Context pruning dinámico |
+| **opencode-autotitle** | Generación automática de títulos |
+| **opencode-vibeguard** | Redacción de secrets (HMAC-SHA256) |
+| **@plannotator/opencode** | UI en navegador para planes |
+| **@nick-vi/opencode-type-inject** | Inyección automática de tipos TS |
+| **squeez** | Compresión de output (95% reducción tokens) |
 
 #### 🔄 Model Profiles
 
@@ -197,6 +234,7 @@ Sistema de memoria local SQLite con protocolo **Ask-First**:
 - Review batch obligatorio al cerrar sesión.
 - Trigger manual: "guarda esto" → guarda inmediatamente.
 - Todo queda en `~/.engram/engram.db`. Sin cloud.
+- Nuevas herramientas: `mem_suggest_topic_key`, `mem_judge`, `mem_capture_passive`
 
 #### 🔐 Modelo de Permisos (Deny-First)
 
@@ -225,6 +263,9 @@ export BRAVE_API_KEY="BSA-xxxxx"
 # Regenerar agentes y configs (default: opencodego)
 cd .config/opencode/builder
 go run main.go
+
+# O usar el wrapper
+oc --rebuild
 
 # O cambiar a Gemini
 MODEL_PROFILE=gemini go run main.go
@@ -302,6 +343,7 @@ spf() {
 | `<Leader>og` | Graphify Update |
 | `<Leader>oh` | Hexagonal Check |
 | `<Leader>ob` | OpenCode Build |
+| `:MasonInstallEssentials` | Instala herramientas Mason |
 
 ### Hyprland
 | Atajo | Acción |
@@ -347,11 +389,16 @@ dotfiles/
 │   │   │       ├── agent/      # Agent templates ({{MODEL:xxx}} placeholders)
 │   │   │       ├── config/     # Config template (${VAR} + _requires_env)
 │   │   │       └── model_profiles.json # Perfiles de modelos (opencodego, gemini)
-│   │   ├── prompts/            # Módulos de prompts reutilizables (16 archivos)
+│   │   ├── prompts/            # Módulos de prompts reutilizables (22 archivos)
 │   │   │   ├── behavior.md     # Reglas compartidas (no yes-man, planning)
 │   │   │   ├── commander_*.md  # Identity + behavior del Commander
 │   │   │   ├── engram_memory.md # Protocolo Ask-First de memoria
-│   │   ├── plugins/            # Plugins OpenCode (engram.ts)
+│   │   │   ├── glossary.md     # Glosario de arquitectura
+│   │   │   ├── _installed_capabilities.md # Lista de capacidades instaladas
+│   │   │   ├── _subagent_permissions.md   # Permisos centralizados
+│   │   ├── plugins/            # Plugins OpenCode (engram.ts, squeez.js, graphify.js)
+│   │   ├── squeez/             # Squeez configuration (compresión de output)
+│   │   │   └── config.ini      # Compression settings (persona: ultra)
 │   │   ├── tool/               # Herramientas platform (TS/Go)
 │   │   ├── skill/              # Skills on-demand
 │   │   ├── command/            # Slash commands personalizados
@@ -375,7 +422,7 @@ yay -S --needed \
   fzf ripgrep \
   dust btop ncdu \
   xh jaq bottom procs jless \
-  engram-bin graphify
+  engram-bin graphify squeez codebase-memory-mcp
 ```
 
 ---

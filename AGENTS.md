@@ -36,12 +36,18 @@ This repository uses a **GitOps-style Builder Pattern** to generate AI Agent con
 │   ├── pe_identity.md        # PE persona
 │   ├── specialist_identity.md # Shared identity for all sub-agents
 │   ├── frontend_behavior.md  # Frontend architect protocol
+│   ├── go_architect_behavior.md # Go architect specific behavior
+│   ├── python_architect_behavior.md # Python architect specific behavior
 │   ├── qa_behavior.md        # QA SDET protocol
 │   ├── security_behavior.md # Security architect protocol
 │   ├── caveman_behavior.md   # Token-saving protocol for sub-agents
 │   ├── engram_memory.md      # Engram Ask-First memory protocol
-│   ├── lean_technical_behavior.md # Concise communication rules
+│   ├── glossary.md           # Architecture glossary (Clean Arch, Hexagonal, etc.)
+│   ├── _installed_capabilities.md # List of installed plugins/MCPs/skills
+│   ├── _subagent_permissions.md   # Centralized subagent permission rules
 │   ├── language.md           # Language detection (Spanish ↔ English)
+│   ├── language_subagent.md  # Language rules for sub-agents
+│   ├── lean_technical_behavior.md # Concise communication rules
 │   ├── subagent_behavior.md  # Sub-agent integrity rules
 │   └── tools_rules.md        # Preferred CLI tools (bat, rg, fd, etc.)
 ├── agent/                    # ⚠️ GENERATED OUTPUT (Do not edit — run builder)
@@ -61,7 +67,10 @@ This repository uses a **GitOps-style Builder Pattern** to generate AI Agent con
 │   └── k8s-doctor.md         # K8s pod diagnostics (uses PE agent)
 ├── plugins/                  # OpenCode TUI + Runtime Plugins
 │   ├── graphify.js            # Knowledge graph reminders
-│   └── engram.ts              # Engram session tracking + compaction hooks
+│   ├── engram.ts              # Engram session tracking + compaction hooks
+│   └── squeez.js              # Output compression (95% token reduction)
+├── squeez/                   # Squeez configuration
+│   └── config.ini             # Compression settings (persona: ultra)
 ├── opencode.json             # ⚠️ GENERATED (secrets injected — gitignored)
 └── tui.json                  # TUI theme + plugins config
 ```
@@ -99,12 +108,8 @@ oc --list-profiles
 **Manual build** (if you need fine-grained control):
 
 ```bash
-# 1. Export secrets
-export ATLASSIAN_DOMAIN='...'
-export ATLASSIAN_EMAIL='...'
-export ATLASSIAN_API_TOKEN='...'
-export TAVILY_API_KEY='...'
-export MXBAI_API_KEY='...'
+# 1. Export secrets (only the ones you have)
+export BRAVE_API_KEY='...'
 
 # 2. Run the builder (uses current_profile or default: opencodego)
 cd .config/opencode/builder && go run main.go
@@ -151,6 +156,16 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 2. Use `${ENV_VAR}` for secrets and add `"_requires_env": ["ENV_VAR"]` to conditionally include it.
 3. Re-export secrets and rebuild.
 
+### Installed MCPs
+
+| MCP | Purpose |
+|-----|---------|
+| `context7` | Current library docs (Next.js, React, Prisma, etc.) |
+| `engram` | Persistent memory (SQLite) |
+| `gh_grep` | Real GitHub code examples |
+| `gcp` | Google Cloud Platform (OAuth) |
+| `codebase-memory-mcp` | Knowledge graph of codebase (tree-sitter + SQLite) |
+
 ### Adding a New Plugin
 
 1. Place the plugin file in `.config/opencode/builder/templates/plugins/` (e.g., `engram.ts`).
@@ -158,6 +173,25 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 3. For TUI plugins, also install via npm: `npm install <plugin-name>` in `.config/opencode/`.
 4. Add the plugin name to `tui.json` `plugin` array.
 5. Re-export secrets and rebuild.
+
+### Installed Plugins
+
+| Plugin | Purpose |
+|--------|---------|
+| `opencode-gemini-auth` | Gemini authentication |
+| `opencode-claude-auth` | Claude authentication |
+| `opencode-snippets` | Snippet expansion with `#hashtag` syntax |
+| `opencode-notify` | System notifications |
+| `envsitter-guard` | .env file protection |
+| `@ykaratkou/opencode-worktree` | Git worktree management |
+| `@tarquinen/opencode-dcp` | Dynamic context pruning |
+| `opencode-autotitle` | Auto session title generation |
+| `opencode-vibeguard` | Secret redaction (HMAC-SHA256) |
+| `@plannotator/opencode` | Browser UI for plan/code review |
+| `@nick-vi/opencode-type-inject` | Auto-inject TS/Svelte types |
+| `./plugins/squeez.js` | Output compression (95% token reduction) |
+| `./plugins/engram.ts` | Engram session tracking + compaction hooks |
+| `./plugins/graphify.js` | Knowledge graph reminders |
 
 ## 🤖 Agent Roster & Permissions
 
@@ -267,6 +301,7 @@ engram sync --import          # Import memories on another machine
 - `*.bak` files — Never commit backups
 - `node_modules`, `package.json`, `bun.lock` — NPM artifacts
 - `~/.engram/` — Local SQLite memory database (never committed)
+- `squeez/sessions/` — Session logs (regenerated per session)
 
 ### The `.bak` Lesson
 
@@ -291,6 +326,8 @@ We do not use legacy commands. Use these modern alternatives:
 | — | `repomix` | Pack directories for LLM consumption | `npm install -g repomix` | Use `repomix src/ -o context.xml` |
 | `pip` | `uv` | Ultra-fast Python package manager | `yay -S uv` | Drop-in replacement, much faster |
 | `make` | `just` | Modern command runner | `yay -S just` | Better syntax than Makefiles |
+| — | `squeez` | Output compression (95% token reduction) | `~/.local/bin/squeez` | Wraps bash commands automatically |
+| — | `codebase-memory-mcp` | Codebase knowledge graph | `pip install --user codebase-memory-mcp` | Tree-sitter + SQLite based |
 
 ### General Principles
 *   **Platform over Apps:** Build tools that other developers can use.
@@ -340,7 +377,6 @@ We do not use legacy commands. Use these modern alternatives:
 | Missing Tools | Ensure `bun`, `go`, and `envsubst` are installed |
 | Architecture Violation | Run `go run .config/opencode/tool/hex_check.go` in the project root |
 | MCP server fails to connect | Check that the required env vars are set for that MCP entry |
-| `tavily` MCP not appearing | Export `TAVILY_API_KEY` and rebuild: `oc --rebuild` |
 | Agent can't execute commands | Check `permission.bash` in the agent template — may need to add `bash: true` to `tools` |
 | Custom command uses disabled agent | Check `command/*.md` — ensure `agent:` field points to an enabled agent |
 | Builder uses deprecated Go APIs | Use `os.ReadFile`/`os.WriteFile`/`os.ReadDir` instead of `ioutil` |
@@ -350,6 +386,8 @@ We do not use legacy commands. Use these modern alternatives:
 | TUI plugins not visible | Requires OpenCode >= 1.14.48. Check with `opencode --version` |
 | Agent saves memories without asking | Verify `engram_memory.md` prompt includes Ask-First rules. Rebuild if needed. |
 | `oc` command not found | Symlink missing. Run: `ln -sf $(pwd)/.config/opencode/bin/oc ~/.local/bin/oc` |
+| Squeez not compressing output | Ensure `squeez` binary is installed (`~/.local/bin/squeez`). Check `squeez/config.ini` exists. |
+| codebase-memory-mcp not indexing | Run `codebase-memory-mcp` manually first. Check binary at `~/.local/bin/codebase-memory-mcp`. |
 
 ## graphify
 
