@@ -10,4 +10,4 @@ selection_bg = '#243f75'
 selection_fg = '#cdd6f4'
 
 ansi = ['#181825', '#ff729a', '#7dfa8e', '#fff872', '#6c9ded', '#133873', '#89b4fa', '#eff5ff']
-brights = ['#969ba2', '#ff9fba', '#a5ffb2', '#fffaa5', '#9dc2ff', '#aecdff', '#cbdeff', '#f8fbff']
+brights = ['#45494e', '#ff9fba', '#a5ffb2', '#fffaa5', '#9dc2ff', '#aecdff', '#cbdeff', '#f8fbff']

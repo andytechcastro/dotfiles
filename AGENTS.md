@@ -178,7 +178,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 
 | Plugin | Purpose |
 |--------|---------|
-| `opencode-gemini-auth` | Gemini authentication |
+| `opencode-antigravity-auth` | Antigravity (Google IDE) OAuth auth — dual quota, thinking models |
 | `opencode-claude-auth` | Claude authentication |
 | `opencode-snippets` | Snippet expansion with `#hashtag` syntax |
 | `opencode-notify` | System notifications |

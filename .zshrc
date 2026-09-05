@@ -159,3 +159,13 @@ else
        fastfetch
     fi
 fi
+
+
+# Added by Antigravity CLI installer
+export PATH="/home/andres/.local/bin:$PATH"
+
+# Personal life agents - quick access
+alias checkin='oc --agent life'
+alias finanzas='oc --agent finanzas'
+alias organiza='oc --agent organiza'
+alias habitos='oc --agent habitos'
