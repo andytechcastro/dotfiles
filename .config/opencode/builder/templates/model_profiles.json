@@ -1,15 +1,20 @@
 {
   "default_profile": "opencodego",
   "opencodego": {
-    "commander": "opencode-go/qwen3.7-plus",
-    "pe": "opencode-go/deepseek-v4-pro",
-    "go_architect": "opencode-go/deepseek-v4-pro",
-    "python_architect": "opencode-go/deepseek-v4-pro",
-    "frontend_architect": "opencode-go/qwen3.7-plus",
-    "qa_architect": "opencode-go/qwen3.7-plus",
-    "security_architect": "opencode-go/qwen3.7-plus",
-    "model": "opencode-go/deepseek-v4-pro",
-    "small_model": "opencode-go/deepseek-v4-flash"
+    "commander": "opencode-go/qwen3.8-flash",
+    "pe": "opencode-go/qwen3.8-flash",
+    "go_architect": "opencode-go/qwen3.8-flash",
+    "python_architect": "opencode-go/qwen3.8-flash",
+    "frontend_architect": "opencode-go/qwen3.8-flash",
+    "qa_architect": "opencode-go/qwen3.8-flash",
+    "security_architect": "opencode-go/qwen3.8-flash",
+    "finanzas": "google/antigravity-gemini-3-flash",
+    "organiza": "google/antigravity-gemini-3-flash",
+    "habitos": "google/antigravity-gemini-3-flash",
+    "life": "google/antigravity-gemini-3-flash",
+    "coach": "google/antigravity-gemini-3-flash",
+    "model": "opencode-go/qwen3.8-flash",
+    "small_model": "opencode-go/qwen3.8-flash"
   },
   "gemini": {
     "commander": "google/gemini-3.1-pro",
@@ -19,6 +24,11 @@
     "frontend_architect": "google/gemini-3.1-pro",
     "qa_architect": "google/gemini-3.5-flash",
     "security_architect": "google/gemini-3.5-flash",
+    "finanzas": "google/antigravity-gemini-3-flash",
+    "organiza": "google/antigravity-gemini-3-flash",
+    "habitos": "google/antigravity-gemini-3-flash",
+    "life": "google/antigravity-gemini-3-flash",
+    "coach": "google/antigravity-gemini-3-flash",
     "model": "google/gemini-3.1-pro",
     "small_model": "google/gemini-3.5-flash"
   }

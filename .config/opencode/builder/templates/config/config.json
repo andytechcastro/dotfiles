@@ -4,8 +4,6 @@
         "mcp_timeout": 3600000
     },
     "plugin": [
-        "opencode-gemini-auth@latest",
-        "opencode-claude-auth@latest",
         "opencode-snippets@latest",
         "opencode-notify@latest",
         "envsitter-guard@latest",
@@ -16,8 +14,15 @@
         "./plugins/engram.ts",
         "./plugins/squeez.js",
         "opencode-vibeguard@latest",
-        ["@plannotator/opencode@latest", { "workflow": "all-agents" }],
-        "@nick-vi/opencode-type-inject@latest"
+        [
+            "@plannotator/opencode@latest",
+            {
+                "workflow": "plan-agent",
+                "planningAgents": ["commander"]
+            }
+        ],
+        "@nick-vi/opencode-type-inject@latest",
+        "opencode-antigravity-auth@latest"
     ],
     "theme": "catppuccin",
     "autoupdate": true,
@@ -52,6 +57,31 @@
             "type": "remote",
             "url": "https://run.googleapis.com/mcp",
             "enabled": true
+        },
+        "google_drive": {
+            "type": "remote",
+            "url": "https://drivemcp.googleapis.com/mcp/v1",
+            "enabled": true,
+            "oauth": {
+                "clientId": "${GOOGLE_CLIENT_ID}",
+                "clientSecret": "${GOOGLE_CLIENT_SECRET}",
+                "scopes": [
+                    "https://www.googleapis.com/auth/drive",
+                    "https://www.googleapis.com/auth/drive.readonly",
+                    "https://www.googleapis.com/auth/documents",
+                    "https://www.googleapis.com/auth/documents.readonly"
+                ]
+            },
+            "_requires_env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]
+        },
+        "playwright": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@playwright/mcp@latest"
+            ],
+            "enabled": true
         }
     },
     "agent": {
@@ -70,5 +100,31 @@
     },
     "default_agent": "commander",
     "model": "{{MODEL:model}}",
-    "small_model": "{{MODEL:small_model}}"
+    "small_model": "{{MODEL:small_model}}",
+    "provider": {
+        "google": {
+            "models": {
+                "antigravity-gemini-3-flash": {
+                    "name": "Gemini 3 Flash (Antigravity)",
+                    "limit": { "context": 1048576, "output": 65536 },
+                    "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+                    "variants": {
+                        "minimal": { "thinkingLevel": "minimal" },
+                        "low": { "thinkingLevel": "low" },
+                        "medium": { "thinkingLevel": "medium" },
+                        "high": { "thinkingLevel": "high" }
+                    }
+                },
+                "antigravity-gemini-3-pro": {
+                    "name": "Gemini 3 Pro (Antigravity)",
+                    "limit": { "context": 1048576, "output": 65535 },
+                    "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
+                    "variants": {
+                        "low": { "thinkingLevel": "low" },
+                        "high": { "thinkingLevel": "high" }
+                    }
+                }
+            }
+        }
+    }
 }
