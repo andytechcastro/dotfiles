@@ -215,3 +215,8 @@ snapd/
 # Graphify output (regenerated on demand)
 graphify-out/
 **/graphify-out/
+
+# Backup artifacts (never commit)
+*.backup.*
+*.bak-*
+.dms-backups/
