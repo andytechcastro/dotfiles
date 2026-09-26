@@ -221,3 +221,6 @@ graphify-out/
 *.backup.*
 *.bak-*
 .dms-backups/
+
+# run-watch plugin runtime artifacts (ledger/markers/logs)
+.run-watch/
