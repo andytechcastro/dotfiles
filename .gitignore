@@ -211,6 +211,7 @@ snapd/
 .config/opencode/config.json
 .config/opencode/opencode.json
 .config/opencode/agent/
+.config/opencode/service.json
 
 # Graphify output (regenerated on demand)
 graphify-out/

@@ -3,26 +3,22 @@
     "experimental": {
         "mcp_timeout": 3600000
     },
-    "plugin": [
+    "permissions": [
+        { "action": "read", "resource": "*.env", "effect": "deny" },
+        { "action": "read", "resource": "*.env.*", "effect": "deny" },
+        { "action": "edit", "resource": "*.env", "effect": "deny" },
+        { "action": "edit", "resource": "*.env.*", "effect": "deny" }
+    ],
+    "plugins": [
         "opencode-snippets@latest",
-        "opencode-notify@latest",
-        "envsitter-guard@latest",
-        "@ykaratkou/opencode-worktree@0.1.0",
         "@tarquinen/opencode-dcp@latest",
-        "opencode-autotitle@latest",
-        "./plugins/graphify.js",
-        "./plugins/engram.ts",
-        "./plugins/squeez.js",
-        "opencode-vibeguard@latest",
-        [
-            "@plannotator/opencode@latest",
-            {
+        {
+            "package": "@plannotator/opencode@latest",
+            "options": {
                 "workflow": "plan-agent",
                 "planningAgents": ["commander"]
             }
-        ],
-        "@nick-vi/opencode-type-inject@latest",
-        "opencode-antigravity-auth@latest"
+        }
     ],
     "theme": "catppuccin",
     "autoupdate": true,
@@ -85,6 +81,9 @@
         }
     },
     "agent": {
+        "title": {
+            "model": "{{MODEL:small_model}}"
+        },
         "build": {
             "disable": true
         },
@@ -100,31 +99,5 @@
     },
     "default_agent": "commander",
     "model": "{{MODEL:model}}",
-    "small_model": "{{MODEL:small_model}}",
-    "provider": {
-        "google": {
-            "models": {
-                "antigravity-gemini-3-flash": {
-                    "name": "Gemini 3 Flash (Antigravity)",
-                    "limit": { "context": 1048576, "output": 65536 },
-                    "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
-                    "variants": {
-                        "minimal": { "thinkingLevel": "minimal" },
-                        "low": { "thinkingLevel": "low" },
-                        "medium": { "thinkingLevel": "medium" },
-                        "high": { "thinkingLevel": "high" }
-                    }
-                },
-                "antigravity-gemini-3-pro": {
-                    "name": "Gemini 3 Pro (Antigravity)",
-                    "limit": { "context": 1048576, "output": 65535 },
-                    "modalities": { "input": ["text", "image", "pdf"], "output": ["text"] },
-                    "variants": {
-                        "low": { "thinkingLevel": "low" },
-                        "high": { "thinkingLevel": "high" }
-                    }
-                }
-            }
-        }
-    }
+    "small_model": "{{MODEL:small_model}}"
 }
