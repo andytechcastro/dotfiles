@@ -1,0 +1,6 @@
+[Unit]
+Description=Self-update squeez binary (official updater, SHA256-verified)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/squeez update
