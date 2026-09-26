@@ -299,9 +299,13 @@ engram sync --import          # Import memories on another machine
 - `opencode.json` — Contains API tokens (generated from template)
 - `agent/` directory — Generated output (rebuilt from templates)
 - `*.bak` files — Never commit backups
-- `node_modules`, `package.json`, `bun.lock` — NPM artifacts
+- `node_modules`, `bun.lock` — NPM artifacts
 - `~/.engram/` — Local SQLite memory database (never committed)
 - `squeez/sessions/` — Session logs (regenerated per session)
+
+> **Note (2026-09-26):** `.config/opencode/package.json` IS tracked now —
+> it carries security `overrides` (toml/uuid Dependabot bumps). Ignoring it
+> would let fresh clones silently re-resolve vulnerable versions.
 
 ### The `.bak` Lesson
 
