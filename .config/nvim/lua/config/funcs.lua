@@ -13,9 +13,9 @@ function GoRun()
     Snacks.terminal("go run .", { interactive = true })
 end
 
--- Go Test execute a terminal with gotest
+-- Go Test execute a terminal with go test
 function GoTest()
-    Snacks.terminal("gotest ./... -v", { interactive = true })
+    Snacks.terminal("go test ./... -v", { interactive = true })
 end
 
 -- Gemini Term

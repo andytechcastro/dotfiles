@@ -7,12 +7,10 @@ return {
     flavour = "mocha", -- latte, frappe, macchiato, mocha
     transparent_background = true,
     integrations = {
-      alpha = true,
       cmp = true,
       gitsigns = true,
-      nvimtree = true,
       treesitter = true,
-      notify = true,
+      snacks = true, -- confirmed present in installed catppuccin
       lualine = true,
       mason = true,
       native_lsp = {
@@ -35,10 +33,6 @@ return {
       trouble = true,
       flash = true,
       harpoon = true,
-      mini = {
-        enabled = true,
-        indentscope_color = "overlay2",
-      },
     },
   },
   config = function(_, opts)

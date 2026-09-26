@@ -27,6 +27,7 @@ return {
       rust = { "rustfmt" },
       terraform = { "terraform_fmt" },
       hcl = { "terraform_fmt" },
+      templ = { "templ" },
       yaml = { "yamlfmt" },
       json = { "prettier" },
       markdown = { "prettier" },

@@ -1,5 +1,16 @@
--- Reload vim config
-vim.api.nvim_create_user_command('ReloadConfig', 'source $MYVIMRC', {})
+-- Reload vim config (lua, not :source $MYVIMRC)
+vim.api.nvim_create_user_command('ReloadConfig', function()
+  -- Drop cached config.* modules (keep config.lazy: lazy.setup must not run twice)
+  for name in pairs(package.loaded) do
+    if name:match('^config%.') and name ~= 'config.lazy' then
+      package.loaded[name] = nil
+    end
+  end
+  require('config.set')
+  require('config.remap')
+  require('config.custom_commands')
+  vim.notify('Config reloaded', vim.log.levels.INFO)
+end, { desc = 'Reload lua config (set, remap, custom_commands)' })
 
 -- OpenCode Commands
 vim.api.nvim_create_user_command('GraphifyUpdate', function() require('config.opencode').graphify_update() end, {})
@@ -9,9 +20,10 @@ vim.api.nvim_create_user_command('OpenCodeBuild', function() require('config.ope
 -- Install essential Mason tools (synced with mason-tools.lua ensure_installed)
 vim.api.nvim_create_user_command('MasonInstallEssentials', function()
   local tools = {
-    -- LSPs
+    -- LSPs (canonical Mason registry package names, NOT lspconfig ids)
     "gopls", "rust-analyzer", "lua-language-server",
-    "terraform-ls", "dockerls", "yamlls", "bashls",
+    "terraform-ls", "dockerfile-language-server", "yaml-language-server",
+    "bash-language-server", "helm-ls", "buf", "html-lsp", "css-lsp",
     "helm-ls", "buf", "html-lsp", "css-lsp",
     "sqlls", "templ", "json-lsp", "lemminx",
     

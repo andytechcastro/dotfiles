@@ -1,5 +1,5 @@
 return {
-  "sindrets/diffview.nvim",
+  "dlyongemallo/diffview-plus.nvim", -- maintained drop-in fork of sindrets/diffview.nvim (same :Diffview* cmds, same require('diffview'))
   event = "VeryLazy",
   cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewToggleFiles", "DiffviewFocusFiles" },
   keys = {

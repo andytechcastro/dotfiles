@@ -13,7 +13,9 @@ return {
         { section = "startup" },
       },
     },
-    explorer = { enabled = true, replace_netrw = true },
+    explorer = { enabled = false, replace_netrw = true }, -- Oil owns the explorer
+    -- NOTE: snacks has no top-level `undo` module (main 882c996). The undo
+    -- viewer is the PICKER source Snacks.picker.undo() — bound in keys below.
     picker = {
       enabled = true,
       sources = {
@@ -32,12 +34,12 @@ return {
     terminal = { enabled = true },
     styles = {
       notification = {
-        wo = { wrap = true }
+        wo = { wrap = true } -- Wrap notifications
       }
     }
   },
   keys = {
-    { "<leader>e",  function() Snacks.explorer() end, desc = "File Explorer" },
+    -- <leader>e now owned by Oil (config/remap.lua); explorer module disabled
     { "<leader>p",  function() Snacks.picker.smart() end, desc = "Smart Picker" },
     { "<leader>ff", function() Snacks.picker.files() end, desc = "Find Files" },
     { "<leader>fg", function() Snacks.picker.grep() end, desc = "Live Grep" },
@@ -46,12 +48,11 @@ return {
     { "<leader>fr", function() Snacks.picker.registers() end, desc = "Registers" },
     { "<C-p>",      function() Snacks.picker.smart() end, desc = "Smart Picker" },
     { "<leader>.",  function() Snacks.scratch() end, desc = "Toggle Scratch Buffer" },
+    { "<leader>u",  function() Snacks.picker.undo() end, desc = "Undo History (replaces undotree)" },
     { "<leader>S",  function() Snacks.scratch.select() end, desc = "Select Scratch Buffer" },
     { "<leader>n",  function() Snacks.notifier.show_history() end, desc = "Notification History" },
     { "<leader>un", function() Snacks.notifier.hide() end, desc = "Dismiss All Notifications" },
     { "<c-/>",      function() Snacks.terminal() end, desc = "Toggle Terminal" },
     { "<c-_>",      function() Snacks.terminal() end, desc = "which_key_ignore" },
-    { "]]",         function() Snacks.words.jump(1) end, desc = "Next Reference", mode = { "n", "t" } },
-    { "[[",         function() Snacks.words.jump(-1) end, desc = "Prev Reference", mode = { "n", "t" } },
   },
 }

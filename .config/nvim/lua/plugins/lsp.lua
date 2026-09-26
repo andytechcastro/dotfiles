@@ -1,4 +1,6 @@
 return {
+	-- Mason is configured in mason-tools.lua
+
 	-- Autocompletion
 	{
 		"hrsh7th/nvim-cmp",
@@ -11,6 +13,24 @@ return {
 					{ name = "nvim_lsp" },
 				},
 				mapping = cmp.mapping.preset.insert({
+					["<Tab>"] = cmp.mapping(function(fallback)
+						if cmp.visible() then
+							cmp.select_next_item()
+						elseif vim.snippet.active({ direction = 1 }) then
+							vim.snippet.jump(1)
+						else
+							fallback()
+						end
+					end, { "i", "s" }),
+					["<S-Tab>"] = cmp.mapping(function(fallback)
+						if cmp.visible() then
+							cmp.select_prev_item()
+						elseif vim.snippet.active({ direction = -1 }) then
+							vim.snippet.jump(-1)
+						else
+							fallback()
+						end
+					end, { "i", "s" }),
 					["<C-Space>"] = cmp.mapping.complete(),
 					["<C-u>"] = cmp.mapping.scroll_docs(-4),
 					["<C-d>"] = cmp.mapping.scroll_docs(4),
@@ -32,14 +52,13 @@ return {
 		event = { "BufReadPre", "BufNewFile" },
 		dependencies = {
 			{ "hrsh7th/cmp-nvim-lsp" },
-			{ "williamboman/mason.nvim" },
-			{ "williamboman/mason-lspconfig.nvim" },
+			{ "mason-org/mason.nvim" },
+			{ "mason-org/mason-lspconfig.nvim" },
 		},
 		init = function()
 			vim.opt.signcolumn = "yes"
 		end,
 		config = function()
-			local lspconfig = require("lspconfig")
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 			-- LspAttach autocmd
@@ -63,36 +82,28 @@ return {
 						vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
 					end
 
-					-- Auto-format on save
-					vim.api.nvim_create_autocmd("BufWritePre", {
-						buffer = event.buf,
-						callback = function()
-							vim.lsp.buf.format({ async = false, id = event.data.client_id })
-						end,
-					})
+					-- NOTE: no format-on-save here — conform.nvim owns formatting.
 				end,
 			})
 
+			-- mason-lspconfig 2.x: no handlers table anymore.
+			-- automatic_enable (default true) calls vim.lsp.enable() for each
+			-- installed server; configs from nvim-lspconfig's lsp/ dir are merged
+			-- by vim.lsp.config. rust_analyzer is NOT ensured here:
+			-- rustaceanvim manages its own.
 			require("mason-lspconfig").setup({
 				ensure_installed = {
 					"terraformls", "dockerls", "yamlls", "bashls", "helm_ls",
 					"gopls", "buf_ls", "lua_ls", "html", "cssls", "sqlls", "templ", "jsonls",
 				},
-				handlers = {
-					function(server_name)
-						-- Rustaceanvim handles rust_analyzer
-						if server_name == "rust_analyzer" then return end
-						lspconfig[server_name].setup({
-							capabilities = capabilities,
-						})
-					end,
-					["lua_ls"] = function()
-						lspconfig.lua_ls.setup({
-							capabilities = capabilities,
-							settings = { Lua = { diagnostics = { globals = { "vim" } } } },
-						})
-					end,
-				},
+			})
+
+			-- Global LSP defaults (merged into every server config by vim.lsp.config)
+			vim.lsp.config("*", {
+				capabilities = capabilities,
+			})
+			vim.lsp.config("lua_ls", {
+				settings = { Lua = { diagnostics = { globals = { "vim" } } } },
 			})
 
 			vim.diagnostic.config({

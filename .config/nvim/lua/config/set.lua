@@ -4,7 +4,6 @@ set.termguicolors = true
 set.smartindent = true
 set.wrap = true
 set.breakindent = true
-set.encoding = 'utf-8'
 set.relativenumber = true
 set.number = true
 set.hlsearch = true
@@ -17,32 +16,40 @@ set.scrolloff = 8
 
 set.swapfile = false
 set.backup = false
-set.undodir = os.getenv("HOME") .. "/.vim/undodir"
+local undodir = vim.fn.stdpath('data') .. '/undo'
+if vim.fn.isdirectory(undodir) == 0 then
+    vim.fn.mkdir(undodir, 'p')
+end
+set.undodir = undodir
 set.undofile = true
 
-vim.cmd("highlight LineNr ctermfg=grey")
-vim.cmd("syntax enable")
-vim.cmd("set splitbelow")
-vim.cmd("set splitright")
+vim.api.nvim_set_hl(0, "LineNr", { ctermfg = 8 })
+vim.o.splitbelow = true
+vim.o.splitright = true
 
 
 
--- on
-local format_sync_grp = vim.api.nvim_create_augroup("GoFormat", {})
-vim.api.nvim_create_autocmd("BufWritePre", {
-  pattern = "*.go",
+-- Tabs: Go and templ use hard tabs (global stays expandtab ts=4)
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "go", "templ" },
   callback = function()
-   require('go.format').goimports()
+    vim.opt_local.expandtab = false
+    vim.opt_local.tabstop = 4
+    vim.opt_local.shiftwidth = 4
   end,
-  group = format_sync_grp,
 })
 
--- Helm
-vim.api.nvim_create_autocmd({'BufNewFile', 'BufRead'} , {
-    pattern = 'deployment.yaml',
-    callback = function()
-          vim.opt_local.filetype = 'helm'
+-- Helm: broaden filetype detection beyond plain *.yaml
+-- (paths containing /templates/ OR Chart.yaml / values.yaml)
+vim.api.nvim_create_autocmd({ 'BufNewFile', 'BufRead' }, {
+  pattern = { '*.yaml', '*.yml' },
+  callback = function(event)
+    local path = event.match
+    local name = vim.fn.fnamemodify(path, ':t')
+    if path:find('/templates/') or name == 'Chart.yaml' or name == 'values.yaml' then
+      vim.bo[event.buf].filetype = 'helm'
     end
+  end,
 })
 
 vim.api.nvim_create_autocmd({"FocusGained","BufEnter", "CursorHold", "CursorHoldI"}, {

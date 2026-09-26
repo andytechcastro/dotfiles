@@ -1,6 +1,6 @@
 return {
   {
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
     lazy = false,
     opts = {
       ui = {
@@ -17,34 +17,33 @@ return {
     }
   },
   {
-    "williamboman/mason-lspconfig.nvim",
-    dependencies = { "williamboman/mason.nvim" },
+    "mason-org/mason-lspconfig.nvim",
+    dependencies = { "mason-org/mason.nvim" },
   },
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
-    dependencies = { "williamboman/mason.nvim" },
+    dependencies = { "mason-org/mason.nvim" },
     config = function()
       require("mason-tool-installer").setup({
         ensure_installed = {
-          -- LSPs
-          "gopls", "rust-analyzer", "lua-language-server",
-          "terraform-ls", "dockerls", "yamlls", "bashls",
-          "helm-ls", "buf", "html-lsp", "css-lsp",
-          "sqlls", "templ", "json-lsp", "lemminx",
-          
+          -- LSP servers are ensured in lsp.lua (mason-lspconfig).
+          -- Exception: lemminx (XML) is not in lsp.lua's list; kept here,
+          -- mason-lspconfig 2.x automatic_enable will start it once installed.
+          "lemminx",
+
           -- Linters
           "golangci-lint", "shellcheck", "hadolint",
           "yamllint", "jsonlint", "markdownlint", "tflint",
           "selene", "vale-ls",
-          
+
           -- Formatters
           "gofumpt", "golines", "goimports", "stylua",
           "shfmt", "yamlfmt", "prettier", "sqlfmt",
           "xmlformatter",
-          
+
           -- DAPs
           "delve", "codelldb",
-          
+
           -- Go tools
           "gomodifytags", "gotests", "json-to-struct",
         },
