@@ -15,6 +15,13 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# CDPATH (exported in user ~/.zshrc) makes POSIX `cd` echo the resolved
+# directory to stdout whenever a relative target is found through it. That
+# echo pollutes `$(cd ... && pwd)` captures in resolve_repo_root(), breaking
+# every relative invocation of this script. Canonical mitigation for scripts:
+# unset it before doing any path resolution.
+unset CDPATH
+
 # ---- Constants ----
 readonly SCRIPT_VERSION="0.3.0"
 readonly DEFAULT_PROFILE="opencodego"
