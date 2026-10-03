@@ -17,8 +17,8 @@ The builder supports multiple model profiles with a priority-based resolution sy
 
 | Profile | Commander | Workers | small_model | Use Case |
 |---------|-----------|---------|-------------|----------|
-| `opencodego` | qwen3.6-plus | deepseek-v4-pro / kimi-k2.6 | deepseek-v4-flash | Default — OpenCode Go routed models |
-| `gemini` | gemini-3.1-pro | gemini-3.1-pro / gemini-3.5-flash | gemini-3.5-flash | Google ecosystem |
+| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | Default — Go gateway; personal agents (`finanzas`/`organiza`/`habitos`/`life`/`coach`) on `antigravity/gemini-3.8-flash-high` via CLIProxyAPI |
+| `gemini` | ⚠️ DEAD (stale V1 `google/*` IDs) | | | Do not select — legacy since antigravity-auth archive 2026-08-27 |
 
 ### Switching Profiles
 
