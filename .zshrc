@@ -169,3 +169,6 @@ alias checkin='oc --agent life'
 alias finanzas='oc --agent finanzas'
 alias organiza='oc --agent organiza'
 alias habitos='oc --agent habitos'
+
+# CLIProxyAPI local key (antigravity proxy, self-generated)
+[ -f "$HOME/.config/cli-proxy-api/api-key.env" ] && source "$HOME/.config/cli-proxy-api/api-key.env"

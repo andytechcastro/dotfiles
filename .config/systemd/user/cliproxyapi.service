@@ -1,0 +1,13 @@
+[Unit]
+Description=CLIProxyAPI — local Google/Antigravity OAuth proxy (OpenAI-compatible API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/cli-proxy-api --config %h/.config/cli-proxy-api/config.yaml
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
