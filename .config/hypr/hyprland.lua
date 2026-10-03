@@ -11,8 +11,10 @@ end)
 
 hl.config({
 	input = {
-		-- empty inherits XKB_DEFAULT_LAYOUT (libxkbcommon), falls back to "us"
-		kb_layout = "",
+		-- English international with AltGr dead keys (localectl X11 config is
+		-- ignored on Wayland: Hyprland uses libxkbcommon, not xorg.conf.d)
+		kb_layout = "us",
+		kb_variant = "altgr-intl",
 		numlock_by_default = true,
 		follow_mouse = 1,
 		touchpad = {
