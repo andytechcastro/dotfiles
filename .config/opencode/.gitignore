@@ -5,3 +5,6 @@ antigravity-accounts.json
 antigravity-accounts.json.*.tmp
 antigravity-signature-cache.json
 antigravity-logs/
+# squeez-managed files (auto-generated, regenerate per session)
+AGENTS.md
+squeez/sessions/
