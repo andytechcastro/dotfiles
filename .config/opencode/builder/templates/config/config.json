@@ -112,12 +112,6 @@
         },
         "plan": {
             "disable": true
-        },
-        "PE_build": {
-            "disable": true
-        },
-        "PE_plan": {
-            "disable": true
         }
     },
     "default_agent": "commander",
