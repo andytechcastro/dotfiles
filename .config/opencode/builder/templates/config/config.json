@@ -1,19 +1,40 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "experimental": {
-        "mcp_timeout": 3600000
-    },
+    "default_agent": "commander",
+    "model": "{{MODEL:model}}",
+    "update": "notify",
+    "share": "disabled",
     "permissions": [
         { "action": "read", "resource": "*.env", "effect": "deny" },
         { "action": "read", "resource": "*.env.*", "effect": "deny" },
         { "action": "edit", "resource": "*.env", "effect": "deny" },
-        { "action": "edit", "resource": "*.env.*", "effect": "deny" }
+        { "action": "edit", "resource": "*.env.*", "effect": "deny" },
+        { "action": "read", "resource": "*.env.example", "effect": "allow" },
+        { "action": "edit", "resource": "*.env.example", "effect": "allow" }
     ],
+    "experimental": {
+        "policies": [
+            { "action": "provider.use", "resource": "*", "effect": "deny" },
+            { "action": "provider.use", "resource": "opencode-go", "effect": "allow" },
+            { "action": "provider.use", "resource": "antigravity", "effect": "allow" },
+            { "action": "permission", "resource": "read:*.ssh/*", "effect": "deny" },
+            { "action": "permission", "resource": "edit:*.ssh/*", "effect": "deny" },
+            { "action": "permission", "resource": "read:*.env*", "effect": "deny" },
+            { "action": "permission", "resource": "edit:*.env*", "effect": "deny" },
+            { "action": "permission", "resource": "read:*.env.example", "effect": "allow" },
+            { "action": "permission", "resource": "edit:*.env.example", "effect": "allow" },
+            { "action": "permission", "resource": "read:*.secret_envs*", "effect": "deny" },
+            { "action": "permission", "resource": "edit:*.secret_envs*", "effect": "deny" },
+            { "action": "permission", "resource": "read:*.cli-proxy-api*", "effect": "deny" },
+            { "action": "permission", "resource": "read:*.config/gh/hosts.yml", "effect": "deny" },
+            { "action": "permission", "resource": "read:*.netrc", "effect": "deny" }
+        ]
+    },
     "plugins": [
-        "opencode-snippets@latest",
-        "@tarquinen/opencode-dcp@latest",
+        "opencode-snippets@3.2.0",
+        "@tarquinen/opencode-dcp@3.2.0",
         {
-            "package": "@plannotator/opencode@latest",
+            "package": "@plannotator/opencode@0.27.20",
             "options": {
                 "workflow": "plan-agent",
                 "planningAgents": ["commander"]
@@ -43,78 +64,98 @@
             }
         }
     },
-    "theme": "catppuccin",
-    "autoupdate": true,
     "mcp": {
-        "context7": {
-            "type": "remote",
-            "url": "https://mcp.context7.com/mcp",
-            "enabled": true
-        },
-        "engram": {
-            "type": "local",
-            "command": [
-                "/home/andres/.local/bin/engram",
-                "mcp",
-                "--tools=agent"
-            ],
-            "enabled": true
-        },
-        "gh_grep": {
-            "type": "remote",
-            "url": "https://mcp.grep.app",
-            "enabled": true
-        },
-        "codebase-memory-mcp": {
-            "type": "local",
-            "command": [
-                "/home/andres/.local/bin/codebase-memory-mcp"
-            ],
-            "enabled": true
-        },
-        "gcp": {
-            "type": "remote",
-            "url": "https://run.googleapis.com/mcp",
-            "enabled": true
-        },
-        "google_drive": {
-            "type": "remote",
-            "url": "https://drivemcp.googleapis.com/mcp/v1",
-            "enabled": true,
-            "oauth": {
-                "clientId": "${GOOGLE_CLIENT_ID}",
-                "clientSecret": "${GOOGLE_CLIENT_SECRET}",
-                "scopes": [
-                    "https://www.googleapis.com/auth/drive",
-                    "https://www.googleapis.com/auth/drive.readonly",
-                    "https://www.googleapis.com/auth/documents",
-                    "https://www.googleapis.com/auth/documents.readonly"
-                ]
+        "servers": {
+            "context7": {
+                "type": "remote",
+                "url": "https://mcp.context7.com/mcp",
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 60000
+                }
             },
-            "_requires_env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]
-        },
-        "playwright": {
-            "type": "local",
-            "command": [
-                "npx",
-                "-y",
-                "@playwright/mcp@latest"
-            ],
-            "enabled": true
+            "engram": {
+                "type": "local",
+                "command": [
+                    "/home/andres/.local/bin/engram",
+                    "mcp",
+                    "--tools=agent"
+                ],
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 60000
+                }
+            },
+            "gh_grep": {
+                "type": "remote",
+                "url": "https://mcp.grep.app",
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 60000
+                }
+            },
+            "codebase-memory-mcp": {
+                "type": "local",
+                "command": [
+                    "/home/andres/.local/bin/codebase-memory-mcp"
+                ],
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 600000
+                }
+            },
+            "gcp": {
+                "type": "remote",
+                "url": "https://run.googleapis.com/mcp",
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 60000
+                }
+            },
+            "google_drive": {
+                "type": "remote",
+                "url": "https://drivemcp.googleapis.com/mcp/v1",
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 300000
+                },
+                "oauth": {
+                    "client_id": "${GOOGLE_CLIENT_ID}",
+                    "client_secret": "${GOOGLE_CLIENT_SECRET}",
+                    "scope": "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/documents.readonly"
+                },
+                "_requires_env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]
+            },
+            "playwright": {
+                "type": "local",
+                "command": [
+                    "npx",
+                    "-y",
+                    "@playwright/mcp@0.0.83"
+                ],
+                "disabled": false,
+                "timeout": {
+                    "catalog": 10000,
+                    "execution": 600000
+                }
+            }
         }
     },
-    "agent": {
+    "agents": {
         "title": {
             "model": "{{MODEL:small_model}}"
         },
         "build": {
-            "disable": true
+            "disabled": true
         },
         "plan": {
-            "disable": true
+            "disabled": true
         }
-    },
-    "default_agent": "commander",
-    "model": "{{MODEL:model}}",
-    "small_model": "{{MODEL:small_model}}"
+    }
 }

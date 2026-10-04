@@ -1,6 +1,7 @@
 ---
 description: Diagnóstico profundo de un Pod de Kubernetes
 agent: PE
+subagent: true
 ---
 Usa la herramienta `k8s-pod-doctor` para analizar el estado del pod `$1`. 
 

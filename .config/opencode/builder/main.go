@@ -271,14 +271,15 @@ func processConfig() error {
 		}
 	}
 
-	// Process MCPs
+	// Process MCP servers — V2 nests definitions under mcp.servers
+	// (mcp.timeout and non-mcp blocks are intentionally NOT pruned; the `oc`
+	// wrapper's ${VAR} preflight guards those)
 	if mcp, ok := configMap["mcp"].(map[string]interface{}); ok {
-		processMap(mcp)
-	}
-
-	// Process Providers (if you ever add custom providers with keys)
-	if provider, ok := configMap["provider"].(map[string]interface{}); ok {
-		processMap(provider)
+		if servers, ok := mcp["servers"].(map[string]interface{}); ok {
+			processMap(servers)
+		} else {
+			fmt.Println("   ⚠️  'mcp' has no 'servers' map (V1 flat shape?) — _requires_env pruning skipped")
+		}
 	}
 
 	// 3. Write Output
@@ -287,5 +288,10 @@ func processConfig() error {
 		return err
 	}
 
-	return os.WriteFile(outputConfig, finalJSON, 0644)
+	// Generated config embeds secrets — owner-only. os.WriteFile's perm arg is
+	// ignored when the file already exists, so force the mode with Chmod too.
+	if err := os.WriteFile(outputConfig, finalJSON, 0600); err != nil {
+		return err
+	}
+	return os.Chmod(outputConfig, 0600)
 }

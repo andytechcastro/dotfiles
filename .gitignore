@@ -224,3 +224,8 @@ graphify-out/
 
 # run-watch plugin runtime artifacts (ledger/markers/logs)
 .run-watch/
+
+# Secret env files — never commit in this dotfiles repo
+*.env
+.env*
+!.env.example

@@ -151,7 +151,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 
 1. Create `.config/opencode/builder/templates/agent/my_agent.md` with YAML frontmatter.
 2. Use `{file:prompts/...}` to include shared behavior libraries.
-3. Add `permission.bash` allow/deny rules.
+3. Add `permissions:` list rules (`{action, resource, effect}`, catch-all first).
 4. Run `oc --rebuild` to regenerate (or `cd .config/opencode/builder && go run main.go`).
 
 ### Adding a New MCP
@@ -159,6 +159,8 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 1. Add the MCP entry to `.config/opencode/builder/templates/config/config.json`.
 2. Use `${ENV_VAR}` for secrets and add `"_requires_env": ["ENV_VAR"]` to conditionally include it.
 3. Re-export secrets and rebuild.
+
+> **Warning:** `https://opencode.ai/config.json` (the `$schema` URL) serves a **V1 schema** — never infer V2 config shapes from it (editor autocomplete will lie to you). The V2 docs are the source of truth.
 
 ### Installed MCPs
 
@@ -172,7 +174,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 | `codebase-memory-mcp` | Knowledge graph of codebase (tree-sitter + SQLite) |
 | `playwright` | Browser automation |
 
-> **Note:** `_requires_env` pruning is implemented in `main.go` ONLY for the `mcp` map and the legacy singular `provider` map. The V2 `providers` block (plural) is NOT pruned — but the `oc` wrapper preflight scans every `${VAR}` placeholder and **aborts the build** if any env is missing (`Aborted. Set the missing env vars and retry.`), so a key can never be silently baked empty.
+> **Note:** `_requires_env` pruning is implemented in `main.go` ONLY for the `mcp` map and the legacy singular `provider` map. The V2 `providers` block (plural) is NOT pruned — but the `oc` wrapper preflight builds its required-vars set as the **union of every `_requires_env` entry AND a generic `${VAR}` placeholder scan** of the template (uppercase `UPPER_SNAKE` names), and **aborts the build** if any env is missing (`Aborted. Set the missing env vars and retry.`), so a key can never be silently baked empty.
 
 ### Adding a New Plugin (V2 contract)
 
@@ -184,7 +186,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 4. Static-verify first: `tsc --noEmit` against installed `@opencode/plugin` typings (missing ambient `process`/`Bun` type errors are benign — injected by opencode's embedded runtime).
 
 **Registry plugin (npm package):**
-1. Add to the `plugins` array in `builder/templates/config/config.json` — plain `"pkg@latest"` string, or `{ "package": "...", "options": {...} }` when it needs options (V1 tuple form is invalid).
+1. Add to the `plugins` array in `builder/templates/config/config.json` — plain `"pkg@X.Y.Z"` string (**pin exact versions — never `@latest`**; supply-chain integrity: `@latest` re-resolves silently on every fresh install, and `update: "notify"` means we choose when to bump), or `{ "package": "...", "options": {...} }` when it needs options (V1 tuple form is invalid). Resolve the pinned version from opencode's on-disk npm cache (`~/.cache/opencode/npm/<pkg>@latest/*/package.json`) or `npm view <pkg> version`. Same rule applies to `npx -y` MCP servers in `mcp.servers` (e.g. `@playwright/mcp@X.Y.Z`, resolved from the `~/.npm/_npx` cache).
 2. `oc --rebuild` then `opencode service restart`.
 
 **Terminal/TUI plugin:** add to the `plugins` array in `cli.json` (currently empty — V1 TUI contracts are rejected by the V2 loader).
@@ -241,26 +243,33 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 
 > Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`) run on `antigravity/gemini-3.8-flash-high` — Google AI Pro quotas via CLIProxyAPI (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
 
-### Bash Permission Model
+### Permissions Model (V2 Native)
 
-All agents use a **deny-first** model: explicit deny rules are evaluated first, then `"*": allow` as catch-all. This eliminates nuisance permission prompts for command variants (flags, pipes, paths) while maintaining security guardrails.
+V2 agent frontmatter uses a `permissions:` **ordered LIST** of `{action, resource, effect}` entries — NOT the legacy singular `permission:` map. The legacy top-level fields (`permission`, `tools`, `temperature`, `top_p`, `prompt`, `disable`, `maxSteps`) are **IGNORED at runtime** (empirically proved 2026-10-04: a PE subagent executed `git stash list` / `git add` / `git commit` despite deny entries in its legacy `permission:` map). Action names in V2: `shell`, `edit` (covers write/patch), `read`, `glob`, `grep`, `webfetch`, `websearch`, `subagent` (resource = child agent ID), `external_directory` — **but see the dual-vocabulary rule below: `shell` alone is NOT enforced at runtime.**
+
+All agents keep a **catch-all-first, denies-last** layout — the semantics are unchanged (**last-match-wins**, `*` = zero-or-more chars), only the format changed. `- {action: shell, resource: "*", effect: allow}` appears FIRST in every list and every explicit deny is written AFTER it, so the later deny overrides the catch-all. This eliminates nuisance permission prompts for command variants (flags, pipes, paths) while keeping the denies effective. The previous "denies first, catch-all last" layout was a defect: the trailing `"*": allow` silently voided every deny (proved in audit — a denied `curl` executed). Shell resources match RAW command text (no `~`/`$HOME` expansion). The scalar `write: ask` / `edit: ask` entries were **deliberately dropped** in the 2026-10-04 migration: they were inert under the legacy map and activating them now would prompt-block subagent file editing (behavior change). The guaranteed enforcement layer for `.env` / `.ssh` / secrets remains config-level `experimental.policies`. Global config `permissions` array applies BEFORE agent rules; agent rules refine on top.
+
+**Dual vocabulary (mandatory, do not "clean up").** The V2 docs name the actions `shell` and `subagent`, but the runtime daemon evaluates shell checks under `bash` and subagent-spawn under `task`. Proven 2026-10-04: a `--attach` private-server probe returned `Supported actions: read, edit, glob, grep, list, bash, task, todowrite, todoread, question`, and `opencode api get /api/agent` showed our `shell` rules loaded yet never matching. Catalog-layer tool filtering *does* honor the documented names, which is why `webfetch: deny` already works without a twin; `read`/`edit` are identical in both worlds. Every template therefore carries an **identical adjacent twin** for each `shell` entry (`action: bash`, same resource/effect) and for each `subagent` entry (`action: task`) — commander 8+8, each work agent 23+23, each personal agent 21+21 plus a `subagent`/`task` pair. The duplication is intentional: add new shell or subagent rules as **pairs**, and delete the twins only when upstream aligns the action names with the docs.
 
 #### Commander (Full Access)
+```yaml
+permissions:
+  - {action: shell, resource: "*", effect: allow}          # catch-all FIRST
+  - {action: shell, resource: "rm -rf /", effect: deny}    # denies AFTER
+  - {action: shell, resource: "mkfs*", effect: deny}
+  - {action: shell, resource: "sudo rm*", effect: deny}
 ```
-🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
-✅ Everything else: ALLOW (no prompts)
-```
-The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
+Full deny set: `rm -rf /`, `rm -rf *`, `rm -rf /*`, `mkfs*`, `dd *`, `sudo rm*`, `chmod -R 777 /`. The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
 
 #### Sub-Agents (Read + Build — No Git Write, No Network)
+```yaml
+permissions:
+  - {action: shell, resource: "*", effect: allow}          # catch-all FIRST
+  - {action: shell, resource: "git push*", effect: deny}   # denies AFTER
+  - {action: shell, resource: "curl*", effect: deny}
+  - {action: webfetch, resource: "*", effect: deny}
 ```
-🚫 ALWAYS DENY: rm -rf /, rm -rf *, rm -rf /*, mkfs, dd, sudo rm, chmod -R 777 /
-🚫 GIT WRITE: git add, commit, push, pull, merge, rebase, reset, checkout, stash, cherry-pick
-🚫 NETWORK: curl, wget, nc
-🚫 macOS SECURITY: security, sysctl
-✅ Everything else: ALLOW (no prompts)
-```
-Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
+Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull/merge/rebase/reset/checkout/stash/cherry-pick` + `curl`/`wget`/`nc` + `security`/`sysctl` + `webfetch`. Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
 
 ### Sub-Agent Communication Protocol (Caveman Mode)
 
@@ -415,7 +424,7 @@ We do not use legacy commands. Use these modern alternatives:
 | Missing Tools | Builder needs `go` only. `bun` is NOT installed — plugins run inside opencode's embedded runtime |
 | Architecture Violation | Run `go run .config/opencode/tool/hex_check.go` in the project root |
 | MCP server fails to connect | Check that the required env vars are set for that MCP entry |
-| Agent can't execute commands | Check `permission.bash` in the agent template — may need to add `bash: true` to `tools` |
+| Agent can't execute commands | Check the `permissions:` list entries in the agent template — last deny may override the catch-all (V2: legacy `permission:` map and `tools:` are ignored) |
 | Custom command uses disabled agent | Check `command/*.md` — ensure `agent:` field points to an enabled agent |
 | Builder uses deprecated Go APIs | Use `os.ReadFile`/`os.WriteFile`/`os.ReadDir` instead of `ioutil` |
 | Model profile not found | Check `model_profiles.json` — profile name must match exactly. Use `oc --set-current <name>` or `MODEL_PROFILE=<name>` |

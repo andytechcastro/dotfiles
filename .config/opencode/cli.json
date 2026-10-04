@@ -4,13 +4,35 @@
     "name": "catppuccin"
   },
   "plugins": [],
+  "attention": {
+    "notifications": true,
+    "sound": true,
+    "volume": 0.4
+  },
+  "tabs": {
+    "mode": "auto",
+    "scope": "cwd",
+    "indicators": "status"
+  },
   "diffs": {
-    "wrap": "word"
+    "source": "turn",
+    "wrap": "word",
+    "tree": true
   },
   "session": {
     "sidebar": "auto",
     "scrollbar": true,
-    "thinking": "show"
+    "thinking": "show",
+    "tps": true
+  },
+  "prompt": {
+    "paste": "compact"
+  },
+  "keybinds": {
+    "leader": "ctrl+x"
+  },
+  "leader": {
+    "timeout": 2000
   },
   "animations": true
 }

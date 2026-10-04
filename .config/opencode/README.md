@@ -29,8 +29,8 @@ Para generar la configuración y los agentes, necesitas ejecutar el builder.
 
 1. Exporta tus claves (solo las que tengas):
    ```bash
-   # Opcional: Para búsqueda web
-   export BRAVE_API_KEY="BSA-xxxxxxxxxxxxxxxxxxxx"
+   # Opcional: Búsqueda web nativa V2 (provider tavily; leída en runtime, no en config)
+   export TAVILY_API_KEY="tvly-xxxxxxxx"
    
    # Opcional: Para integraciones Jira/Confluence
    export ATLASSIAN_API_TOKEN="tu-token"

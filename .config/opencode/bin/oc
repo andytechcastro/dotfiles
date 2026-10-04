@@ -144,10 +144,16 @@ check_env_vars() {
     return 0
   fi
 
-  # Collect all _requires_env values, deduplicated
+  # Required vars = union of _requires_env entries AND every generic
+  # ${UPPER_SNAKE} placeholder found in the template. The generic scan closes
+  # the hole where an unset ${CLIPROXY_API_KEY} (providers block is not
+  # _requires_env-pruned) would be baked as an empty string.
   local required_vars
   required_vars="$(jq -r '
-    [.. | objects | select(has("_requires_env")) | ._requires_env[]] | unique | .[]
+    [
+      ([.. | objects | select(has("_requires_env")) | ._requires_env[]]),
+      ([.. | strings | scan("\\$\\{([A-Z][A-Z0-9_]*)\\}") | .[0]])
+    ] | flatten | unique | .[]
   ' "$CONFIG_TEMPLATE")"
 
   if [[ -z "$required_vars" ]]; then
@@ -165,7 +171,7 @@ check_env_vars() {
     return 0
   fi
 
-  warn "The following env vars are missing (MCP entries requiring them will be skipped):"
+  warn "The following required env vars are missing (from _requires_env or \${VAR} placeholders in the template):"
   printf "  ${YELLOW}•${RESET} %s\n" "${missing[@]}" >&2
 
   # If not a TTY → abort automatically
@@ -292,7 +298,7 @@ ${BOLD}PATHS${RESET}
   Last profile: ${LAST_PROFILE_FILE}
 
 ${BOLD}NOTES${RESET}
-  • Missing env vars for MCP entries cause those entries to be skipped (not a hard error).
+  • Missing required env vars (_requires_env or \${VAR} placeholders) abort the rebuild. Set them (source ~/.secret_envs) and retry.
   • Use NO_COLOR=1 to disable ANSI output.
   • The script will NOT create the ~/.local/bin/oc symlink — do that manually:
       ln -sf ${BASH_SOURCE[0]} ~/.local/bin/oc
