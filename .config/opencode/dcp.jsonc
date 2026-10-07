@@ -1,13 +1,3 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/master/dcp.schema.json",
-  // 2026-10-07: DCP under V2 rewrites message history every turn (dedup,
-  // purgeErrors, compression nudges >= 50K ctx). Each rewrite invalidates the
-  // prompt-cache prefix -> measured churn per turn, same model/provider, last
-  // 30d of V1 vs V2 era: 0.8K -> 7.3K (x8.9; ~10% of prefix re-written/turn).
-  // Manual mode stops all autonomous history surgery; /dcp commands still work
-  // on demand. V2 native compaction is the overflow safety net.
-  "manualMode": {
-    "enabled": true,
-    "automaticStrategies": false
-  }
+  "$schema": "https://raw.githubusercontent.com/Opencode-DCP/opencode-dynamic-context-pruning/master/dcp.schema.json"
 }
