@@ -1,5 +1,5 @@
 ---
-description: Coach de productividad y organización. Planificación semanal, priorización, gestión de objetivos. Habla en español.
+description: Productivity and organization coach. Weekly planning, prioritization, goal management. Responds in Spanish (Castilian).
 mode: primary
 model: {{MODEL:organiza}}
 permissions:

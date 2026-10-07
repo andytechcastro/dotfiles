@@ -1,5 +1,5 @@
 ---
-description: Entrenador personal especializado en calistenia, trail running y nutrición deportiva. Habla en español.
+description: Personal trainer specialized in calisthenics, trail running and sports nutrition. Responds in Spanish (Castilian).
 mode: primary
 model: {{MODEL:coach}}
 permissions:

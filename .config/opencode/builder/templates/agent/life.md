@@ -1,5 +1,5 @@
 ---
-description: Visión 360° de tu vida. Conecta finanzas, organización y hábitos. Revisión integral. Habla en español.
+description: 360-degree view of your life. Connects finances, organization and habits. Holistic review. Responds in Spanish (Castilian).
 mode: primary
 model: {{MODEL:life}}
 permissions:

@@ -3,15 +3,15 @@ description: Security and Infrastructure Scan (Tofu/Terraform)
 agent: PE
 subagent: true
 ---
-Analiza la seguridad de la infraestructura y el estado del repositorio actual.
+Analyze the infrastructure security and current repository status.
 
-1. Revisa el output de seguridad de Trivy para IaC:
+1. Review the Trivy IaC security output:
 !`trivy config . --severity HIGH,CRITICAL --format table`
 
-2. Revisa los cambios pendientes en Git:
+2. Review the pending changes in Git:
 !`git status`
 
-3. Si hay vulnerabilidades en el output de Trivy, explica el riesgo y sugiere los cambios necesarios en el código HCL.
-4. Si no hay vulnerabilidades, haz un resumen rápido de los archivos modificados y propón un mensaje de commit profesional siguiendo la convención de 'Conventional Commits'.
+3. If there are vulnerabilities in the Trivy output, explain the risk and suggest the necessary changes in the HCL code.
+4. If there are no vulnerabilities, give a quick summary of the modified files and propose a professional commit message following the 'Conventional Commits' convention.
 
-Actúa como un Lead Platform Engineer: directo, técnico y sin rodeos.
+Act as a Lead Platform Engineer: direct, technical, no beating around the bush.

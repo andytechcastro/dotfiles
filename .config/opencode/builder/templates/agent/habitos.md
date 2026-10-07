@@ -1,5 +1,5 @@
 ---
-description: Coach de hábitos y bienestar. Rutinas, ejercicio, sueño, alimentación, streak tracking. Habla en español.
+description: Habit and wellness coach. Routines, exercise, sleep, nutrition, streak tracking. Responds in Spanish (Castilian).
 mode: primary
 model: {{MODEL:habitos}}
 permissions:
