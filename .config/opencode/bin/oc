@@ -23,8 +23,9 @@ IFS=$'\n\t'
 unset CDPATH
 
 # ---- Constants ----
-readonly SCRIPT_VERSION="0.3.0"
+readonly SCRIPT_VERSION="0.4.0"
 readonly DEFAULT_PROFILE="opencodego"
+readonly REMOTE_HOST="homesrv"
 
 # ---- Color setup ----
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
@@ -263,6 +264,7 @@ ${BOLD}USAGE${RESET}
   oc --profile <name>           Rebuild config with profile, then launch opencode
   oc --set-current <name>       Set persistent current_profile (no rebuild, no launch)
   oc --rebuild                  Force rebuild (last-used profile or '${DEFAULT_PROFILE}'), no launch
+  oc --sync [OPTIONS]           Sync agents and notes to home server (${REMOTE_HOST})
   oc --list-profiles            Show available model profiles
   oc --help | -h                Show this help
   oc --version                  Print script version
@@ -287,6 +289,10 @@ ${BOLD}EXAMPLES${RESET}
   oc --set-current anthropic_soft     # Make anthropic_soft the persistent default
   oc --set-current anthropic_soft && oc   # ...and immediately apply it (rebuild + launch)
   oc --rebuild                        # Force rebuild with last-used profile (no launch)
+  oc --sync                           # Rebuild and sync agents + notes to homesrv & restart daemon
+  oc --sync --dry-run                 # Preview sync without touching homesrv
+  oc --sync --agents-only             # Sync only agent definitions
+  oc --sync --notes-only              # Sync only personal context (~/notas/)
   oc --list-profiles                  # See all profiles with model details
   NO_COLOR=1 oc --list-profiles       # No ANSI colors in output
 
@@ -411,6 +417,124 @@ cmd_profile() {
   exec opencode "$@"
 }
 
+cmd_sync() {
+  local sync_agents=true
+  local sync_notes=true
+  local do_rebuild_flag=true
+  local restart_service=true
+  local dry_run=false
+  local rsync_extra=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --agents-only)
+        sync_notes=false
+        shift
+        ;;
+      --notes-only)
+        sync_agents=false
+        shift
+        ;;
+      --no-rebuild)
+        do_rebuild_flag=false
+        shift
+        ;;
+      --no-restart)
+        restart_service=false
+        shift
+        ;;
+      --dry-run)
+        dry_run=true
+        rsync_extra+=("-n")
+        shift
+        ;;
+      --help|-h)
+        cat <<EOF
+${BOLD}oc --sync${RESET} — Sync agents and notes to home server (${REMOTE_HOST})
+
+${BOLD}USAGE${RESET}
+  oc --sync [OPTIONS]
+  oc --sync-server [OPTIONS]
+
+${BOLD}OPTIONS${RESET}
+  --agents-only     Sync only compiled agent templates (~/.config/opencode/agent/)
+  --notes-only      Sync only personal context (~/notas/)
+  --no-rebuild      Skip local agent rebuild before sync
+  --no-restart      Do not restart opencode.service on ${REMOTE_HOST}
+  --dry-run         Show what would be copied without making changes
+  --help, -h        Show this help
+
+${BOLD}TARGET${RESET}
+  Target host: ${REMOTE_HOST}
+EOF
+        exit 0
+        ;;
+      *)
+        warn "Unknown sync option: $1"
+        shift
+        ;;
+    esac
+  done
+
+  echo -e "${BOLD}📡 Synchronizing with Home Server (${BLUE}${REMOTE_HOST}${RESET})${RESET}"
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "${YELLOW}🔍 DRY-RUN MODE: No changes will be applied.${RESET}"
+  fi
+
+  # 1. Check SSH connectivity
+  if ! ssh -q -o BatchMode=yes -o ConnectTimeout=5 "${REMOTE_HOST}" exit 2>/dev/null; then
+    die "Could not connect to ${REMOTE_HOST} via SSH. Check network / Tailscale."
+  fi
+  info "SSH connection to ${REMOTE_HOST} OK."
+
+  # 2. Rebuild agents if needed
+  if [[ "$sync_agents" == "true" && "$do_rebuild_flag" == "true" && "$dry_run" == "false" ]]; then
+    local current_profile
+    current_profile="$(resolve_current_profile)"
+    info "Rebuilding agents with profile '${current_profile}'..."
+    do_rebuild "$current_profile"
+  fi
+
+  # 3. Sync Agents
+  if [[ "$sync_agents" == "true" ]]; then
+    local local_agents="$REPO_ROOT/.config/opencode/agent/"
+    if [[ -d "$local_agents" ]]; then
+      echo -e "${BOLD}🤖 Syncing agents (~/.config/opencode/agent/)...${RESET}"
+      rsync -avz --delete "${rsync_extra[@]}" "$local_agents" "${REMOTE_HOST}:~/.config/opencode/agent/"
+    else
+      warn "Local agents directory not found: $local_agents"
+    fi
+  fi
+
+  # 4. Sync Notes
+  if [[ "$sync_notes" == "true" ]]; then
+    local local_notes="$HOME/notas/"
+    if [[ -d "$local_notes" ]]; then
+      echo -e "${BOLD}📝 Syncing notes (~/notas/)...${RESET}"
+      rsync -avz --delete "${rsync_extra[@]}" "$local_notes" "${REMOTE_HOST}:~/notas/"
+    else
+      warn "Local notes directory not found: $local_notes"
+    fi
+  fi
+
+  # 5. Restart service on server if agents were synced
+  if [[ "$sync_agents" == "true" && "$restart_service" == "true" && "$dry_run" == "false" ]]; then
+    echo -e "${BOLD}🔄 Restarting opencode.service on ${REMOTE_HOST}...${RESET}"
+    if ssh "${REMOTE_HOST}" "sudo systemctl restart opencode"; then
+      sleep 1
+      if ssh "${REMOTE_HOST}" "systemctl is-active --quiet opencode"; then
+        echo -e "${GREEN}✅ opencode.service is active and healthy on ${REMOTE_HOST}!${RESET}"
+      else
+        warn "opencode.service restarted but is not reported as active. Check: ssh ${REMOTE_HOST} 'systemctl status opencode'"
+      fi
+    else
+      warn "Failed to restart opencode.service on ${REMOTE_HOST}"
+    fi
+  fi
+
+  echo -e "${GREEN}✨ Synchronization completed successfully!${RESET}"
+}
+
 # ---- Argument parsing ----
 main() {
   # No args → maybe rebuild + launch opencode.
@@ -454,6 +578,11 @@ main() {
       ;;
     --rebuild)
       cmd_rebuild
+      exit 0
+      ;;
+    --sync|--sync-server)
+      shift
+      cmd_sync "$@"
       exit 0
       ;;
     --profile)

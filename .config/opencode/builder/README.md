@@ -55,6 +55,10 @@ oc                              # Launch opencode (skips rebuild if config is fr
 oc --profile gemini             # Rebuild with gemini profile, then launch
 oc --set-current gemini         # Make gemini the persistent default
 oc --rebuild                    # Force rebuild with last-used profile
+oc --sync                       # Rebuild & sync agents + notes to homesrv (restarts daemon)
+oc --sync --dry-run             # Preview sync without touching server
+oc --sync --agents-only         # Sync only agent definitions (~/.config/opencode/agent/)
+oc --sync --notes-only          # Sync only personal context (~/notas/)
 oc --list-profiles              # See all profiles with model details
 ```
 

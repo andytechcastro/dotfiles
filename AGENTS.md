@@ -105,6 +105,12 @@ oc --set-current gemini
 # Force rebuild without launching
 oc --rebuild
 
+# Sync agents + notes to homesrv (Raspberry Pi 4) & restart opencode.service
+oc --sync
+oc --sync --dry-run      # Preview without touching the server
+oc --sync --agents-only  # Sync only compiled agent definitions
+oc --sync --notes-only   # Sync only context notes (~/notas/)
+
 # List available profiles
 oc --list-profiles
 ```
