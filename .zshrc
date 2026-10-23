@@ -170,3 +170,12 @@ alias finanzas='oc --agent finanzas'
 alias organiza='oc --agent organiza'
 alias habitos='oc --agent habitos'
 
+# --- sshd on demand ---
+# sshd stays disabled at boot BY DESIGN — never enable it here.
+sshon()  { sudo systemctl start sshd && sshstatus; }
+sshoff() { sudo systemctl stop sshd  && sshstatus; }
+sshstatus() {
+  printf 'sshd: %s\n' "$(systemctl is-active sshd)"
+  sudo ss -tlnp 2>/dev/null | rg ':22\s' || echo 'puerto 22 cerrado'
+}
+
