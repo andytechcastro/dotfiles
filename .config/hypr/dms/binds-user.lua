@@ -33,6 +33,13 @@ for i = 1, 9 do
 	hl.bind("SUPER + SHIFT + " .. i, hl.dsp.window.move({ workspace = i }))
 end
 
+-- === FD LEAK WORKAROUND (bug Hyprland virtual-keyboard, upstream #16613) ===
+-- SUPER+V colisionaba con el musculo Mac (CMD+V = pegar): abria el overlay de
+-- clipboard sin querer, y Enter = auto-paste = teclado virtual = ~1000 fds
+-- fugados por uso en Hyprland 0.56.2. El Ctrl+V fisico no usa virtual-keyboard.
+hl.unbind("SUPER + V")
+hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd("dms ipc call clipboard toggle"), { description = "Clipboard history (movido de SUPER+V: leak de fds)" })
+
 -- === MOUSE SCROLL PARA WORKSPACES ===
 hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
