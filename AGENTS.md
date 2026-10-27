@@ -148,7 +148,7 @@ Models are **not hardcoded** in agent templates. Instead, each profile in `model
 
 | Profile | Commander | Workers | Personal agents | small_model |
 |---------|-----------|---------|-----------------|-------------|
-| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | antigravity/gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`) | opencode-go/qwen3.8-flash |
+| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | antigravity/gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) | opencode-go/qwen3.8-flash |
 | `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs, unusable since antigravity-auth archive (2026-08-27). Do not select. | | | |
 
 To add a new profile, add an entry to `model_profiles.json` with keys matching all `{{MODEL:key}}` placeholders used in templates.
@@ -157,7 +157,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 
 1. Create `.config/opencode/builder/templates/agent/my_agent.md` with YAML frontmatter.
 2. Use `{file:prompts/...}` to include shared behavior libraries.
-3. Add `permissions:` list rules (`{action, resource, effect}`, catch-all first).
+3. Add `permissions:` list rules (`{action, resource, effect}`, catch-all first). **Personal/primary agents that only read/write their notes dir must use `shell`/`bash` `"*": deny` as the catch-all (see Personal Agents section), never `allow`.**
 4. Run `oc --rebuild` to regenerate (or `cd .config/opencode/builder && go run main.go`).
 
 ### Adding a New MCP
@@ -247,7 +247,7 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 | `qa_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | QA SDET. Regression, resilience, performance. | subagent |
 | `security_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Security auditor. IaC, secrets, least-privilege. | subagent |
 
-> Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`) run on `antigravity/gemini-3.8-flash-high` — Google AI Pro quotas via CLIProxyAPI (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
+> Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) run on `antigravity/gemini-3.8-flash-high` — Google AI Pro quotas via CLIProxyAPI (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
 
 ### Permissions Model (V2 Native)
 
@@ -276,6 +276,16 @@ permissions:
   - {action: webfetch, resource: "*", effect: deny}
 ```
 Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull/merge/rebase/reset/checkout/stash/cherry-pick` + `curl`/`wget`/`nc` + `security`/`sysctl` + `webfetch`. Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
+
+#### Personal Agents (No Shell — hardened 2026-10-27)
+
+The 6 personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) have **`shell`/`bash` `"*"` set to `deny` as the FIRST rule** — not `allow`. They only need `read`/`edit` on their own `~/notas/<agent>/` directory plus Engram.
+
+**Why:** personal agents run on a **remote** model (`antigravity/gemini-3.8-flash-high` via CLIProxyAPI). Under the old layout the `shell "*": allow` catch-all let `cat ~/.secret_envs` execute as plain bash, bypassing the global `read`/`edit` secret denies and streaming secrets into a remote model's context. That was a **HIGH** finding in the `barista` security audit — structural debt inherited from `coach`, not specific to any one agent. With a catch-all `deny` first, the secret-exfil-by-shell channel is closed at the source.
+
+The per-command denies below the catch-all are retained as **documentation of intent** (and as defense-in-depth if a future refactor reintroduces a scoped allow). **No `allow` rule may appear after the catch-all deny** — last-match-wins would silently re-open the hole (the exact defect proved in the 2026-10-04 audit). Each personal template also carries an adjacent `bash` twin for every `shell` entry and a `task` twin for the `subagent` entry (see dual-vocabulary rule above).
+
+**Network egress (web tools) is per-agent, not blanket:** `finanzas`, `organiza`, `habitos` and `life` carry explicit `webfetch`/`websearch` `"*"` denies (sealed group — their `permissions:` blocks are byte-identical, md5 `ae8b105b375c36ac5fbc72a04cb578d3`). `barista` and `coach` are **intentionally web-open** (user decision 2026-10-27: they research machine manuals/specs, food and training recipes) — their templates simply omit the two web deny rules and carry a comment marking the exception. Any new personal agent defaults to SEALED; opening web requires an explicit user decision recorded in the template comment.
 
 ### Sub-Agent Communication Protocol (Caveman Mode)
 

@@ -13,6 +13,7 @@
     "habitos": "antigravity/gemini-3.8-flash-high",
     "life": "antigravity/gemini-3.8-flash-high",
     "coach": "antigravity/gemini-3.8-flash-high",
+    "barista": "antigravity/gemini-3.8-flash-high",
     "model": "opencode-go/qwen3.8-flash",
     "small_model": "opencode-go/qwen3.8-flash"
   },
@@ -29,6 +30,7 @@
     "habitos": "google/antigravity-gemini-3-flash",
     "life": "google/antigravity-gemini-3-flash",
     "coach": "google/antigravity-gemini-3-flash",
+    "barista": "google/antigravity-gemini-3-flash",
     "model": "google/gemini-3.1-pro",
     "small_model": "google/gemini-3.5-flash"
   }

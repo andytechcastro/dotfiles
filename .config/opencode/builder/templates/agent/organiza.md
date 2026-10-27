@@ -3,14 +3,17 @@ description: Productivity and organization coach. Weekly planning, prioritizatio
 mode: primary
 model: {{MODEL:organiza}}
 permissions:
-  # --- V2 permissions are an ORDERED LIST, LAST-MATCH-WINS: the "*" catch-all
-  # --- goes first, every deny below comes after it and therefore overrides it.
+  # --- V2 permissions are an ORDERED LIST, LAST-MATCH-WINS. Hardening 2026-10-27:
+  # --- shell/bash "*" fully DENIED for personal agents (they only need read/edit
+  # --- on ~/notas/<agent>/ + Engram; a catch-all ALLOW here bypassed the global
+  # --- read/edit secret denies via `cat`). The per-command denies below are now
+  # --- decorative — kept as documentation of intent. No ALLOW rule may follow.
   - action: shell
     resource: "*"
-    effect: allow
+    effect: deny
   - action: bash
     resource: "*"
-    effect: allow
+    effect: deny
   - action: shell
     resource: "rm -rf /"
     effect: deny
@@ -136,6 +139,13 @@ permissions:
     resource: "*"
     effect: deny
   - action: task
+    resource: "*"
+    effect: deny
+  # --- Network egress closed (curl/wget/nc denied above + no tool-level access) ---
+  - action: webfetch
+    resource: "*"
+    effect: deny
+  - action: websearch
     resource: "*"
     effect: deny
 ---
