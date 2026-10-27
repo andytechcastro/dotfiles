@@ -131,9 +131,9 @@ Setup modular con **lazy.nvim** como plugin manager.
 |-------|--------|
 | `Super + Return` | Abrir WezTerm |
 | `Super + E` | Thunar (file manager) |
-| `Super + D` / `Space` | Launcher DMS |
-| `Super + N` | Notificaciones DMS |
-| `Super + ,` | Settings DMS |
+| `Super + D` / `Space` | Launcher DUX |
+| `Super + N` | Notificaciones DUX |
+| `Super + ,` | Settings DUX |
 | `Super + J` | Toggle split |
 | `Super + V` | Floating window |
 | `Super + Shift + Q` | Cerrar ventana |
@@ -379,7 +379,7 @@ dotfiles/
 ├── .config/
 │   ├── nvim/                   # Neovim (lazy.nvim style)
 │   ├── wezterm/                # WezTerm config
-│   ├── hypr/                   # Hyprland + DMS
+│   ├── hypr/                   # Hyprland + DUX
 │   ├── ghostty/                # Ghostty config
 │   ├── fastfetch/              # Fastfetch config
 │   ├── opencode/               # Sistema de agentes IA
