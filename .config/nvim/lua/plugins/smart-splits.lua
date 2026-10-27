@@ -4,8 +4,12 @@ return {
     cond = vim.env.TERM_PROGRAM == "WezTerm",
     config = function()
         require('smart-splits').setup({
-            at_edge = 'wrap',
-            log_level = 'info',
+            move = {
+                at_edge = 'wrap',
+            },
+            log = {
+                level = 'info',
+            },
         })
     end,
     keys = {
