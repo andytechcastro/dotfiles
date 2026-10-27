@@ -32,6 +32,9 @@ export PATH="${PATH}:${GOBIN}"
 export PATH="${PATH}:/snap/bin"
 export PATH="${PATH}:${HOME}/.local/bin"
 
+# Prepend OpenCode official installer (user-owned, self-updatable via `opencode upgrade`)
+export PATH="${HOME}/.opencode/bin:${PATH}"
+
 if [ -d "$HOME/.bookmarks" ]; then
     export CDPATH=".:$HOME/.bookmarks:/"
 fi
