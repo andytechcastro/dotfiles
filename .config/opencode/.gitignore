@@ -7,4 +7,5 @@ antigravity-signature-cache.json
 antigravity-logs/
 # squeez-managed files (auto-generated, regenerate per session)
 AGENTS.md
+.AGENTS.md.squeez-lock
 squeez/sessions/
