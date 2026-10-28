@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # oc — OpenCode config builder + launcher wrapper
-# Version: 0.1.0
+# Version: 0.5.0
 # Lives at: <repo>/.config/opencode/bin/oc
 # Symlinked from: ~/.local/bin/oc
 #
@@ -23,7 +23,7 @@ IFS=$'\n\t'
 unset CDPATH
 
 # ---- Constants ----
-readonly SCRIPT_VERSION="0.4.0"
+readonly SCRIPT_VERSION="0.5.0"
 readonly DEFAULT_PROFILE="opencodego"
 readonly REMOTE_HOST="homesrv"
 
@@ -264,7 +264,7 @@ ${BOLD}USAGE${RESET}
   oc --profile <name>           Rebuild config with profile, then launch opencode
   oc --set-current <name>       Set persistent current_profile (no rebuild, no launch)
   oc --rebuild                  Force rebuild (last-used profile or '${DEFAULT_PROFILE}'), no launch
-  oc --sync [OPTIONS]           Sync agents and notes to home server (${REMOTE_HOST})
+  oc --sync [OPTIONS]           HARVEST notes from ${REMOTE_HOST} + push agents to it (safe)
   oc --list-profiles            Show available model profiles
   oc --help | -h                Show this help
   oc --version                  Print script version
@@ -289,10 +289,14 @@ ${BOLD}EXAMPLES${RESET}
   oc --set-current anthropic_soft     # Make anthropic_soft the persistent default
   oc --set-current anthropic_soft && oc   # ...and immediately apply it (rebuild + launch)
   oc --rebuild                        # Force rebuild with last-used profile (no launch)
-  oc --sync                           # Rebuild and sync agents + notes to homesrv & restart daemon
-  oc --sync --dry-run                 # Preview sync without touching homesrv
-  oc --sync --agents-only             # Sync only agent definitions
-  oc --sync --notes-only              # Sync only personal context (~/notas/)
+  oc --sync                           # Backup + harvest notes from homesrv + push agents + restart daemon
+  oc --sync --dry-run                 # Preview sync without touching either node
+  oc --sync --agents-only             # Push only agent definitions (notes untouched)
+  oc --sync --notes-only              # Harvest only personal context (~/notas/)
+  oc --sync --notes-pull              # Notes: pull server -> desktop only (never pushes)
+  oc --sync --notes-mirror            # Notes: DESTRUCTIVE desktop -> server mirror (opt-in, backups first)
+  # ~/notas on ${REMOTE_HOST} is the AUTHORITATIVE copy (agents + polar-sync write it 24/7).
+  # Safe default never deletes notes on either node; overwritten copies go to ~/backups/oc-sync/.
   oc --list-profiles                  # See all profiles with model details
   NO_COLOR=1 oc --list-profiles       # No ANSI colors in output
 
@@ -417,12 +421,437 @@ cmd_profile() {
   exec opencode "$@"
 }
 
+# ---- cmd_sync helpers (used ONLY by cmd_sync) ----
+#
+# Why this exists: homesrv (the Raspberry Pi) is the node that ACTUALLY WRITES
+# notes. Its agents plus polar-sync.timer create ~/notas/coach/* every day. The
+# desktop only holds an older bulk copy, so pushing desktop -> server with
+# --delete destroys agent-authored work. It happened on 2026-10-27: 55 files
+# existed only on the server and every one of the 5 differing files was newer
+# on the server. cmd_sync therefore HARVESTS by default and refuses --delete on
+# ~/notas unless --notes-mirror is passed explicitly, snapshotting both sides
+# first. Remote commands always use `ssh -n` so ssh cannot eat our stdin when
+# we later read output in a loop.
+
+oc_sync_path_unsafe() {
+  # $1=path -> 0 (unsafe) if it contains a character that would break the
+  # single-quoted remote arguments this script builds, or change what the shell
+  # parses. Used by every path that crosses to ${REMOTE_HOST}, because one
+  # stray quote there is remote command execution, not a typo. Spaces are
+  # deliberately NOT rejected: they are legal in a HOME and every use is
+  # single-quoted. Backslash is matched as an escaped pattern char (*\\*),
+  # which reads better than a quoted *"\"* pattern.
+  local v="$1"
+  case "$v" in
+    *"'"*|*'"'*|*'$'*|*'`'*|*';'*|*'|'*|*'&'*|*\\*|*$'\n'*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+# SEC-07 (defense in depth): remote_home is answered by the PEER, so it is
+# attacker-influenceable even over a trusted-looking ssh. It gets interpolated
+# into single-quoted remote command strings and used as the anchor of every
+# remote --delete/backup path, so validate before use:
+#   * must be absolute, and not one of the obvious --delete footguns
+#     ("/", "/home", "/root"),
+#   * must not contain a quote (would break our '...' quoting and allow remote
+#     command execution) or a shell metacharacter ($ ` \ ; | & or a newline).
+# Spaces ARE allowed on purpose: a HOME containing a space is legitimate and
+# every remote use wraps the path in single quotes (verified in the dry-run
+# regression tests).
+oc_sync_validate_remote_home() {
+  # $1=remote HOME as reported by the peer
+  local home="$1"
+  case "$home" in
+    /*) ;;
+    *) die "Refusing remote HOME from ${REMOTE_HOST}: '${home}' is not an absolute path." ;;
+  esac
+  if [[ "$home" == "/" || "$home" == "/home" || "$home" == "/root" ]]; then
+    die "Refusing implausible remote HOME from ${REMOTE_HOST}: '${home}' would make remote backup/delete targets catastrophic."
+  fi
+  if oc_sync_path_unsafe "$home"; then
+    die "Refusing remote HOME from ${REMOTE_HOST}: it contains quotes or shell metacharacters that would break remote quoting."
+  fi
+}
+
+oc_sync_backup_verify() {
+  # $1=archive $2=sums file $3=tar exit code $4=label
+  local archive="$1" sums="$2" rc="$3" label="$4"
+  # tar exits 1 on "file changed as we read it" — tolerable if the archive verifies.
+  if [[ "$rc" != "0" && "$rc" != "1" ]]; then
+    die "Backup of ${label} failed (tar exit ${rc}) — aborting before any write."
+  fi
+  if [[ ! -s "$archive" ]]; then
+    die "Backup of ${label} is empty: $archive — aborting before any write."
+  fi
+  if ! tar -tzf "$archive" >/dev/null 2>&1; then
+    die "Backup of ${label} failed integrity check (tar -tzf): $archive"
+  fi
+  if ! sha256sum "$archive" >> "$sums"; then
+    die "Could not record checksum for $archive in $sums"
+  fi
+  # SEC-03: these tarballs hold personal financial/health/training notes. The
+  # umask of whoever runs oc is not something we can rely on, so force the
+  # archive and its manifest private. Housekeeping, not a correctness gate: a
+  # failed chmod must not abort a sync whose backup is already verified.
+  chmod go-rwx -- "$archive" "$sums" 2>/dev/null || true
+  info "🗂️  Backup verified: ${archive}"
+}
+
+oc_sync_backup_local_dir() {
+  # $1=path relative to local $HOME (e.g. notas) $2=archive $3=sums file
+  local rel="$1" archive="$2" sums="$3" rc=0
+  tar -C "$HOME" -czf "$archive" -- "$rel" || rc=$?
+  oc_sync_backup_verify "$archive" "$sums" "$rc" "~/$(basename "$rel") (desktop)"
+}
+
+oc_sync_backup_remote_dir() {
+  # $1=path relative to REMOTE $HOME $2=archive $3=sums file
+  local rel="$1" archive="$2" sums="$3" rc=0
+  # \"\$HOME\" expands on the Pi, not here (escaped for the local shell); the
+  # single quotes around $rel keep the remote path literal and space-safe.
+  ssh -n "$REMOTE_HOST" "tar -C \"\$HOME\" -czf - -- '$rel'" > "$archive" || rc=$?
+  oc_sync_backup_verify "$archive" "$sums" "$rc" "${REMOTE_HOST}:~/${rel}"
+}
+
+oc_sync_stat_value() {
+  # $1=rsync --stats label $2=log file -> echoes an integer (0 when absent)
+  local key="$1" log="$2" value=""
+  value="$(sed -n "s|^${key}: *\\([0-9,]*\\).*|\\1|p" "$log" 2>/dev/null | head -1 | tr -d ',')"
+  printf '%s' "${value:-0}"
+}
+
+oc_sync_count_files_local() {
+  # $1=absolute local dir -> echoes number of files inside it
+  local dir="$1" out=""
+  out="$(find "$dir" -type f 2>/dev/null | wc -l | tr -dc '0-9')" || true
+  printf '%s' "${out:-0}"
+}
+
+oc_sync_count_files_remote() {
+  # $1=ABSOLUTE path on the REMOTE filesystem -> echoes number of files inside it
+  local dir="$1" out=""
+  out="$(ssh -n "$REMOTE_HOST" "find '$dir' -type f 2>/dev/null | wc -l | tr -dc '0-9'")" || true
+  printf '%s' "${out:-0}"
+}
+
+oc_sync_prune_safe_root() {
+  # $1=candidate backup root  $2=optional extra path to refuse (e.g. the REMOTE
+  # home when pruning on the peer)  $3=mode: "local" (default) or "remote".
+  # -> 0 only if it is safe to delete INSIDE it.
+  # This is the single gate every prune path (local and remote) must pass
+  # before an rm is even considered, because a wrong value here with -rf on a
+  # 24/7 node with an SD card root filesystem is unrecoverable.
+  # F-2/D3: the old gate was a PURE BLACKLIST — $HOME/notas, $HOME/.config and
+  # /etc/ssh all passed it (QA reproduced: a prune rooted in $HOME/notas would
+  # rm -rf matching trees there). It now requires, in order:
+  #   1) no '.'/'..' path components (string-level; they poison every later
+  #      literal comparison),
+  #   2) the positive shape */backups/oc-sync — the only roots this tool ever
+  #      prunes — instead of "anything not explicitly forbidden",
+  #   3) LOCAL MODE ONLY: the root may not itself be a symlink, and when
+  #      realpath exists, the fully resolved root must still end in
+  #      /backups/oc-sync, must exist (realpath fails otherwise), must NOT be
+  #      realpath($HOME), and must live UNDER realpath($HOME). A symlinked root
+  #      whose target is outside $HOME is therefore refused too.
+  # REMOTE MODE deliberately skips the realpath/-L checks: $1 describes the
+  # PEER's filesystem and resolving it on this machine is meaningless — doing
+  # it unconditionally would fail every legitimate Pi prune. Refusal in remote
+  # mode still happens strictly BEFORE any ssh call (unchanged invariant), and
+  # the remote branch keeps its own containment guards (-type/%y filter,
+  # child-of-root re-checks). If a peer ever lies about its HOME with '..'
+  # components, the shape/component rules above refuse the prune.
+  local root="$1" deny_extra="${2:-}" mode="${3:-local}"
+  [[ -n "$root" ]] || return 1
+  [[ "$root" == /* ]] || return 1
+  if [[ "$root" == "/" || "$root" == "/home" || "$root" == "/root" ]]; then
+    return 1
+  fi
+  if [[ -n "${HOME:-}" && "$root" == "$HOME" ]]; then
+    return 1
+  fi
+  if [[ -n "$deny_extra" && "$root" == "$deny_extra" ]]; then
+    return 1
+  fi
+  if oc_sync_path_unsafe "$root"; then
+    return 1
+  fi
+  # F-2: no '.' or '..' path COMPONENTS (the wrapping slashes make interior
+  # components match */./* and */../*; a trailing '.'/'..' component can only
+  # exist if $1 itself ends in it — shellcheck SC2195 rightly calls the
+  # originally-proposed '*/.)' arm dead code, so the tail is tested directly).
+  case "/$root/" in
+    */../*|*/./*) return 1 ;;
+  esac
+  if [[ "$root" == */. || "$root" == */.. ]]; then
+    return 1
+  fi
+  if [[ "$root" != */backups/oc-sync ]]; then
+    return 1
+  fi
+  if [[ "$mode" == "local" ]]; then
+    if [[ -L "$root" ]]; then
+      return 1
+    fi
+    if command -v realpath >/dev/null 2>&1 && [[ -n "${HOME:-}" ]]; then
+      local rp="" hp=""
+      rp="$(realpath -- "$root" 2>/dev/null)" || return 1
+      hp="$(realpath -- "$HOME" 2>/dev/null)" || return 1
+      if [[ "$rp" != */backups/oc-sync ]]; then
+        return 1
+      fi
+      if [[ "$rp" == "$hp" ]]; then
+        return 1
+      fi
+      if [[ "$rp" != "$hp"/* ]]; then
+        return 1
+      fi
+    fi
+  fi
+  return 0
+}
+
+oc_sync_prune_backups() {
+  # $1=dir $2=how many archives to keep. Deleting OLD BACKUPS by count is a
+  # deliberate, bounded action — it is NOT --delete over ~/notas.
+  # F-1: discovery used to be `ls -1td "$dir"/overwrites-*/`. The glob's
+  # TRAILING SLASH made bash match a symlinked entry (dir globs dereference),
+  # the re-check pattern 'overwrites-*/' accepted it, and
+  # `rm -rf -- 'root/overwrites-evil/'` then FOLLOWED the symlink into its
+  # TARGET — sandbox-proven: the victim tree outside the backup root was
+  # emptied, rc 0, the symlink itself survived, so the escape re-fired on
+  # every subsequent run. Now: `find -type d`/`-type f` can never return a
+  # symlink (verified: symlinks report %y='l' and match neither -type), rm
+  # arguments carry NO trailing slash, an explicit -L re-check is the last
+  # belt, and symlinked artefacts are announced and skipped, not nuked.
+  # Newest-first ordering by mtime is preserved (%T@ numeric sort replaces
+  # ls -1t), so "keep the newest N" semantics are unchanged.
+  local dir="$1" keep="${2:-14}"
+  if ! oc_sync_prune_safe_root "$dir"; then
+    warn "Refusing to prune backups: '${dir}' is not a safe absolute backup root."
+    return 1
+  fi
+  local f lnk
+  # Visible signal for entries we now deliberately skip (F-1 part a): never
+  # silently, because a surviving symlinked "backup" is itself suspicious.
+  while IFS= read -r lnk; do
+    warn "Skipping symlinked backup entry (not pruning through it): $lnk"
+  done < <(find "$dir" -maxdepth 1 -mindepth 1 -type l \
+      \( -name 'overwrites-*' -o -name '*.tar.gz' \) 2>/dev/null || true)
+  local -a archives=()
+  mapfile -t archives < <(find "$dir" -maxdepth 1 -mindepth 1 -type f -name '*.tar.gz' \
+      -printf '%T@\t%p\n' 2>/dev/null | sort -rn -k1,1 | cut -f2-)
+  # SEC-05: the overwrites-*/ trees grow on every run too. Bound them by the
+  # same count so a long-lived node cannot fill its own root filesystem.
+  local -a ovrdirs=()
+  mapfile -t ovrdirs < <(find "$dir" -maxdepth 1 -mindepth 1 -type d -name 'overwrites-*' \
+      -printf '%T@\t%p\n' 2>/dev/null | sort -rn -k1,1 | cut -f2-)
+  local pruned_arch=0 pruned_dirs=0
+  if [[ "${#archives[@]}" -gt "$keep" ]]; then
+    for f in "${archives[@]:keep}"; do
+      [[ "$f" == "$dir"/*.tar.gz ]] || continue
+      if [[ -L "$f" ]]; then
+        warn "Skipping symlinked backup entry (not pruning through it): $f"
+        continue
+      fi
+      rm -f -- "$f" && pruned_arch=$(( pruned_arch + 1 ))
+    done
+  fi
+  if [[ "${#ovrdirs[@]}" -gt "$keep" ]]; then
+    for f in "${ovrdirs[@]:keep}"; do
+      # F-1: the re-check pattern lost its trailing slash — 'overwrites-*/'
+      # was exactly what baited the symlink; 'overwrites-*' still matches
+      # every legitimate tree name.
+      [[ "$f" == "$dir"/overwrites-* ]] || continue
+      if [[ -L "$f" ]]; then
+        warn "Skipping symlinked backup entry (not pruning through it): $f"
+        continue
+      fi
+      rm -rf -- "$f" && pruned_dirs=$(( pruned_dirs + 1 ))
+    done
+  fi
+  # Drop checksum manifests whose archives are all gone. Glob-based loop is
+  # intentional: rm -f on a symlinked manifest unlinks the entry itself and
+  # can never follow into a target (no -r, no trailing slash anywhere).
+  local base ts
+  for f in "$dir"/SHA256SUMS-*.txt; do
+    [[ -e "$f" ]] || continue
+    base="$(basename "$f")"
+    ts="${base#SHA256SUMS-}"
+    ts="${ts%.txt}"
+    if ! ls "$dir"/*-"$ts".tar.gz >/dev/null 2>&1; then
+      rm -f -- "$f"
+    fi
+  done
+  if [[ "$pruned_arch" -gt 0 || "$pruned_dirs" -gt 0 ]]; then
+    info "🧹 Pruned ${pruned_arch} old archive(s) and ${pruned_dirs} old overwrite tree(s) from ${dir} (kept the ${keep} most recent of each)."
+  fi
+  return 0
+}
+
+oc_sync_prune_remote() {
+  # $1=ABSOLUTE remote backup root  $2=how many to keep (per category)
+  # $3=optional: the peer's HOME, refused as a prune root (SEC-07 makes
+  # remote_home trustworthy enough to build paths from, but the guard stays
+  # paranoid: a future caller must never hand it $remote_home itself).
+  # SEC-05: the Pi is an SD-card node that also hosts the live database, so its
+  # ~/backups/oc-sync MUST NOT grow without bound. Same policy as the local
+  # prune: newest $2 archives + newest $2 overwrites-* dirs survive; anything
+  # older, and any checksum manifest with no archive left, goes.
+  # The deletion set is computed HERE from a read-only listing and every path
+  # is re-checked against the root before rm, so no rm can escape the root.
+  # Failure is never fatal to the sync: the caller warns instead of dying.
+  local dir="$1" keep="${2:-14}" deny="${3:-}"
+  # F-2: "remote" mode = lexical gate checks only. The identity/realpath half
+  # of the gate is skipped HERE on purpose (resolving a PEER path locally is
+  # meaningless and would disable the Pi prune); the remote branch's own
+  # guards below (-type d/-type f via %y, child-of-root re-checks, no trailing
+  # slashes) provide containment, and the refusal still precedes any ssh call.
+  oc_sync_prune_safe_root "$dir" "$deny" remote || return 1
+  local listing="" rc=0
+  # `2>/dev/null` + sort => a missing/empty root yields an empty list, rc 0.
+  listing="$(ssh -n "$REMOTE_HOST" "find '$dir' -maxdepth 1 -mindepth 1 \\( -name '*.tar.gz' -o -name 'overwrites-*' -o -name 'SHA256SUMS-*.txt' \\) -printf '%T@\t%y\t%p\n' 2>/dev/null | sort -rn -k1,1")" || rc=$?
+  if [[ "$rc" != "0" ]]; then
+    warn "Could not list ${REMOTE_HOST}:${dir}/ for pruning (ssh exit ${rc})."
+    return 1
+  fi
+  local -a doomed=() arch_ordered=() dir_ordered=() sums_all=()
+  local _mtime type path kind b s base tsuffix found
+  while IFS=$'\t' read -r _mtime type path; do
+    [[ -n "$path" ]] || continue
+    # Guard 1: the path must be a real child of the verified root.
+    [[ "$path" == "$dir"/* ]] || continue
+    # Guard 2: never delete a path that carries quoting/metachar garbage.
+    if oc_sync_path_unsafe "$path"; then
+      warn "Skipping unexpected remote backup filename (not pruning it): ${path}"
+      continue
+    fi
+    kind=""
+    case "$type" in
+      d)
+        case "${path##*/}" in overwrites-*) kind="dir" ;; esac
+        ;;
+      f)
+        case "${path##*/}" in
+          *.tar.gz) kind="arch" ;;
+          SHA256SUMS-*.txt) kind="sum" ;;
+        esac
+        ;;
+    esac
+    [[ -n "$kind" ]] || continue
+    # The listing is mtime-descending, so these arrays are newest-first.
+    case "$kind" in
+      arch) arch_ordered+=("$path") ;;
+      dir)  dir_ordered+=("$path") ;;
+      sum)  sums_all+=("$path") ;;
+    esac
+  done <<< "$listing"
+  if [[ "${#arch_ordered[@]}" -gt "$keep" ]]; then
+    for b in "${arch_ordered[@]:keep}"; do doomed+=("$b"); done
+  fi
+  if [[ "${#dir_ordered[@]}" -gt "$keep" ]]; then
+    for b in "${dir_ordered[@]:keep}"; do doomed+=("$b"); done
+  fi
+  # Manifests are only pruned when no surviving archive references them.
+  local -a keep_ts=()
+  for b in ${arch_ordered[@]+"${arch_ordered[@]:0:keep}"}; do keep_ts+=("${b##*/}"); done
+  for s in ${sums_all[@]+"${sums_all[@]}"}; do
+    base="${s##*/}"
+    tsuffix="${base#SHA256SUMS-}"
+    tsuffix="${tsuffix%.txt}"
+    found=false
+    for b in ${keep_ts[@]+"${keep_ts[@]}"}; do
+      if [[ "$b" == *"-$tsuffix.tar.gz" ]]; then found=true; break; fi
+    done
+    if [[ "$found" == "false" ]]; then doomed+=("$s"); fi
+  done
+  if [[ "${#doomed[@]}" -eq 0 ]]; then
+    return 0
+  fi
+  local args="" d
+  for d in "${doomed[@]}"; do
+    # Guard 3 (last line before the rm): absolute child of the root, no quotes.
+    [[ "$d" == "$dir"/* ]] || continue
+    [[ "$d" != *"'"* ]] || continue
+    args+=" '$d'"
+  done
+  if [[ -z "$args" ]]; then
+    return 0
+  fi
+  if ! ssh -n "$REMOTE_HOST" "rm -rf --${args}"; then
+    warn "Could not prune old backups on ${REMOTE_HOST}:${dir}/ (non-fatal housekeeping)."
+    return 1
+  fi
+  info "🧹 Pruned ${#doomed[@]} old backup item(s) from ${REMOTE_HOST}:${dir}/ (kept the ${keep} most recent archives and overwrite trees)."
+  return 0
+}
+
+oc_sync_polar_race_guard() {
+  # $1=sync_notes bool  $2=dry_run bool
+  # Echoes nothing: it either dies, warns-and-continues, or returns 0.
+  # rc 255 = ssh transport died => we CANNOT know the service state => refuse.
+  # rc 0   = polar-sync IS active  => race, refuse (unless dry-run, which only reads).
+  # any other rc (1/3/4 = inactive/stopped/unknown) => treat as idle and continue.
+  local sync_notes="$1" dry_run="$2"
+  [[ "$sync_notes" == "true" ]] || return 0
+  local guard_rc=0
+  ssh -n "$REMOTE_HOST" 'systemctl is-active --quiet polar-sync.service' || guard_rc=$?
+  if [[ "$guard_rc" == "255" ]]; then
+    die "Cannot verify polar-sync state on ${REMOTE_HOST} (ssh failed, exit 255), refusing to sync."
+  elif [[ "$guard_rc" == "0" ]]; then
+    if [[ "$dry_run" == "true" ]]; then
+      warn "polar-sync is writing on ${REMOTE_HOST} right now — dry-run only reads, continuing."
+    else
+      die "polar-sync is writing on ${REMOTE_HOST}, retry after its window (00/08/16h) or pass --agents-only to sync just the agent templates."
+    fi
+  fi
+  return 0
+}
+
+oc_sync_mkdir_private_local() {
+  # $@=absolute local dirs -> created 0700 under a private umask, then restored.
+  # Returning non-zero lets the caller die/warn; no dir is left group-readable.
+  local prev="" d
+  prev="$(umask)"
+  umask 077 || return 1
+  local rc=0
+  for d in "$@"; do
+    [[ "$d" == /* && "$d" != "/" ]] || { rc=1; break; }
+    mkdir -p -- "$d" || { rc=1; break; }
+    chmod 700 -- "$d" || { rc=1; break; }
+  done
+  umask "$prev" 2>/dev/null || true
+  return "$rc"
+}
+
+oc_sync_mkdir_private_remote() {
+  # $1=root that every target must live under  $@=absolute remote dirs
+  # The Pi's ssh umask is 0002 (measured 2026-10-28), so anything rsync creates
+  # there lands 775. Create the backup dirs ourselves, under `umask 077`,
+  # before the phases hand them to rsync.
+  local root="$1"; shift
+  [[ -n "$root" && "$root" == /* && "$root" != "/" ]] || return 1
+  local d q=""
+  for d in "$@"; do
+    # Refuse anything outside the backup root, or carrying quote characters
+    # that would break the single-quoted remote arguments (see SEC-07).
+    [[ "$d" == "$root"/* ]] || return 1
+    if oc_sync_path_unsafe "$d"; then return 1; fi
+    q+=" '$d'"
+  done
+  ssh -n "$REMOTE_HOST" "umask 077 && mkdir -p --${q} && chmod 700 --${q}"
+}
+
 cmd_sync() {
   local sync_agents=true
   local sync_notes=true
   local do_rebuild_flag=true
   local restart_service=true
   local dry_run=false
+  local notes_pull=false
+  local notes_mirror=false
   local rsync_extra=()
 
   while [[ $# -gt 0 ]]; do
@@ -443,6 +872,14 @@ cmd_sync() {
         restart_service=false
         shift
         ;;
+      --notes-pull)
+        notes_pull=true
+        shift
+        ;;
+      --notes-mirror)
+        notes_mirror=true
+        shift
+        ;;
       --dry-run)
         dry_run=true
         rsync_extra+=("-n")
@@ -450,7 +887,7 @@ cmd_sync() {
         ;;
       --help|-h)
         cat <<EOF
-${BOLD}oc --sync${RESET} — Sync agents and notes to home server (${REMOTE_HOST})
+${BOLD}oc --sync${RESET} — Sync agents and notes with the home server (${REMOTE_HOST})
 
 ${BOLD}USAGE${RESET}
   oc --sync [OPTIONS]
@@ -461,8 +898,19 @@ ${BOLD}OPTIONS${RESET}
   --notes-only      Sync only personal context (~/notas/)
   --no-rebuild      Skip local agent rebuild before sync
   --no-restart      Do not restart opencode.service on ${REMOTE_HOST}
+  --notes-pull      Notes phase = PULL ONLY (server -> desktop). Never pushes, never deletes.
+  --notes-mirror    Opt-IN to the old destructive desktop -> server mirror of ~/notas
+                    (the only path that ever passes --delete). A backup of the
+                    server's ~/notas runs first and its path is printed.
   --dry-run         Show what would be copied without making changes
   --help, -h        Show this help
+
+${BOLD}NOTES ARE SERVER-AUTHORATIVE${RESET}
+  ~/notas on ${REMOTE_HOST} is written daily by the agents and by polar-sync.timer, so
+  the default notes flow HARVESTS: it pulls server -> desktop, then pushes only the
+  files that are newer on the desktop, and NEVER passes --delete. Overwritten copies
+  on both sides are preserved under ~/backups/oc-sync/. Use --notes-mirror to force
+  the old desktop -> server mirror behaviour.
 
 ${BOLD}TARGET${RESET}
   Target host: ${REMOTE_HOST}
@@ -476,9 +924,38 @@ EOF
     esac
   done
 
+  if [[ "$notes_pull" == "true" && "$notes_mirror" == "true" ]]; then
+    die "--notes-pull and --notes-mirror are mutually exclusive (pull-only vs destructive mirror)."
+  fi
+
+  # notes_mode: harvest (safe default) | pull | mirror
+  local notes_mode="harvest"
+  if [[ "$notes_pull" == "true" ]]; then
+    notes_mode="pull"
+  elif [[ "$notes_mirror" == "true" ]]; then
+    notes_mode="mirror"
+  fi
+
+  if [[ "$notes_mode" != "harvest" && "$sync_notes" == "false" ]]; then
+    warn "--notes-$( [[ "$notes_mode" == "pull" ]] && echo pull || echo mirror ) ignored: notes are not part of this run (--agents-only)."
+  fi
+
   echo -e "${BOLD}📡 Synchronizing with Home Server (${BLUE}${REMOTE_HOST}${RESET})${RESET}"
   if [[ "$dry_run" == "true" ]]; then
     echo -e "${YELLOW}🔍 DRY-RUN MODE: No changes will be applied.${RESET}"
+  fi
+  if [[ "$sync_notes" == "true" ]]; then
+    case "$notes_mode" in
+      harvest)
+        info "Notes mode: ${GREEN}SAFE HARVEST${RESET} (pull from server, then push only newer-on-desktop; never --delete)."
+        ;;
+      pull)
+        info "Notes mode: ${GREEN}PULL ONLY${RESET} (server → desktop; nothing is pushed)."
+        ;;
+      mirror)
+        echo -e "${YELLOW}  ⚠️  Notes mode: MIRROR — desktop → ${REMOTE_HOST} with --delete (explicit opt-in). Backups run first.${RESET}"
+        ;;
+    esac
   fi
 
   # 1. Check SSH connectivity
@@ -487,7 +964,25 @@ EOF
   fi
   info "SSH connection to ${REMOTE_HOST} OK."
 
-  # 2. Rebuild agents if needed
+  # 2. Resolve remote facts instead of guessing them. rsync interprets a
+  #    relative --backup-dir as relative to the DESTINATION (verified), so a
+  #    remote backup dir must be absolute on the Pi's filesystem or it would
+  #    nest inside ~/notas there.
+  local remote_home=""
+  if ! remote_home="$(ssh -n "$REMOTE_HOST" 'printf %s "$HOME"')" || [[ -z "$remote_home" ]]; then
+    die "Could not resolve the remote HOME on ${REMOTE_HOST} — refusing to build remote paths."
+  fi
+  oc_sync_validate_remote_home "$remote_home"
+  local bk_remote="$remote_home/backups/oc-sync"
+
+  # 3. Preflight race guard: polar-sync.service writes ~/notas/coach on its
+  #    timer (00/08/16h). Harvesting while it writes races the archive.
+  #    SEC-06: the ssh result MUST be inspected. Under `&&` a transport failure
+  #    (rc 255) was indistinguishable from "service inactive" (rc 1) and the
+  #    sync silently proceeded — fail-open. Now 255 refuses the run.
+  oc_sync_polar_race_guard "$sync_notes" "$dry_run"
+
+  # 4. Rebuild agents if needed
   if [[ "$sync_agents" == "true" && "$do_rebuild_flag" == "true" && "$dry_run" == "false" ]]; then
     local current_profile
     current_profile="$(resolve_current_profile)"
@@ -495,29 +990,229 @@ EOF
     do_rebuild "$current_profile"
   fi
 
-  # 3. Sync Agents
+  # 5. Backup + log plumbing
+  local bk_local="$HOME/backups/oc-sync"
+  local ts log_dir sums
+  ts="$(date +%Y%m%d-%H%M%S)"
+  log_dir="$(mktemp -d -t oc-sync-logs-XXXXXX)"
+  sums="$bk_local/SHA256SUMS-$ts.txt"
+  # Backup dirs are declared at function scope (not inside the notes block) so
+  # the summary can reference them even when the notes phase is skipped; under
+  # `set -u` an unset local would abort the script. They are also needed HERE,
+  # because they must be created private (SEC-03) before rsync writes into them.
+  local desk_bdir="$bk_local/overwrites-desktop-$ts"
+  local srv_bdir="$bk_remote/overwrites-server-$ts"
+  local notas_bdir="$bk_remote/overwrites-notas-$ts"
+  local agents_bdir="$bk_remote/overwrites-agent-$ts"
+  if [[ "$dry_run" == "false" ]]; then
+    # SEC-03: these archives hold financial/health/training notes and now exist
+    # on BOTH nodes. Create the roots 0700 and never rely on the caller's umask.
+    oc_sync_mkdir_private_local "$bk_local" \
+      || die "Could not create the private local backup directory: $bk_local"
+    printf '# oc v%s --sync pre-run checksums (%s)\n' "$SCRIPT_VERSION" "$ts" > "$sums" \
+      || die "Could not write the checksum manifest: $sums"
+    chmod go-rwx -- "$sums" 2>/dev/null || true
+    if ! ssh -n "$REMOTE_HOST" "umask 077 && mkdir -p -- '$bk_remote' && chmod 700 -- '$bk_remote'"; then
+      die "Could not create the remote backup directory: ${REMOTE_HOST}:${bk_remote}"
+    fi
+    # rsync creates --backup-dir itself with the local/remote default umask
+    # (022 -> 755). Pre-creating the dirs we are about to hand to rsync under
+    # `umask 077` is what actually keeps overwrites-* private on BOTH nodes.
+    local -a ovr_priv_remote=()
+    if [[ "$sync_agents" == "true" ]]; then ovr_priv_remote+=("$agents_bdir"); fi
+    if [[ "$sync_notes" == "true" ]]; then
+      if [[ "$notes_mode" == "mirror" ]]; then
+        ovr_priv_remote+=("$notas_bdir")
+      else
+        ovr_priv_remote+=("$srv_bdir")
+      fi
+    fi
+    if [[ "${#ovr_priv_remote[@]}" -gt 0 ]]; then
+      if ! oc_sync_mkdir_private_remote "$bk_remote" "${ovr_priv_remote[@]}"; then
+        die "Could not create the private overwrite backup dirs on ${REMOTE_HOST}:${bk_remote}"
+      fi
+    fi
+    if [[ "$sync_notes" == "true" && -d "$HOME/notas" ]]; then
+      oc_sync_mkdir_private_local "$desk_bdir" \
+        || warn "Could not pre-create the private desktop overwrite dir: $desk_bdir (rsync will still create it)."
+    fi
+  fi
+
+  # Counters for the final summary
+  local rc=0
+  local agents_pushed=0
+  local notes_pulled=0
+  local notes_pushed=0
+  local overw_agent=0
+  local overw_desktop=0
+  local overw_server=0
+  local mirror_moved=0
+  local server_only=0
+  local cross_copied=false
+  local -a backup_paths=()
+
+  # 6. Sync Agents — desktop → server. --delete is allowed here because the
+  #    agents come from a git repo (dotfiles) and are recoverable; --backup-dir
+  #    still keeps every overwritten or removed file on the server.
   if [[ "$sync_agents" == "true" ]]; then
     local local_agents="$REPO_ROOT/.config/opencode/agent/"
     if [[ -d "$local_agents" ]]; then
-      echo -e "${BOLD}🤖 Syncing agents (~/.config/opencode/agent/)...${RESET}"
-      rsync -avz --delete "${rsync_extra[@]}" "$local_agents" "${REMOTE_HOST}:~/.config/opencode/agent/"
+      echo -e "${BOLD}🤖 Syncing agents (~/.config/opencode/agent/) → ${REMOTE_HOST}...${RESET}"
+      if [[ "$dry_run" == "false" ]]; then
+        if ssh -n "$REMOTE_HOST" 'test -d "$HOME/.config/opencode/agent"'; then
+          local agent_bak="$bk_local/homesrv-agent-$ts.tar.gz"
+          oc_sync_backup_remote_dir ".config/opencode/agent" "$agent_bak" "$sums"
+          backup_paths+=("$agent_bak")
+        else
+          warn "No agent dir on ${REMOTE_HOST} yet — skipping its backup (nothing to overwrite)."
+        fi
+      fi
+      local agents_log="$log_dir/agents.txt"
+      rc=0
+      rsync -avz --delete --stats --backup --backup-dir="$agents_bdir" \
+        ${rsync_extra[@]+"${rsync_extra[@]}"} "$local_agents" \
+        "${REMOTE_HOST}:${remote_home}/.config/opencode/agent/" 2>&1 \
+        | tee "$agents_log" || rc=${PIPESTATUS[0]}
+      if [[ "$rc" != "0" && "$rc" != "24" ]]; then
+        die "rsync (agents) failed with exit ${rc}. Log: ${agents_log}"
+      elif [[ "$rc" == "24" ]]; then
+        warn "rsync (agents): a source file vanished mid-transfer (exit 24) — harmless."
+      fi
+      agents_pushed="$(oc_sync_stat_value "Number of regular files transferred" "$agents_log")"
+      if [[ "$dry_run" == "false" ]]; then
+        overw_agent="$(oc_sync_count_files_remote "$agents_bdir")"
+      fi
     else
       warn "Local agents directory not found: $local_agents"
     fi
   fi
 
-  # 4. Sync Notes
+  # 7. Sync Notes — the server is authoritative, so the default flow is a
+  #    non-destructive harvest: back up both sides, pull everything home, then
+  #    push only what is newer on the desktop. --delete never touches notas.
   if [[ "$sync_notes" == "true" ]]; then
     local local_notes="$HOME/notas/"
-    if [[ -d "$local_notes" ]]; then
-      echo -e "${BOLD}📝 Syncing notes (~/notas/)...${RESET}"
-      rsync -avz --delete "${rsync_extra[@]}" "$local_notes" "${REMOTE_HOST}:~/notas/"
-    else
+    if [[ ! -d "$local_notes" ]]; then
       warn "Local notes directory not found: $local_notes"
+    elif ! ssh -n "$REMOTE_HOST" 'test -d "$HOME/notas"'; then
+      warn "No ~/notas on ${REMOTE_HOST} yet — nothing to harvest, skipping the notes phase."
+    else
+      echo -e "${BOLD}📝 Syncing notes (~/notas/) — mode: ${notes_mode}${RESET}"
+      local remote_notes="${REMOTE_HOST}:${remote_home}/notas/"
+
+      # 7a. Measure what the old naive mirror would have destroyed. This pass is
+      #     always read-only (-n is forced here, not inherited from --dry-run).
+      local probe_log="$log_dir/mirror-probe.txt"
+      rc=0
+      rsync -avzn --delete --out-format='%i %n' "$local_notes" "$remote_notes" \
+        > "$probe_log" 2>&1 || rc=$?
+      if [[ "$rc" != "0" && "$rc" != "24" ]]; then
+        die "Read-only mirror probe failed with exit ${rc}. Log: ${probe_log}"
+      fi
+      server_only="$(grep -c '^\*deleting' "$probe_log" 2>/dev/null || true)"
+      server_only="${server_only//[!0-9]/}"
+      server_only="${server_only:-0}"
+      if [[ "$notes_mode" == "mirror" ]]; then
+        echo -e "  ${YELLOW}⚠️  ${server_only} ficheros solo existen en el servidor — con --notes-mirror se MUEVEN a ${REMOTE_HOST}:${notas_bdir}${RESET}"
+      else
+        echo -e "  ${GREEN}🛡️  ${server_only} ficheros solo existen en el servidor — el modo seguro NO los borra${RESET}"
+      fi
+
+      # 7b. Pre-sync backups of BOTH sides (authority first). Skipped under
+      #     --dry-run because writing a backup is a write.
+      if [[ "$dry_run" == "false" ]]; then
+        local remote_notes_bak="$bk_local/homesrv-notas-$ts.tar.gz"
+        local desktop_notes_bak="$bk_local/desktop-notas-$ts.tar.gz"
+        oc_sync_backup_remote_dir "notas" "$remote_notes_bak" "$sums"
+        oc_sync_backup_local_dir "notas" "$desktop_notes_bak" "$sums"
+        backup_paths+=("$remote_notes_bak" "$desktop_notes_bak")
+        # Cross-copy the tarballs + manifest to the Pi so the death of one node
+        # does not take both copies of the data down with it.
+        local xfer_log="$log_dir/backup-cross-copy.txt"
+        rc=0
+        rsync -az "$remote_notes_bak" "$desktop_notes_bak" "$sums" \
+          "${REMOTE_HOST}:${bk_remote}/" > "$xfer_log" 2>&1 || rc=$?
+        if [[ "$rc" != "0" ]]; then
+          warn "Could not cross-copy backups to ${REMOTE_HOST}:${bk_remote}/ (exit ${rc}) — the desktop copies are still valid."
+        else
+          cross_copied=true
+          # SEC-03: rsync -a preserves the (now private) local modes, but the
+          # receiver could still create anything else with the Pi's umask, so
+          # lock down exactly the three artefacts we just shipped. Housekeeping:
+          # a failure here must not invalidate a good cross-copy.
+          if ssh -n "$REMOTE_HOST" "chmod go-rwx -- \
+              '${bk_remote}/${remote_notes_bak##*/}' \
+              '${bk_remote}/${desktop_notes_bak##*/}' \
+              '${bk_remote}/${sums##*/}'"; then
+            info "🗂️  Backups + ${sums##*/} cross-copied to ${REMOTE_HOST}:${bk_remote}/ (private)."
+          else
+            warn "Backups cross-copied to ${REMOTE_HOST}:${bk_remote}/ but could not be tightened there — run: ssh ${REMOTE_HOST} chmod go-rwx ${bk_remote}/*.tar.gz ${bk_remote}/SHA256SUMS-*.txt"
+          fi
+        fi
+      else
+        info "🔍 DRY-RUN: no backups created (a backup is a write)."
+      fi
+
+      if [[ "$notes_mode" == "mirror" ]]; then
+        # 7c. THE ONLY PATH THAT MAY USE --delete ON NOTAS — explicit opt-in.
+        rc=0
+        local notes_log="$log_dir/notes-mirror.txt"
+        rsync -avz --delete --stats --backup --backup-dir="$notas_bdir" \
+          ${rsync_extra[@]+"${rsync_extra[@]}"} "$local_notes" "$remote_notes" 2>&1 \
+          | tee "$notes_log" || rc=${PIPESTATUS[0]}
+        if [[ "$rc" != "0" && "$rc" != "24" ]]; then
+          die "rsync (notes mirror) failed with exit ${rc}. Log: ${notes_log}"
+        elif [[ "$rc" == "24" ]]; then
+          warn "rsync (notes mirror): a file vanished mid-transfer (exit 24) — harmless."
+        fi
+        notes_pushed="$(oc_sync_stat_value "Number of regular files transferred" "$notes_log")"
+        if [[ "$dry_run" == "false" ]]; then
+          mirror_moved="$(oc_sync_count_files_remote "$notas_bdir")"
+        fi
+      else
+        # 7d. FASE PULL (server → desktop). --update skips anything newer on the
+        #     desktop, --backup-dir preserves anything about to be overwritten.
+        rc=0
+        local pull_log="$log_dir/notes-pull.txt"
+        rsync -avz --update --stats --backup --backup-dir="$desk_bdir" \
+          ${rsync_extra[@]+"${rsync_extra[@]}"} "$remote_notes" "$local_notes" 2>&1 \
+          | tee "$pull_log" || rc=${PIPESTATUS[0]}
+        if [[ "$rc" != "0" && "$rc" != "24" ]]; then
+          die "rsync (notes pull) failed with exit ${rc}. Log: ${pull_log}"
+        elif [[ "$rc" == "24" ]]; then
+          warn "rsync (notes pull): a file vanished mid-transfer (exit 24) — harmless."
+        fi
+        notes_pulled="$(oc_sync_stat_value "Number of regular files transferred" "$pull_log")"
+        if [[ "$dry_run" == "false" ]]; then
+          overw_desktop="$(oc_sync_count_files_local "$desk_bdir")"
+        fi
+
+        if [[ "$notes_mode" == "pull" ]]; then
+          info "Pull-only mode: nothing was pushed to ${REMOTE_HOST}."
+        else
+          # 7e. FASE PUSH (desktop → server). Only files NEWER on the desktop
+          #     go up; deletes are never sent; overwritten remote copies are
+          #     preserved in a remote, ABSOLUTE backup dir.
+          rc=0
+          local push_log="$log_dir/notes-push.txt"
+          rsync -avz --update --stats --backup --backup-dir="$srv_bdir" \
+            ${rsync_extra[@]+"${rsync_extra[@]}"} "$local_notes" "$remote_notes" 2>&1 \
+            | tee "$push_log" || rc=${PIPESTATUS[0]}
+          if [[ "$rc" != "0" && "$rc" != "24" ]]; then
+            die "rsync (notes push) failed with exit ${rc}. Log: ${push_log}"
+          elif [[ "$rc" == "24" ]]; then
+            warn "rsync (notes push): a file vanished mid-transfer (exit 24) — harmless."
+          fi
+          notes_pushed="$(oc_sync_stat_value "Number of regular files transferred" "$push_log")"
+          if [[ "$dry_run" == "false" ]]; then
+            overw_server="$(oc_sync_count_files_remote "$srv_bdir")"
+          fi
+        fi
+      fi
     fi
   fi
 
-  # 5. Restart service on server if agents were synced
+  # 8. Restart service on server if agents were synced
   if [[ "$sync_agents" == "true" && "$restart_service" == "true" && "$dry_run" == "false" ]]; then
     echo -e "${BOLD}🔄 Restarting opencode.service on ${REMOTE_HOST}...${RESET}"
     if ssh "${REMOTE_HOST}" "sudo systemctl restart opencode"; then
@@ -530,6 +1225,67 @@ EOF
     else
       warn "Failed to restart opencode.service on ${REMOTE_HOST}"
     fi
+  fi
+
+  # 9. Summary
+  local verb="transferred"
+  if [[ "$dry_run" == "true" ]]; then
+    verb="would transfer"
+  fi
+  # Backup-dir counts are meaningless in dry-run (nothing is written), so label
+  # them instead of reporting a fake 0.
+  local na="n/a (dry-run)"
+  local ovr_agent="$overw_agent" ovr_desktop="$overw_desktop"
+  local ovr_server="$overw_server" ovr_mirror="$mirror_moved"
+  if [[ "$dry_run" == "true" ]]; then
+    ovr_agent="$na"; ovr_desktop="$na"; ovr_server="$na"; ovr_mirror="$na"
+  fi
+  echo ""
+  echo -e "${BOLD}📊 Sync summary — ${REMOTE_HOST}${RESET}"
+  if [[ "$dry_run" == "true" ]]; then
+    echo -e "  ${YELLOW}🔍 DRY-RUN: nothing was written, moved or deleted on either node; no backups were created.${RESET}"
+  fi
+  if [[ "$sync_agents" == "true" ]]; then
+    echo -e "  🤖 agents ${verb} → ${REMOTE_HOST}: ${BOLD}${agents_pushed}${RESET} file(s)"
+    echo -e "     overwritten/removed on server, preserved in: ${REMOTE_HOST}:${bk_remote}/overwrites-agent-${ts}/ (${ovr_agent})"
+  fi
+  if [[ "$notes_pulled" != "0" || "$notes_pushed" != "0" || "$server_only" != "0" ]]; then
+    echo -e "  📥 notes ${verb} ${REMOTE_HOST} → desktop: ${BOLD}${notes_pulled}${RESET} file(s)"
+    echo -e "     overwritten on desktop, preserved in: ${desk_bdir}/ (${ovr_desktop})"
+    if [[ "$notes_mode" == "pull" ]]; then
+      echo -e "  📤 notes push: ${YELLOW}skipped (--notes-pull)${RESET}"
+    elif [[ "$notes_mode" == "mirror" ]]; then
+      echo -e "  📤 notes ${verb} desktop → ${REMOTE_HOST}: ${BOLD}${notes_pushed}${RESET} file(s) ${RED}with --delete${RESET}"
+      echo -e "     removed/overwritten on server, preserved in: ${REMOTE_HOST}:${notas_bdir}/ (${ovr_mirror})"
+    else
+      echo -e "  📤 notes ${verb} desktop → ${REMOTE_HOST}: ${BOLD}${notes_pushed}${RESET} file(s) (newer-on-desktop only, no deletes)"
+      echo -e "     overwritten on server, preserved in: ${REMOTE_HOST}:${srv_bdir}/ (${ovr_server})"
+      echo -e "  🛡️  server-only notes kept (mirror would have deleted): ${BOLD}${server_only}${RESET}"
+    fi
+  fi
+  if [[ "${#backup_paths[@]}" -gt 0 ]]; then
+    echo -e "  🗂️  Pre-sync backups (verified + checksummed):"
+    local bp
+    for bp in "${backup_paths[@]}"; do
+      echo -e "     • ${bp}"
+    done
+    if [[ "$cross_copied" == "true" ]]; then
+      echo -e "     • checksums: ${sums} (also on ${REMOTE_HOST}:${bk_remote}/)"
+    else
+      echo -e "     • checksums: ${sums} (desktop only — the cross-copy belongs to the notes phase)"
+    fi
+  fi
+  echo -e "  📁 Backup root: ${BOLD}${bk_local}${RESET} + ${REMOTE_HOST}:${BOLD}${bk_remote}${RESET} (last 14 archives and overwrite trees kept on each, both private)"
+
+  # 10. Prune old backups by count (bounded, never over ~/notas itself).
+  #     SEC-05: the Pi is an SD-card node holding the live database, so its
+  #     backup root is pruned with the same policy; a failure there is
+  #     housekeeping only and must never sink an otherwise good sync.
+  if [[ "$dry_run" == "false" ]]; then
+    oc_sync_prune_backups "$bk_local" 14 \
+      || warn "Local backup prune skipped for ${bk_local} — non-fatal."
+    oc_sync_prune_remote "$bk_remote" 14 "$remote_home" \
+      || warn "Remote backup prune on ${REMOTE_HOST}:${bk_remote}/ did not complete — non-fatal, check disk usage there."
   fi
 
   echo -e "${GREEN}✨ Synchronization completed successfully!${RESET}"
