@@ -147,7 +147,7 @@ check_env_vars() {
 
   # Required vars = union of _requires_env entries AND every generic
   # ${UPPER_SNAKE} placeholder found in the template. The generic scan closes
-  # the hole where an unset ${CLIPROXY_API_KEY} (providers block is not
+  # the hole where an unset ${SOME_API_KEY} (providers block is not
   # _requires_env-pruned) would be baked as an empty string.
   local required_vars
   required_vars="$(jq -r '

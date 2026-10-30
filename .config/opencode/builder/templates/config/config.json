@@ -27,12 +27,13 @@
         "policies": [
             { "action": "provider.use", "resource": "*", "effect": "deny" },
             { "action": "provider.use", "resource": "opencode-go", "effect": "allow" },
-            { "action": "provider.use", "resource": "antigravity", "effect": "allow" }
+            { "action": "provider.use", "resource": "google", "effect": "allow" }
         ]
     },
     "plugins": [
         "opencode-snippets@3.2.0",
         "@tarquinen/opencode-dcp@3.2.0",
+        "opencode-antigravity-auth@2.1.2",
         {
             "package": "@plannotator/opencode@0.27.20",
             "options": {
@@ -41,29 +42,7 @@
             }
         }
     ],
-    "providers": {
-        "antigravity": {
-            "name": "Antigravity (Google AI Pro via CLIProxyAPI)",
-            "package": "@opencode/ai/providers/openai-compatible",
-            "settings": { "baseURL": "http://127.0.0.1:8317/v1", "apiKey": "${CLIPROXY_API_KEY}" },
-            "models": {
-                "claude-opus-4-6-thinking": {},
-                "claude-opus-5-5-high": {},
-                "claude-sonnet-4-6": {},
-                "claude-sonnet-5-5-high": {},
-                "gemini-3-flash": {},
-                "gemini-3.1-flash-image": {},
-                "gemini-3.1-flash-lite": {},
-                "gemini-3.1-pro-low": {},
-                "gemini-3.5-flash-lite": {},
-                "gemini-3.6-flash-high": {},
-                "gemini-3.7-flash-high": {},
-                "gemini-3.8-flash-high": { "name": "Gemini 3.8 Flash (high, AI Pro quota)" },
-                "gemini-pro-agent": {},
-                "gpt-oss-120b-medium": {}
-            }
-        }
-    },
+    "providers": {},
     "mcp": {
         "servers": {
             "context7": {

@@ -148,8 +148,8 @@ Models are **not hardcoded** in agent templates. Instead, each profile in `model
 
 | Profile | Commander | Workers | Personal agents | small_model |
 |---------|-----------|---------|-----------------|-------------|
-| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | antigravity/gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) | opencode-go/qwen3.8-flash |
-| `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs, unusable since antigravity-auth archive (2026-08-27). Do not select. | | | |
+| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | google/antigravity-gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) | opencode-go/qwen3.8-flash |
+| `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs (pre-plugin catalog). Do not select. | | | |
 
 To add a new profile, add an entry to `model_profiles.json` with keys matching all `{{MODEL:key}}` placeholders used in templates.
 
@@ -205,6 +205,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 |--------|---------|
 | `opencode-snippets` | Snippet expansion with `#hashtag` syntax |
 | `@tarquinen/opencode-dcp` | Dynamic context pruning |
+| `opencode-antigravity-auth` | Google Antigravity OAuth + model catalog — `@2.1.2` (V2-native `Plugin.define`; provider `google`, models `antigravity-*`; see **Model Providers**) |
 | `@plannotator/opencode` | Browser UI for plan/code review — `options: { workflow: "plan-agent", planningAgents: ["commander"] }` |
 
 **Live — local auto-discovered (`.config/opencode/plugins/`):** `engram.ts`, `squeez.js`, `graphify.js`, `run-watch.ts` (tool `run_watch`), `yt-transcript.ts` (tool `yt_transcript`).
@@ -217,21 +218,21 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 | `opencode-notify` | `cli.json` `attention.notifications` / `attention.sounds` |
 | `@ykaratkou/opencode-worktree` | V2 native `ctx.worktree` + `worktree.directory` |
 | `envsitter-guard` | `permissions` deny rules on `*.env` / `*.env.*` (read+edit, 4 rules live in template) |
-| `opencode-antigravity-auth` | Upstream ARCHIVED 2026-08-27 → Google models now via CLIProxyAPI provider (see below) |
 
 **Dropped — waiting on upstream V2 ports:** `opencode-vibeguard`, `@nick-vi/opencode-type-inject`, `opencode-claude-auth`, `opencode-sdd-engram-manage` (upstream issue #52), `opencode-subagent-statusline` (issue #97).
 
-## 🔌 Model Providers — Antigravity via CLIProxyAPI
+## 🔌 Model Providers — Antigravity via opencode-antigravity-auth
 
-Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `google` = paid API-key, `vertex` = ADC). Google models are served through **CLIProxyAPI** (`router-for-me/CLIProxyAPI`, v8.0.13, MIT):
+Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `google` = paid API-key, `vertex` = ADC). Google models are served by the **`opencode-antigravity-auth@2.1.2`** registry plugin (NoeFabris, MIT — revived with native V2 support on 2026-10-27; the old CLIProxyAPI sidecar was fully retired on 2026-10-30):
 
-- **Binary:** `~/.local/bin/cli-proxy-api` — official GitHub release tarball, sha256-verified (AUR route needs interactive sudo).
-- **Proxy:** binds `127.0.0.1:8317` ONLY. Client auth = self-generated 64-hex LOCAL token in `access.api-keys` — free, not a paid key.
-- **Upstream auth:** Antigravity Google OAuth → uses the user's Google AI Pro subscription quotas. Tokens live in `~/.cli-proxy-api/` — NEVER in git.
-- **Service:** systemd USER unit `.config/systemd/user/cliproxyapi.service` (versioned in repo, symlinked to `~/.config/systemd/user/`). Manage with `systemctl --user {status,restart} cliproxyapi`.
-- **GOTCHA:** manual one-shot commands MUST pass `--config ~/.config/cli-proxy-api/config.yaml` — the default is `./config.yaml` relative to CWD (`failed to read config file` error otherwise). Login: `cli-proxy-api --antigravity-login --config ~/.config/cli-proxy-api/config.yaml`.
-- **OpenCode side:** `providers.antigravity` in the config template — `package: "@opencode/ai/providers/openai-compatible"`, `settings.baseURL: http://127.0.0.1:8317/v1`, `settings.apiKey: ${CLIPROXY_API_KEY}` **baked at build** (runtime is env-free). `models` = the 14 real IDs served by `GET /v1/models` — NEVER guess them; re-probe the proxy to refresh the catalog.
-- **Secrets:** `CLIPROXY_API_KEY` (+ everything else) lives in `~/.secret_envs` (chmod 600, sourced by `~/.zshrc`).
+- **Plugin:** plain-string pinned entry `"opencode-antigravity-auth@2.1.2"` in the `plugins` array. Audited on-disk: V2-native `Plugin.define({ id: "opencode-antigravity-auth" })` with dual entrypoint `export default { ...AntigravityV2Plugin, server: legacyServer }` (V1 fallback is inert under our runtime).
+- **Provider/models:** registers under the NATIVE `google` provider, ids prefixed `antigravity-*` — e.g. `google/antigravity-gemini-4-argon-high`, `google/antigravity-gemini-3.8-flash-high`. The catalog is **discovered live from the Google account (1h cache)** — new models appear automatically, zero manual catalog maintenance.
+- **Policy GOTCHA:** `experimental.policies` MUST carry `{action: provider.use, resource: "google", effect: allow}` after the catch-all deny — otherwise the provider is blocked and every personal agent dies silently.
+- **Auth:** `opencode auth login google` → pick "Google OAuth (Antigravity)". Consumes the user's Google AI Pro subscription quota. Existing accounts are reused across restarts.
+- **Account state:** `~/.config/opencode/antigravity-accounts.json` (chmod 600, **gitignored** — holds OAuth tokens; the nested `.gitignore` also covers `*.tmp`, `antigravity-signature-cache.json`, `antigravity-logs/`). Google refresh tokens are stable and multi-client: COPY this file to move machines, no re-OAuth needed.
+- **In-app command:** `/antigravity` (or `/ag`) — accounts, cached quotas + reset times, account rotation, model refresh.
+- **SLOW-NODE GOTCHA (homesrv/Pi):** plugin activation takes minutes (npm download + OAuth refresh + discovery). Until it finishes, `opencode models` fails with `ServiceUnavailableError: Location plugins did not finish activating`. Expected — wait and retry.
+- **CLIProxyAPI teardown (done 2026-10-30):** binaries, systemd units (local user + homesrv system), `~/.cli-proxy-api/`, `~/.config/cli-proxy-api/` and `CLIPROXY_API_KEY` (`~/.secret_envs`) removed on both nodes. Config template `providers` block is now `{}`.
 
 ## 🤖 Agent Roster & Permissions
 
@@ -247,7 +248,7 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 | `qa_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | QA SDET. Regression, resilience, performance. | subagent |
 | `security_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Security auditor. IaC, secrets, least-privilege. | subagent |
 
-> Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) run on `antigravity/gemini-3.8-flash-high` — Google AI Pro quotas via CLIProxyAPI (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
+> Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) run on `google/antigravity-gemini-3.8-flash-high` — Google AI Pro quotas via the `opencode-antigravity-auth` plugin (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
 
 ### Permissions Model (V2 Native)
 
@@ -281,7 +282,7 @@ Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull
 
 The 6 personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) have **`shell`/`bash` `"*"` set to `deny` as the FIRST rule** — not `allow`. They only need `read`/`edit` on their own `~/notas/<agent>/` directory plus Engram.
 
-**Why:** personal agents run on a **remote** model (`antigravity/gemini-3.8-flash-high` via CLIProxyAPI). Under the old layout the `shell "*": allow` catch-all let `cat ~/.secret_envs` execute as plain bash, bypassing the global `read`/`edit` secret denies and streaming secrets into a remote model's context. That was a **HIGH** finding in the `barista` security audit — structural debt inherited from `coach`, not specific to any one agent. With a catch-all `deny` first, the secret-exfil-by-shell channel is closed at the source.
+**Why:** personal agents run on a **remote** model (`google/antigravity-gemini-3.8-flash-high` via the `opencode-antigravity-auth` plugin). Under the old layout the `shell "*": allow` catch-all let `cat ~/.secret_envs` execute as plain bash, bypassing the global `read`/`edit` secret denies and streaming secrets into a remote model's context. That was a **HIGH** finding in the `barista` security audit — structural debt inherited from `coach`, not specific to any one agent. With a catch-all `deny` first, the secret-exfil-by-shell channel is closed at the source.
 
 The per-command denies below the catch-all are retained as **documentation of intent** (and as defense-in-depth if a future refactor reintroduces a scoped allow). **No `allow` rule may appear after the catch-all deny** — last-match-wins would silently re-open the hole (the exact defect proved in the 2026-10-04 audit). Each personal template also carries an adjacent `bash` twin for every `shell` entry and a `task` twin for the `subagent` entry (see dual-vocabulary rule above).
 
@@ -358,7 +359,7 @@ None active. The two V1 TUI plugins (`opencode-subagent-statusline`, `opencode-s
 - `squeez/sessions/` — Session logs (regenerated per session)
 - `.config/opencode/service.json` — V2 background-service registration
 - `.config/opencode/AGENTS.md` — squeez-managed session-context block (nested gitignore rule)
-- `~/.cli-proxy-api/` — CLIProxyAPI OAuth tokens (outside repo, never commit)
+- `.config/opencode/antigravity-accounts.json` — OAuth tokens (access/refresh) used by the `opencode-antigravity-auth` plugin. NEVER in git, copy between nodes over ssh (chmod 600)
 - `~/.secret_envs` — single source of secrets, sourced by `~/.zshrc` (chmod 600, outside repo)
 
 > **Note (2026-09-26):** `.config/opencode/package.json` IS tracked now —
@@ -448,9 +449,9 @@ We do not use legacy commands. Use these modern alternatives:
 | Engram plugin not working | Ensure `engram` binary is installed (`yay -S engram-bin`) |
 | `failed to load plugin` at boot | Plugin not on V2 contract (must `export default Plugin.define`) or stale config entry — single-file plugins must NEVER be listed in the config `plugins` array |
 | Plugin/tool changes have no effect | `opencode service restart` — hot reload/rebuild does not re-register hooks on live sessions |
-| `Model unavailable: antigravity/*` | Rebuild with `CLIPROXY_API_KEY` sourced (`source ~/.secret_envs`), then `opencode service restart`; check `systemctl --user is-active cliproxyapi` |
+| `Model unavailable: google/antigravity-*` | Check `journalctl`/`~/.local/share/opencode/log` for `loading plugin id=opencode-antigravity-auth@2.1.2`; `/antigravity` to verify account; `~/.config/opencode/antigravity-accounts.json` must exist (copy from the other node if not) |
+| `Location plugins did not finish activating` | Slow node (Pi) still installing/activating the registry plugin — wait ~1-3 min and retry |
 | `oc` build aborted: missing env vars | `source ~/.secret_envs` and retry — the `${VAR}` preflight abort is a feature (prevents baking empty keys) |
-| `cli-proxy-api: failed to read config file` | Pass `--config ~/.config/cli-proxy-api/config.yaml` in manual one-shot commands (default is `./config.yaml` relative to CWD) |
 | `yt_transcript` 429 / throttle | Retry later — YouTube rate-limits aggressive polling |
 | Agent saves memories without asking | Verify `engram_memory.md` prompt includes Ask-First rules. Rebuild if needed. |
 | `oc` command not found | Symlink missing. Run: `ln -sf $(pwd)/.config/opencode/bin/oc ~/.local/bin/oc` |
