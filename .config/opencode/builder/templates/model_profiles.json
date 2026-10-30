@@ -1,5 +1,5 @@
 {
-  "default_profile": "opencodego",
+  "default_profile": "google",
   "opencodego": {
     "commander": "opencode-go/qwen3.8-flash",
     "pe": "opencode-go/qwen3.8-flash",
@@ -33,5 +33,22 @@
     "barista": "google/antigravity-gemini-3-flash",
     "model": "google/gemini-3.1-pro",
     "small_model": "google/gemini-3.5-flash"
+  },
+  "google": {
+    "commander": "google/antigravity-gemini-4-argon-high",
+    "pe": "google/antigravity-claude-sonnet-5-5-medium",
+    "go_architect": "google/antigravity-claude-opus-5-5-medium",
+    "python_architect": "google/antigravity-claude-sonnet-5-5-high",
+    "frontend_architect": "google/antigravity-gemini-4-argon-medium",
+    "qa_architect": "google/antigravity-gemini-3.8-flash-high",
+    "security_architect": "google/antigravity-claude-opus-5-5-medium",
+    "finanzas": "google/antigravity-gemini-3.8-flash-high",
+    "organiza": "google/antigravity-gemini-3.8-flash-high",
+    "habitos": "google/antigravity-gemini-3.8-flash-high",
+    "life": "google/antigravity-gemini-3.8-flash-high",
+    "coach": "google/antigravity-gemini-3.8-flash-high",
+    "barista": "google/antigravity-gemini-3.8-flash-high",
+    "model": "google/antigravity-gemini-3.8-flash-medium",
+    "small_model": "google/antigravity-gemini-3.5-flash-lite"
   }
 }

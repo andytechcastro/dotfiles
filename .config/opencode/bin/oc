@@ -367,13 +367,9 @@ cmd_list_profiles() {
 cmd_rebuild() {
   local profile_name
 
-  # Determine profile to use
-  if [[ -f "$LAST_PROFILE_FILE" && -s "$LAST_PROFILE_FILE" ]]; then
-    profile_name="$(cat "$LAST_PROFILE_FILE")"
-  else
-    profile_name="$DEFAULT_PROFILE"
-    info "No previous profile found. Using default: ${DEFAULT_PROFILE}"
-  fi
+  # Determine profile to use — same priority as launch:
+  # current_profile > .last-profile > default_profile from JSON > hardcoded fallback
+  profile_name="$(resolve_current_profile)"
 
   validate_profile "$profile_name"
   do_rebuild "$profile_name"
