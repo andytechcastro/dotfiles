@@ -121,7 +121,7 @@ oc --list-profiles
 # 1. Export secrets (only the ones you have)
 export BRAVE_API_KEY='...'
 
-# 2. Run the builder (uses current_profile or default: opencodego)
+# 2. Run the builder (uses builder/current_profile, else default_profile in model_profiles.json = google)
 cd .config/opencode/builder && go run main.go
 
 # Or override with env var
@@ -148,8 +148,11 @@ Models are **not hardcoded** in agent templates. Instead, each profile in `model
 
 | Profile | Commander | Workers | Personal agents | small_model |
 |---------|-----------|---------|-----------------|-------------|
+| `google` ★ **DEFAULT** (2026-10-30) | google/antigravity-gemini-4-argon-high | mixed: go/security→claude-opus-5-5-medium, python→claude-sonnet-5-5-high, pe→claude-sonnet-5-5-medium, frontend→gemini-4-argon-medium, qa→gemini-3.8-flash-high | google/antigravity-gemini-3.8-flash-high | google/antigravity-gemini-3.5-flash-lite |
 | `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | google/antigravity-gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) | opencode-go/qwen3.8-flash |
 | `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs (pre-plugin catalog). Do not select. | | | |
+
+> ⚠️ **Quota note:** every `google/antigravity-*` model draws from ONE Google AI Pro subscription, shared across desktop + homesrv (same `antigravity-accounts.json`). The `google` profile deliberately mixes tiers (opus only for go/security architects, flash for qa) to stretch quotas. Monitor with `/antigravity`.
 
 To add a new profile, add an entry to `model_profiles.json` with keys matching all `{{MODEL:key}}` placeholders used in templates.
 
