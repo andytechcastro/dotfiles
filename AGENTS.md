@@ -148,17 +148,13 @@ Models are **not hardcoded** in agent templates. Instead, each profile in `model
 
 | Profile | Commander | Workers | Personal agents | small_model |
 |---------|-----------|---------|-----------------|-------------|
-| `google` ★ **DEFAULT** (Google-only desde 2026-11-01) | google/antigravity-gemini-4-argon-high | pe/go_architect/python_architect/security_architect→gemini-4-argon-high, frontend→gemini-4-argon-medium, qa→gemini-3.8-flash-high | google/antigravity-gemini-3.8-flash-medium | google/antigravity-gemini-3.5-flash-lite |
+| `google` ★ **DEFAULT** (Google-only desde 2026-11-01, Flash tier) | google/antigravity-gemini-3.8-flash-high | pe/go_architect/python_architect/frontend_architect/security_architect/qa→gemini-3.8-flash-high | google/antigravity-gemini-3.8-flash-medium | google/antigravity-gemini-3.5-flash-lite |
 | `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | google/antigravity-gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) | opencode-go/qwen3.8-flash |
 | `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs (pre-plugin catalog). Do not select. | | | |
 
-> ⚠️ **Quota note:** every `google/antigravity-*` model draws from ONE Google AI Pro subscription, shared across desktop + homesrv (same `antigravity-accounts.json`). Monitor with `/antigravity`.
+> ⚠️ **Quota note:** When running without an active Google AI Pro subscription, `gemini-4-argon-*` and Claude models fail due to lack of Pro quota. The `google` profile operates on Gemini 3.8 Flash (`gemini-3.8-flash-high` for commander & architects, `gemini-3.8-flash-medium` for personal agents, `gemini-3.5-flash-lite` for small model).
 >
-> **Why Google-only (2026-11-01):** the profile used to mix `antigravity-claude-opus-5-5-*` (go/security) and `antigravity-claude-sonnet-5-5-*` (pe/python). The Claude allocation inside the AI Pro subscription burns out in hours while the Gemini allocation lasts, so a mixed roster means the *critical* agents (architects) die first. All Claude entries were removed; those four agents now run `gemini-4-argon-high`.
->
-> **Live Google-only catalog** (`opencode models` — the catalog is discovered from the account, never hand-infer it): `gemini-4-argon-{low,medium,high}`, `gemini-3.8-flash-{low,medium,high}`, `gemini-3.5-flash-lite`, `gpt-oss-120b-medium`. Claude entries also appear (`claude-opus-5-5-*`, `claude-sonnet-5-5-*`) — do NOT put them in the `google` profile.
->
-> **Degradation path if Argon quota runs out:** drop `pe` and `frontend_architect` (already medium) plus `python_architect`/`security_architect` to `gemini-4-argon-medium` before touching `commander`. `gpt-oss-120b-medium` was rejected for workers: open-weight, noticeably weaker tool-calling loop discipline than Argon.
+> **Live Google-only catalog** (`opencode models` — the catalog is discovered from the account, never hand-infer it): `gemini-4-argon-{low,medium,high}`, `gemini-3.8-flash-{low,medium,high}`, `gemini-3.5-flash-lite`, `gpt-oss-120b-medium`.
 
 To add a new profile, add an entry to `model_profiles.json` with keys matching all `{{MODEL:key}}` placeholders used in templates.
 

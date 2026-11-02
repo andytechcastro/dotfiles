@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # oc — OpenCode config builder + launcher wrapper
-# Version: 0.5.0
+# Version: 0.5.1
 # Lives at: <repo>/.config/opencode/bin/oc
 # Symlinked from: ~/.local/bin/oc
 #
@@ -23,7 +23,7 @@ IFS=$'\n\t'
 unset CDPATH
 
 # ---- Constants ----
-readonly SCRIPT_VERSION="0.5.0"
+readonly SCRIPT_VERSION="0.5.1"
 readonly DEFAULT_PROFILE="opencodego"
 readonly REMOTE_HOST="homesrv"
 
@@ -233,6 +233,20 @@ resolve_current_profile() {
   echo "$DEFAULT_PROFILE"
 }
 
+# ---- Local service restart helper ----
+restart_local_service_if_running() {
+  if command -v opencode >/dev/null 2>&1; then
+    if opencode service status >/dev/null 2>&1; then
+      echo -e "${BOLD}🔄 Restarting local opencode background service to apply changes...${RESET}"
+      if opencode service restart; then
+        echo -e "${GREEN}✅ Local opencode service restarted successfully.${RESET}"
+      else
+        warn "Failed to restart local opencode service."
+      fi
+    fi
+  fi
+}
+
 # ---- Rebuild ----
 do_rebuild() {
   local profile_name="$1"
@@ -247,6 +261,7 @@ do_rebuild() {
     mkdir -p "$(dirname "$LAST_PROFILE_FILE")"
     printf '%s' "$profile_name" > "$LAST_PROFILE_FILE"
     echo -e "${GREEN}✅ Build OK. Profile saved: ${profile_name}${RESET}"
+    restart_local_service_if_running
   else
     local exit_code=$?
     echo -e "${RED}❌ Build failed (exit ${exit_code}). Profile NOT saved.${RESET}" >&2
