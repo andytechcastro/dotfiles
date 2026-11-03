@@ -24,7 +24,8 @@ This repository uses a **GitOps-style Builder Pattern** to generate AI Agent con
 │       │   ├── python_architect.md
 │       │   ├── frontend_architect.md
 │       │   ├── qa_architect.md
-│       │   └── security_architect.md
+│       │   ├── security_architect.md
+│       │   └── doc_architect.md
 │       ├── config/
 │       │   └── config.json   # Config template (${VAR} substitution + _requires_env)
 │       └── model_profiles.json # Model profiles (opencodego, gemini, etc.)
@@ -40,6 +41,7 @@ This repository uses a **GitOps-style Builder Pattern** to generate AI Agent con
 │   ├── python_architect_behavior.md # Python architect specific behavior
 │   ├── qa_behavior.md        # QA SDET protocol
 │   ├── security_behavior.md # Security architect protocol
+│   ├── doc_behavior.md       # Documentation architect protocol
 │   ├── caveman_behavior.md   # Token-saving protocol for sub-agents
 │   ├── engram_memory.md      # Engram Ask-First memory protocol
 │   ├── glossary.md           # Architecture glossary (Clean Arch, Hexagonal, etc.)
@@ -148,7 +150,7 @@ Models are **not hardcoded** in agent templates. Instead, each profile in `model
 
 | Profile | Commander | Workers | Personal agents | small_model |
 |---------|-----------|---------|-----------------|-------------|
-| `google` ★ **DEFAULT** (Google-only desde 2026-11-01, Flash tier) | google/antigravity-gemini-3.8-flash-high | pe/go_architect/python_architect/frontend_architect/security_architect/qa→gemini-3.8-flash-high | google/antigravity-gemini-3.8-flash-medium | google/antigravity-gemini-3.5-flash-lite |
+| `google` ★ **DEFAULT** (Google-only desde 2026-11-01, Flash tier) | google/antigravity-gemini-3.8-flash-high | pe/go_architect/python_architect/frontend_architect/security_architect/qa/doc→gemini-3.8-flash-high | google/antigravity-gemini-3.8-flash-medium | google/antigravity-gemini-3.5-flash-lite |
 | `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | google/antigravity-gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) | opencode-go/qwen3.8-flash |
 | `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs (pre-plugin catalog). Do not select. | | | |
 
@@ -252,6 +254,7 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 | `frontend_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | UX/UI + Frontend. Next.js 15, React 19. | subagent |
 | `qa_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | QA SDET. Regression, resilience, performance. | subagent |
 | `security_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Security auditor. IaC, secrets, least-privilege. | subagent |
+| `doc_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Documentation architect. Docs, ADRs, contracts, graphify. | subagent |
 
 > Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`) run on `google/antigravity-gemini-3.8-flash-high` — Google AI Pro quotas via the `opencode-antigravity-auth` plugin (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
 
