@@ -218,6 +218,10 @@ snapd/
 graphify-out/
 **/graphify-out/
 
+# Local docs (ADRs / specs kept locally)
+docs/
+
+
 # Backup artifacts (never commit)
 *.backup.*
 *.bak-*
