@@ -143,6 +143,19 @@ permissions:
     effect: deny
   # --- webfetch/websearch INTENTIONALLY OPEN (user decision 2026-10-27:
   # --- coach uses web for recipes and training content). Shell stays denied.
+  # --- Directory Isolation for Web-Open Personal Agents (ADR 0004) ---
+  - action: read
+    resource: "*notas/finanzas*"
+    effect: deny
+  - action: edit
+    resource: "*notas/finanzas*"
+    effect: deny
+  - action: read
+    resource: "*notas/life*"
+    effect: deny
+  - action: edit
+    resource: "*notas/life*"
+    effect: deny
 ---
 {file:prompts/personal_identity.md}
 

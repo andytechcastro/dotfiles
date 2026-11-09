@@ -143,6 +143,25 @@ permissions:
     effect: deny
   # --- webfetch/websearch INTENTIONALLY OPEN (user decision 2026-10-27:
   # --- barista researches manuals, specs and recipes). Shell stays denied.
+  # --- Directory Isolation for Web-Open Personal Agents (ADR 0004) ---
+  - action: read
+    resource: "*notas/finanzas*"
+    effect: deny
+  - action: edit
+    resource: "*notas/finanzas*"
+    effect: deny
+  - action: read
+    resource: "*notas/life*"
+    effect: deny
+  - action: edit
+    resource: "*notas/life*"
+    effect: deny
+  - action: read
+    resource: "*notas/coach*"
+    effect: deny
+  - action: edit
+    resource: "*notas/coach*"
+    effect: deny
 ---
 {file:prompts/personal_identity.md}
 
