@@ -151,7 +151,7 @@ Models are **not hardcoded** in agent templates. Instead, each profile in `model
 | Profile | Commander | Workers | Personal agents | small_model |
 |---------|-----------|---------|-----------------|-------------|
 | `google` ★ **DEFAULT** (Google-only desde 2026-11-01, Flash tier) | google/antigravity-gemini-3.8-flash-high | pe/go_architect/python_architect/frontend_architect/security_architect/qa/doc→gemini-3.8-flash-high | google/antigravity-gemini-3.8-flash-medium | google/antigravity-gemini-3.5-flash-lite |
-| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | google/antigravity-gemini-3.8-flash-high (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) | opencode-go/qwen3.8-flash |
+| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) | opencode-go/qwen3.8-flash |
 | `gemini` | ⚠️ **DEAD** — stale V1 `google/*` IDs (pre-plugin catalog). Do not select. | | | |
 
 > ⚠️ **Quota note:** When running without an active Google AI Pro subscription, `gemini-4-argon-*` and Claude models fail due to lack of Pro quota. The `google` profile operates on Gemini 3.8 Flash (`gemini-3.8-flash-high` for commander & architects, `gemini-3.8-flash-medium` for personal agents, `gemini-3.5-flash-lite` for small model).
@@ -234,7 +234,7 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 
 - **Plugin:** plain-string pinned entry `"opencode-antigravity-auth@2.1.2"` in the `plugins` array. Audited on-disk: V2-native `Plugin.define({ id: "opencode-antigravity-auth" })` with dual entrypoint `export default { ...AntigravityV2Plugin, server: legacyServer }` (V1 fallback is inert under our runtime).
 - **Provider/models:** registers under the NATIVE `google` provider, ids prefixed `antigravity-*` — e.g. `google/antigravity-gemini-4-argon-high`, `google/antigravity-gemini-3.8-flash-high`. The catalog is **discovered live from the Google account (1h cache)** — new models appear automatically, zero manual catalog maintenance.
-- **Policy GOTCHA:** `experimental.policies` MUST carry `{action: provider.use, resource: "google", effect: allow}` after the catch-all deny — otherwise the provider is blocked and every personal agent dies silently.
+- **Policy GOTCHA:** `experimental.policies` MUST carry `{action: provider.use, resource: "google", effect: allow}` after the catch-all deny — otherwise the provider is blocked and every agent pinned to a `google/*` model dies silently (under the `google` profile that includes all personal agents; under `opencodego` no agent resolves to `google/*`, so the breakage only surfaces on a profile switch).
 - **Auth:** `opencode auth login google` → pick "Google OAuth (Antigravity)". Consumes the user's Google AI Pro subscription quota. Existing accounts are reused across restarts.
 - **Account state:** `~/.config/opencode/antigravity-accounts.json` (chmod 600, **gitignored** — holds OAuth tokens; the nested `.gitignore` also covers `*.tmp`, `antigravity-signature-cache.json`, `antigravity-logs/`). Google refresh tokens are stable and multi-client: COPY this file to move machines, no re-OAuth needed.
 - **In-app command:** `/antigravity` (or `/ag`) — accounts, cached quotas + reset times, account rotation, model refresh.
@@ -261,7 +261,7 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 > - `explore`: Active and pinned to `{{MODEL:small_model}}` (`antigravity-gemini-3.5-flash-lite` in Google profile) for cost-efficient mass workspace searches.
 > - `general`, `build`, `plan`: **Explicitly disabled** (`"disabled": true` in `config.json`). All planning belongs exclusively to `commander`, and all build/code modifications must route to domain-specialized architects, preventing unspecialized fallback hallucinations.
 > - `title`: Built-in agent pinned to `{{MODEL:small_model}}`.
-> - Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) run on `google/antigravity-gemini-3.8-flash-high` — Google AI Pro quotas via the `opencode-antigravity-auth` plugin (see **Model Providers**). The `gemini` profile column is legacy — that profile is dead.
+> - Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) run on `opencode-go/qwen3.8-flash` under the `opencodego` profile and on `google/antigravity-gemini-3.8-flash-medium` under the `google` profile (Google AI Pro quota via the `opencode-antigravity-auth` plugin — see **Model Providers**). The `gemini` profile column is legacy — that profile is dead.
 
 ### 🔄 Shift-Left Architecture & Verification Lifecycle (Phase 1.5 & Phase 4)
 
@@ -373,7 +373,7 @@ Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull
 
 The 7 personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) have **`shell`/`bash` `"*"` set to `deny` as the FIRST rule** — not `allow`. They only need `read`/`edit` on their own `~/notas/<agent>/` directory plus Engram.
 
-**Why:** personal agents run on a **remote** model (`google/antigravity-gemini-3.8-flash-high` via the `opencode-antigravity-auth` plugin). Under the old layout the `shell "*": allow` catch-all let `cat ~/.secret_envs` execute as plain bash, bypassing the global `read`/`edit` secret denies and streaming secrets into a remote model's context. That was a **HIGH** finding in the `barista` security audit — structural debt inherited from `coach`, not specific to any one agent. With a catch-all `deny` first, the secret-exfil-by-shell channel is closed at the source.
+**Why:** personal agents run on a **remote** model (`opencode-go/qwen3.8-flash` under the `opencodego` profile; `google/antigravity-gemini-3.8-flash-medium` via the `opencode-antigravity-auth` plugin under the `google` profile). Under the old layout the `shell "*": allow` catch-all let `cat ~/.secret_envs` execute as plain bash, bypassing the global `read`/`edit` secret denies and streaming secrets into a remote model's context. That was a **HIGH** finding in the `barista` security audit — structural debt inherited from `coach`, not specific to any one agent. With a catch-all `deny` first, the secret-exfil-by-shell channel is closed at the source.
 
 The per-command denies below the catch-all are retained as **documentation of intent** (and as defense-in-depth if a future refactor reintroduces a scoped allow). **No `allow` rule may follow the catch-all deny** — last-match-wins would silently re-open the hole (the exact defect proved in the 2026-10-04 audit). Each personal template also carries an adjacent `bash` twin for every `shell` entry and a `task` twin for the `subagent` entry (see dual-vocabulary rule above).
 
