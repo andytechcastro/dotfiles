@@ -130,11 +130,17 @@
         "title": {
             "model": "{{MODEL:small_model}}"
         },
+        "general": {
+            "disabled": true
+        },
         "build": {
             "disabled": true
         },
         "plan": {
             "disabled": true
+        },
+        "explore": {
+            "model": "{{MODEL:small_model}}"
         }
     }
 }

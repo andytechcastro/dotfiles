@@ -247,16 +247,94 @@ Native V2 has NO consumer Google OAuth (Google killed it 2026-06-18; native `goo
 
 | Agent | Model (opencodego) | Model (gemini) | Role | Mode |
 |-------|-------------------|----------------|------|------|
-| `commander` | opencode-go/qwen3.8-flash | ⚠️ dead | Orchestrator. Plans, delegates, verifies. No code. | primary |
-| `PE` | opencode-go/qwen3.8-flash | ⚠️ dead | Platform Engineer. Infra, CI/CD, platform glue. | subagent |
-| `go_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Go specialist. Clean Architecture, SOLID. | subagent |
-| `python_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Python specialist. Type-safe, modern Python. | subagent |
-| `frontend_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | UX/UI + Frontend. Next.js 15, React 19. | subagent |
-| `qa_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | QA SDET. Regression, resilience, performance. | subagent |
-| `security_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Security auditor. IaC, secrets, least-privilege. | subagent |
-| `doc_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Documentation architect. Docs, ADRs, contracts, graphify. | subagent |
+| `commander` | opencode-go/qwen3.8-flash | ⚠️ dead | **Pure Orchestrator**. 0 lines edited. Plans, specs, delegates, gates, verifies. | primary |
+| `PE` | opencode-go/qwen3.8-flash | ⚠️ dead | Platform Engineer. Infra (IaC), CI/CD, containers, dev tooling, platform glue. | subagent |
+| `go_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Go specialist. Clean Architecture, SOLID, high-performance concurrency. | subagent |
+| `python_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Python specialist. Type-safe (3.12+), uv, ruff, Pydantic v2, clean architecture. | subagent |
+| `frontend_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | UX/UI + Frontend. Next.js 15, React 19, nuqs, TanStack Query, WCAG 2.2. | subagent |
+| `qa_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | QA SDET. Testability audit, property-based, contract tests, regression. | subagent |
+| `security_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Security auditor. STRIDE threat model, AST taint, secrets, IaC hardening. | subagent |
+| `doc_architect` | opencode-go/qwen3.8-flash | ⚠️ dead | Documentation architect. Goldfish spec audit, ADRs, contracts, graphify. | subagent |
+| `explore` *(native)* | `{{MODEL:small_model}}` | `{{MODEL:small_model}}` | Fast recon subagent. Broad codebase searches and pattern discovery. | native subagent |
 
-> Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) run on `google/antigravity-gemini-3.8-flash-high` — Google AI Pro quotas via the `opencode-antigravity-auth` plugin (see **Model Providers**). The built-in `title` agent uses `small_model`. The `gemini` profile column is legacy — that profile is dead.
+> **Native OpenCode Agents Policy:**
+> - `explore`: Active and pinned to `{{MODEL:small_model}}` (`antigravity-gemini-3.5-flash-lite` in Google profile) for cost-efficient mass workspace searches.
+> - `general`, `build`, `plan`: **Explicitly disabled** (`"disabled": true` in `config.json`). All planning belongs exclusively to `commander`, and all build/code modifications must route to domain-specialized architects, preventing unspecialized fallback hallucinations.
+> - `title`: Built-in agent pinned to `{{MODEL:small_model}}`.
+> - Personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `barista`, `chef`) run on `google/antigravity-gemini-3.8-flash-high` — Google AI Pro quotas via the `opencode-antigravity-auth` plugin (see **Model Providers**). The `gemini` profile column is legacy — that profile is dead.
+
+### 🔄 Shift-Left Architecture & Verification Lifecycle (Phase 1.5 & Phase 4)
+
+To prevent structural debt and hallucinated implementations, the platform enforces an end-to-end Shift-Left engineering lifecycle:
+
+```mermaid
+flowchart TD
+    User([User Request]) --> P1[Phase 1: Strategic Reconnaissance\nCommander + explore]
+    P1 --> P15[Phase 1.5: Shift-Left RFC & Spec Audit\nGoldfish Review]
+    
+    subgraph GoldfishReview [Multi-Pillar Goldfish Audit]
+        direction TB
+        DA[doc_architect\nContract Lock & ADR Proposed]
+        QA[qa_architect\nTestability & Failure Matrix]
+        SA[security_architect\nSTRIDE Threat Model]
+        Domain[Domain Architects\nGo / Python / Frontend / PE Specs]
+    end
+    
+    P15 --> GoldfishReview
+    GoldfishReview --> P2[Phase 2: Master Plan Approval\ntodowrite + Plannotator submit_plan]
+    P2 --> P3[Phase 3: Specialized Orchestration\nAtomic delegation to domain sub-agents]
+    P3 --> P4[Phase 4: Synthesis & Certification]
+    
+    subgraph CertificationGates [Phase 4 Quality Gates]
+        direction TB
+        SDC[doc_architect: Spec Drift Check\ngit diff vs RFC + ADR Accepted + graphify]
+        QAC[qa_architect: Regression Suite\nProperty-based & contract tests]
+        SEC[security_architect: Security Audit\nTaint analysis & secret scan]
+    end
+    
+    P4 --> CertificationGates
+    CertificationGates --> Release[Commander: Final Review & Git Release]
+```
+
+1. **Commander Pure Orchestrator Boundary (0 Code Lines):** Commander NEVER edits code, configuration, markdown, or scripts directly. 100% of file modifications belong to sub-agents. Commander reads files, scopes requirements, authors English RFCs/specs, manages `todowrite`, delegates via `subagent`, reviews diffs, runs quality gates, and handles release commits.
+2. **Phase 1.5 Shift-Left RFC & Turn-1 Pre-Plan Consultation Protocol:**
+   - **Elephant-Goldfish Model (EGM) & Devil's Advocate Mandate:** Commander is the Elephant (long-term context, strategic memory via Engram, user rapport). Phase 1.5 subagents are Goldfish (stateless, clean context, zero unstated assumptions). All Phase 1.5 subagent delegations MUST be prefixed with `[MODE: DEVILS_ADVOCATE_PHASE_1_5]`. Subagents act as hostile reviewers ("Abogados del Diablo") to pressure-test specs before any code is modified. Passive approvals ("LGTM", "looks good", rubber-stamping) are strictly banned.
+   - **Mandatory 3-Section Output Contract:** Every Phase 1.5 subagent response must strictly adhere to:
+     * **(A) Challenged Assumptions & Unstated Invariants:** Minimum 1 implicit assumption, unverified prerequisite, or missing architectural invariant actively attacked.
+     * **(B) Concrete Failure Modes (Min 2-3 scenarios):** Grounded failure cascades using concrete spec symbols, file paths, and interfaces (`Trigger -> Failure Cascade -> Blast Radius` + Root Cause).
+     * **(C) Probing Architectural Questions & Trade-offs:** Explicitly split into:
+       - **C.1 Technical Invariants:** Internal architecture contracts, consistency models, and boundaries for Commander to resolve directly in the RFC.
+       - **C.2 Product / Risk Decisions:** Business trade-offs, UX alterations, or operational risks that Commander CANNOT decide autonomously and MUST escalate to the user via `question`.
+     * **Verdict:** Explicitly conclude with `BLOCKED`, `CHALLENGED`, or `CERTIFIED_WITH_MITIGATIONS`. Unconditional certification without mitigations is prohibited.
+   - **Anti-Sycophancy Rejection Gate:** Commander is strictly forbidden from accepting passive agreements. If a subagent response lacks sections (A), (B), (C) or a valid VERDICT, Commander MUST reject the response and enforce an adversarial audit.
+   - **Bounded Negotiation & Static Audit Invariants:** Maximum 2 review rounds per specialist to avoid deadlock and token exhaustion. Phase 1.5 is strictly static analysis (AST inspection, `rg`, `fd`, `bat`). No dynamic test runs, untrusted scripts, or file/code edits on disk before Phase 3.
+   - **Lone Wolf Prevention:** Plans created in isolation without specialist intelligence are prohibited. Commander NEVER authors a master plan blindly.
+   - **Prerequisite Boundaries (Zero Disk Writes):** Read-only reconnaissance (Phase 1) and Shift-Left specialist consultation (Phase 1.5) via `subagent` do NOT modify files on disk and do NOT require prior plan approval; they are mandatory inputs to create the plan. What is strictly forbidden without user approval is Phase 3 implementation (file/code edits on disk).
+   - **Turn-1 Consultation Obligations (Pre-`submit_plan`):**
+     * **Ambiguities & Trade-offs:** Commander MUST call `question` to clarify user requirements and trade-offs before locking architecture.
+     * **Multi-Pillar Audits via `subagent`:**
+       - `doc_architect` (Goldfish Spec Auditor): Reads spec with zero assumptions, eliminates ambiguities, locks OpenAPI/JSON Schema contracts, updates `graphify`, and drafts ADR specification in memory/RFC context with status `Proposed` (strictly NO file writes to disk before plan approval).
+       - `qa_architect`: Audits testability, models failure matrices (network, DB, concurrency), defines acceptance test contracts.
+       - `security_architect`: Executes STRIDE/PASTA threat modeling, identifies privilege escalation, auth gaps, and data leakage channels.
+     * **Mandatory Domain Invocation Matrix (Zero Exceptions):**
+       Eliminates all optional/selective review. Calling the corresponding specialist in Phase 1.5 BEFORE drafting the plan is mandatory whenever a task touches their domain:
+       - **Touches Go:** MUST invoke `go_architect` (package layout, interfaces, iterators, goroutines, mutexes, memory overhead, `hex_check.go` invariants).
+       - **Touches Frontend / UI / Web (React, Next.js, Tailwind, DOM):** MUST invoke `frontend_architect` (Server vs Client components, App Router, state management, TanStack Query, accessibility WCAG 2.2, layout ergonomics).
+       - **Touches Python:** MUST invoke `python_architect` (Pydantic v2 schemas, strict type hints, async TaskGroups, exceptions, uv/ruff conventions).
+       - **Touches Infra / Docker / CI/CD / Tooling:** MUST invoke `PE` (deployment topology, container specs, resource limits, CI pipeline jobs).
+     * **Strict Domain Architecture Prohibition:** Commander is STRICTLY FORBIDDEN from architecting Go packages, frontend component hierarchies, or Python models in isolation without the domain architect's Phase 1.5 Goldfish design.
+     * **Specialist Evidence in Plan:** The Master Plan (`submit_plan`) must explicitly cite the domain architect's design decisions alongside QA failure matrices, Security threat boundaries, and locked schema contracts.
+3. **Phase 2 Master Plan Approval & Plannotator Invariants:**
+   - **Mandatory Spanish Invariant:** Every plan submitted to Plannotator (`submit_plan`) MUST be written **EXCLUSIVELY IN SPANISH** (Castellano claro y técnico). While backend RFCs or technical specs in the repo are in English, user-facing plans presented in the browser review UI must always be in Spanish.
+   - **Final Plan Only (Zero Preliminary Plans):** `submit_plan` MUST ONLY be called when the plan is **100% FINAL AND DEFINITIVE**. All Phase 1.5 subagent consultations (to investigate, refine, or shape architecture) and all user inquiries (`question`) MUST be completed BEFORE calling `submit_plan`. Submitting preliminary or placeholder plans stating that subagents will be consulted later is strictly forbidden. Plannotator receives only the finalized battle plan ready for Phase 3 execution.
+   - **Approval Gating:** Plannotator approval (`Plan approved!`) constitutes explicit user authorization to transition into Phase 3. Commander is strictly forbidden from proceeding to Phase 3 without explicit approval (via Plannotator or chat fallback).
+4. **Phase 3 Specialized Orchestration & ADR Materialization:**
+   - Commander delegates implementation atomically to leaf sub-agents via `subagent`.
+   - `doc_architect` writes the formal ADR file to `docs/adr/NNNN-<title>.md` with status `Proposed` alongside implementation artifacts.
+5. **Phase 4 Spec Drift Check & Multi-Pillar Certification:**
+   - `doc_architect`: Compares full `git diff` against the approved RFC (Spec Drift Check). Zero undocumented drift permitted. Promotes ADR from `Proposed` to `Accepted`, updates `CHANGELOG.md`, and synchronizes AST knowledge graph (`graphify update .`).
+   - `qa_architect`: Executes regression suites, property-based tests, and verifies zero regressions.
+   - `security_architect`: Verifies secrets, AST taint analysis, and validates IaC security posture.
 
 ### Permissions Model (V2 Native)
 
@@ -276,15 +354,20 @@ permissions:
 ```
 Full deny set: `rm -rf /`, `rm -rf *`, `rm -rf /*`, `mkfs*`, `dd *`, `sudo rm*`, `chmod -R 777 /`. The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
 
-#### Sub-Agents (Read + Build — No Git Write, No Network)
+#### Sub-Agents (Read + Build — No Git Write, No Network, No Subagent Spawning)
 ```yaml
 permissions:
   - {action: shell, resource: "*", effect: allow}          # catch-all FIRST
   - {action: shell, resource: "git push*", effect: deny}   # denies AFTER
   - {action: shell, resource: "curl*", effect: deny}
+  # Sub-agents cannot spawn sub-agents (pure leaf execution)
+  - {action: subagent, resource: "*", effect: deny}
+  - {action: task, resource: "*", effect: deny}
+  # No outbound web fetch or search from sub-agents
   - {action: webfetch, resource: "*", effect: deny}
+  - {action: websearch, resource: "*", effect: deny}
 ```
-Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull/merge/rebase/reset/checkout/stash/cherry-pick` + `curl`/`wget`/`nc` + `security`/`sysctl` + `webfetch`. Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, or access macOS security APIs.
+Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull/merge/rebase/reset/checkout/stash/cherry-pick` + `curl`/`wget`/`nc` + `security`/`sysctl` + `subagent`/`task` (`*`) + `webfetch`/`websearch` (`*`). Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, access macOS security APIs, or recursively spawn child subagents. This enforces pure leaf execution: all task decomposition remains strictly in the hands of the Commander.
 
 #### Personal Agents (No Shell — hardened 2026-10-27)
 

@@ -147,15 +147,19 @@ permissions:
   - action: bash
     resource: "sysctl*"
     effect: deny
-  # --- No outbound web fetch from sub-agents ---
+  # --- Sub-agents cannot spawn sub-agents (pure execution) ---
+  - {action: subagent, resource: "*", effect: deny}
+  - {action: task, resource: "*", effect: deny}
+  # --- No outbound web fetch or search from sub-agents ---
   - action: webfetch
     resource: "*"
     effect: deny
+  - {action: websearch, resource: "*", effect: deny}
 ---
 {file:prompts/pe_identity.md}
 
 {file:prompts/pe_behavior.md}
-
+{file:prompts/subagent_behavior.md}
 
 {file:prompts/engram_memory.md}
 {file:prompts/tools_rules.md}
