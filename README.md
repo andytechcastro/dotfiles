@@ -178,15 +178,23 @@ Framework de agentes de IA modular y extensible para Platform Engineering, con m
 
 #### 🤖 Agentes Disponibles
 
-| Agente | Modelo (opencodego) | Modelo (gemini) | Rol |
-|--------|---------------------|-----------------|-----|
-| **commander** | `qwen/Qwen3.6-Plus` | `google/gemini-3.1-pro` | Orquestador principal. Planifica, delega y verifica. |
-| **PE** | `deepseek/DeepSeek-V4-Pro` | `google/gemini-3.1-pro` | Platform Engineer. IaC, K8s, CI/CD, infra. |
-| **go_architect** | `deepseek/DeepSeek-V4-Pro` | `google/gemini-3.1-pro` | Go Senior. Clean Architecture, SOLID. |
-| **python_architect** | `deepseek/DeepSeek-V4-Pro` | `google/gemini-3.1-pro` | Python Senior. Type-safe, modern Python. |
-| **frontend_architect** | `qwen/Qwen3.6-Plus` | `google/gemini-3.1-pro` | UX/UI + Frontend. Next.js 15, React 19. |
-| **qa_architect** | `kimi/Kimi-K2.6` | `google/gemini-3.5-flash` | QA SDET. Regression, E2E, performance. |
-| **security_architect** | `kimi/Kimi-K2.6` | `google/gemini-3.5-flash` | Security Auditor. IaC, secrets, vulnerabilidades. |
+| Agente | Modelo (perfil `opencodego`, compilado) | Rol |
+|--------|------------------------------------------|-----|
+| **commander** | `opencode-go/qwen3.8-flash` | Orquestador principal. Planifica, delega y verifica. |
+| **PE** | `opencode-go/qwen3.8-flash` | Platform Engineer. IaC, K8s, CI/CD, infra. |
+| **go_architect** | `opencode-go/qwen3.8-flash` | Go Senior. Clean Architecture, SOLID. |
+| **python_architect** | `opencode-go/qwen3.8-flash` | Python Senior. Type-safe, modern Python. |
+| **frontend_architect** | `opencode-go/qwen3.8-flash` | UX/UI + Frontend. Next.js 15, React 19. |
+| **qa_architect** | `opencode-go/qwen3.8-flash` | QA SDET. Regression, E2E, performance. |
+| **security_architect** | `opencode-go/qwen3.8-flash` | Security Auditor. IaC, secrets, vulnerabilidades. |
+| **doc_architect** | `opencode-go/qwen3.8-flash` | Documentation Architect. Spec audit, ADRs, graphify. |
+| **7 agentes personales** — sensibles: `finanzas`, `life`, `coach` · factuales: `barista`, `chef`, `organiza`, `habitos` | `google/gemini-4-hydrogen` (×3) · `google/gemini-3.8-flash` (×4) | Agentes primarios de uso personal, sin shell. Mismo provider/API key, dos niveles: el flagship de razonamiento para los 3 sensibles, el tier barato para los 4 de consulta. |
+
+> **2026-11-15:** los perfiles `google` y `gemini` fueron **eliminados** (seleccionarlos aborta el
+> build en `oc`). Existe **un único perfil**, `opencodego`, con **roster mixto**: técnicos por el
+> gateway `opencode-go` y los 7 personales por el provider `google` **nativo** con `GEMINI_API_KEY`
+> (API de AI Studio, no Antigravity OAuth). Verdad contrastada en [`AGENTS.md`](AGENTS.md) →
+> **Model Profiles** y **Model Providers**.
 
 #### 🔌 MCPs Integrados
 
@@ -220,12 +228,17 @@ Framework de agentes de IA modular y extensible para Platform Engineering, con m
 Los modelos no están hardcodeados. Se gestionan via `model_profiles.json`:
 
 ```bash
-# Default (opencodego)
+# Único perfil existente (opencodego) — default
 cd .config/opencode/builder && go run main.go
 
-# Cambiar a Gemini
-MODEL_PROFILE=gemini go run main.go
+# Override temporal (el nombre del perfil, no el proveedor)
+MODEL_PROFILE=opencodego go run main.go
 ```
+
+> ⚠️ `MODEL_PROFILE=gemini` / `=google` **ya no existen**: el wrapper `oc` aborta con
+> `Profile '<name>' not found. Available: opencodego`. El mixto (técnicos gateway / personales
+> `google/gemini-4-hydrogen` ×3 + `google/gemini-3.8-flash` ×4) vive **dentro** de `opencodego` — se
+> cambia editando valores de `model_profiles.json`, no creando perfiles.
 
 #### 🧠 Memoria Persistente (Engram)
 
