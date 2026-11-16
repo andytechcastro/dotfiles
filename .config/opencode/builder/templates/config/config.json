@@ -31,10 +31,10 @@
         ]
     },
     "plugins": [
-        "opencode-snippets@3.2.0",
+        "opencode-snippets@3.4.0",
         "@tarquinen/opencode-dcp@3.2.0",
         {
-            "package": "@plannotator/opencode@0.27.20",
+            "package": "@plannotator/opencode@latest",
             "options": {
                 "workflow": "plan-agent",
                 "planningAgents": ["commander"]
