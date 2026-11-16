@@ -23,7 +23,7 @@ IFS=$'\n\t'
 unset CDPATH
 
 # ---- Constants ----
-readonly SCRIPT_VERSION="0.5.1"
+readonly SCRIPT_VERSION="0.6.0"
 readonly DEFAULT_PROFILE="opencodego"
 readonly REMOTE_HOST="homesrv"
 
@@ -100,11 +100,14 @@ BUILDER_CURRENT_PROFILE="$BUILDER_DIR/current_profile"
 # ---- Dependency checks ----
 require_jq_go() {
   local missing=()
+  # Arch Linux host: pacman is the package manager. The Mac fork of this script
+  # still says brew here — copying that block verbatim would print install
+  # instructions that cannot work on this box.
   if ! command -v jq >/dev/null 2>&1; then
-    missing+=("jq (install: brew install jq)")
+    missing+=("jq (install: sudo pacman -S jq)")
   fi
   if ! command -v go >/dev/null 2>&1; then
-    missing+=("go (install: brew install go OR https://go.dev/dl/)")
+    missing+=("go (install: sudo pacman -S go OR https://go.dev/dl/)")
   fi
   if [[ ${#missing[@]} -gt 0 ]]; then
     die "Missing required tools:\n$(printf '  • %s\n' "${missing[@]}")"
@@ -140,6 +143,25 @@ validate_profile() {
 check_env_vars() {
   require_jq_go
 
+  # GEMINI_API_KEY is a KNOWN BLIND SPOT of both scans below: the native
+  # `google` provider is compiled into the opencode binary and keyed purely by
+  # env var, so GEMINI_API_KEY appears in NO config-template placeholder
+  # (neither _requires_env nor ${VAR}). It can therefore never land in
+  # `missing`, and by decision it must never abort the build either — warn
+  # loudly and continue. Blast radius when unset is runtime, not build time:
+  # the 7 personal agents (3x google/gemini-4-hydrogen, 4x google/gemini-3.8-flash)
+  # fail with an auth error; the 8 gateway agents keep working. On a headless
+  # node the var must exist in the daemon's process environment (systemd
+  # Environment=) — a rebuild never delivers env vars.
+  if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+    echo -e "${YELLOW}${BOLD}⚠ GEMINI_API_KEY is not set.${RESET} Preflight blind spot by design:" >&2
+    echo -e "  the native ${BOLD}google${RESET} provider is keyed only by env var, so this key appears in" >&2
+    echo -e "  no template placeholder and cannot be caught by the scan below. It does NOT" >&2
+    echo -e "  abort the build. The ${BOLD}7 personal agents (google/*)${RESET} will fail at runtime until" >&2
+    echo -e "  it is exported: locally ${BOLD}source ~/.secret_envs${RESET}; on ${REMOTE_HOST} add it to the" >&2
+    echo -e "  systemd service environment. Continuing." >&2
+  fi
+
   if [[ ! -f "$CONFIG_TEMPLATE" ]]; then
     warn "Config template not found: $CONFIG_TEMPLATE — skipping env var check."
     return 0
@@ -172,24 +194,177 @@ check_env_vars() {
     return 0
   fi
 
-  warn "The following required env vars are missing (from _requires_env or \${VAR} placeholders in the template):"
-  printf "  ${YELLOW}•${RESET} %s\n" "${missing[@]}" >&2
+  # HARD ABORT (v0.6.0 — was: warn + interactive "Continue anyway? [y/N]").
+  # A missing ${VAR} silently bakes an empty string into the generated config:
+  # broken MCP env (google_drive starts with an empty client_id) or dead
+  # provider keys, and the failure only surfaces much later, somewhere else.
+  # No continue-anyway path: interactive prompts also made 'oc --rebuild'
+  # non-deterministic in scripts and CI.
+  die "Missing env vars referenced by the config template:\n$(printf '  • %s\n' "${missing[@]}")\n  Aborted. Set the missing env vars and retry."
+}
 
-  # If not a TTY → abort automatically
-  if [[ ! -t 0 ]]; then
-    echo -e "${RED}Aborted.${RESET} Set the missing env vars and retry." >&2
-    exit 1
+# ---- Plugin pin drift guardrail (WARN ONLY) ----
+# OpenCode resolves a plugin spec ONCE, at install time, and never re-resolves
+# it on boot: an '@latest' entry keeps serving whatever version is already in
+# ~/.cache/opencode/npm/<name>@<ver>/<timestamp>/node_modules/… (or the packages
+# root) forever — that's how @plannotator/opencode sat at 0.27.14 for six weeks.
+# Explicit semver pins cure that freeze but rot the other way: upstream ships
+# near-daily, so a pin silently falls behind, including security fixes. Either
+# way the failure is silent — nothing in the launch output says the version being
+# served is dead.
+# This compares every explicit pin in the config template against the npm
+# registry and WARNS. It NEVER fails the build and never calls die: registry
+# calls can legitimately fail here (offline, DNS, mirror, npm misconfigured), and
+# a supply-chain warning is not worth blocking a build over. The 24h TTL cache is
+# what keeps this off the registry on every launch — repeated noise is what
+# trains everyone to ignore the warning.
+#   Opt out:             OC_PIN_CHECK=0
+#   Cache path override: OC_PIN_CHECK_CACHE=<file>
+#   TTL override:        OC_PIN_CHECK_TTL=<seconds> (default 86400)
+# Called from both the rebuild path (do_rebuild) and the fresh-config launch path
+# (main, no args) — the latter matters because 'oc' with no args skips the
+# rebuild entirely, so without that call pin drift would stay invisible for
+# weeks. The TTL is what makes calling it twice a day cheap.
+check_plugin_pins() {
+  [[ "${OC_PIN_CHECK:-1}" == "0" ]] && return 0
+  command -v npm >/dev/null 2>&1 || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  [[ -f "$CONFIG_TEMPLATE" ]] || return 0
+
+  local cache_file="${OC_PIN_CHECK_CACHE:-$HOME/.cache/opencode/pin-check.json}"
+  local ttl="${OC_PIN_CHECK_TTL:-86400}"
+  local now mtime
+  now="$(date +%s)"
+
+  # TTL gate: fresh cache means "already checked today" → short-circuit silently.
+  # If stat fails the cache is unusable → treat as expired and re-check.
+  # GNU coreutils flag order: `stat -c %Y` (mtime as epoch seconds). The Mac fork
+  # uses the BSD order (`stat -f` with the %m format) — that form errors out on
+  # GNU stat, mtime stays empty, the gate NEVER short-circuits, and every launch
+  # pays 2-3 `npm view` round-trips (measured: 0-24s of dead time per start).
+  if [[ -f "$cache_file" ]]; then
+    mtime="$(stat -c %Y "$cache_file" 2>/dev/null || true)"
+    if [[ -n "$mtime" ]] && (( now - mtime < ttl )); then
+      return 0
+    fi
   fi
 
-  local answer
-  read -r -p "Continue anyway? [y/N] " answer
-  case "${answer,,}" in
-    y|yes) ;;
-    *)
-      echo -e "${RED}Aborted.${RESET} Set the missing env vars and retry." >&2
-      exit 1
-      ;;
-  esac
+  # Both template shapes: bare spec strings AND { "package": "..." } objects.
+  local specs pinned spec name version latest
+  local checked=0 stale=0 unreachable=0
+  specs="$(jq -r '.plugins[]? | (if type=="object" then .package else . end) // empty' \
+            "$CONFIG_TEMPLATE" 2>/dev/null)" || return 0
+
+  # Exact semver pins: compare pin against registry latest (bump is manual: docs/plannotator.md).
+  # KNOWN DEBT, documented not fixed: the regex is anchored on a three-part
+  # X.Y.Z at end-of-spec, so a prerelease pin ('foo@1.2.3-rc.1') matches NEITHER
+  # this branch NOR the float branch below ('@(latest|next)$') and is silently
+  # left unchecked. The Linux roster has no prerelease pins today
+  # (opencode-snippets@3.4.0, @tarquinen/opencode-dcp@3.2.0); if one ever
+  # appears, widen the pattern and add tag-aware comparison (semver ordering is
+  # not string ordering: 1.2.3-rc.1 < 1.2.3).
+  pinned="$(printf '%s\n' "$specs" | grep -E '@[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+
+  while IFS= read -r spec; do
+    [[ -n "$spec" ]] || continue
+    name="${spec%@*}"
+    version="${spec##*@}"
+    # Bounded network: npm's default fetch-timeout is 300s, which would stall
+    # 'oc' launches behind a blackholed registry.
+    latest="$(npm view "$name" dist-tags.latest \
+               --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1)" || latest=""
+    if [[ -z "$latest" ]]; then
+      unreachable=$(( unreachable + 1 ))
+      continue
+    fi
+    checked=$(( checked + 1 ))
+    if [[ "$latest" != "$version" ]]; then
+      stale=$(( stale + 1 ))
+      warn "Plugin pin drift: ${BOLD}${name}${RESET} pinned ${YELLOW}${version}${RESET} → registry latest ${GREEN}${latest}${RESET}"
+      info "  Verify provenance before bumping: npm view ${name}@${latest} dist.integrity"
+      info "  After editing the pin, purge the install tree for the OLD spec (both roots store <name>@<version>,"
+      info "  which for an exact pin is the spec itself):"
+      info "    rm -rf ~/.cache/opencode/npm/${spec} ~/.cache/opencode/packages/${spec}"
+    fi
+  done <<< "$pinned"
+
+  # Floating specs ('@latest'/'@next'): vendor route (plannotator, decided 2026-11-16).
+  # A float is NOT re-resolved on boot (proven by natural experiment same day:
+  # restart installed every pinned tree fresh, zero new @latest installs), so the
+  # version sitting in the install cache is the version being served. The refresh
+  # lever is 'opencode plugin update'. Hence: compare the newest cached install
+  # against the registry dist-tag and warn if they differ.
+  local floating spec_dir installed version_installed ts_key cand d newest tag
+  floating="$(printf '%s\n' "$specs" | grep -E '@(latest|next)$' || true)"
+  while IFS= read -r spec; do
+    [[ -n "$spec" ]] || continue
+    name="${spec%@*}"
+    tag="${spec##*@}"
+    latest="$(npm view "$name" "dist-tags.$tag" \
+               --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1)" || latest=""
+    if [[ -z "$latest" ]]; then
+      unreachable=$(( unreachable + 1 ))
+      continue
+    fi
+    checked=$(( checked + 1 ))
+    # Newest cached install for this package, across BOTH cache layouts.
+    # FIX over the Mac fork (measured on this box 2026-11-16): opencode stores a
+    # float under its RESOLVED VERSION, not under the spec — config spec
+    # '@plannotator/opencode@latest' lives at
+    # ~/.cache/opencode/npm/@plannotator/opencode@0.27.20/<install-ts-ms>/node_modules/…,
+    # while the registry tag was already 0.28.66. Globbing only '${name}@${tag}'
+    # (spec-keyed, as the Mac fork does) makes this branch report "no cached
+    # install yet" for a plugin that IS installed and stale — blind exactly where
+    # the vendor route needs eyes. Legacy spec-keyed dirs ('opencode-snippets@latest')
+    # still exist, so '${name}@*' + both roots is the only correct pattern.
+    installed=""
+    newest=0
+    for spec_dir in "$HOME/.cache/opencode/npm/${name}"@* \
+                    "$HOME/.cache/opencode/packages/${name}"@*; do
+      [[ -d "$spec_dir" ]] || continue
+      # npm root: <name>@<ver>/<install-timestamp-ms>/node_modules/<name>/package.json
+      # packages root: <name>@<ver>/node_modules/<name>/package.json (no timestamp layer)
+      for cand in "$spec_dir"/[0-9]*/node_modules/"${name}"/package.json \
+                  "$spec_dir"/node_modules/"${name}"/package.json; do
+        [[ -f "$cand" ]] || continue
+        version_installed="$(jq -r '.version // empty' "$cand" 2>/dev/null)"
+        [[ -n "$version_installed" ]] || continue
+        # Ordering key: the install-timestamp directory (epoch ms) when present,
+        # otherwise the file's mtime. Both grow with each install.
+        d="${cand%"/node_modules/${name}/package.json"}"
+        if [[ "$d" =~ /([0-9]{10,})$ ]]; then
+          ts_key="${BASH_REMATCH[1]}"
+        else
+          ts_key="$(stat -c %Y "$cand" 2>/dev/null || echo 0)"
+        fi
+        if (( ts_key >= newest )); then
+          newest="$ts_key"
+          installed="$version_installed"
+        fi
+      done
+    done
+    if [[ -z "$installed" ]]; then
+      info "Floating plugin ${BOLD}${name}${RESET}: no cached install yet — resolved at next service start."
+    elif [[ "$installed" != "$latest" ]]; then
+      stale=$(( stale + 1 ))
+      warn "Floating plugin drift: ${BOLD}${name}${RESET} cached ${YELLOW}${installed}${RESET} → registry ${tag} is ${GREEN}${latest}${RESET}"
+      info "  Fix: opencode plugin update ${name}@${tag}   (then 'opencode service restart' from a terminal)"
+    fi
+  done <<< "$floating"
+
+  if (( checked == 0 && unreachable > 0 )); then
+    # Nothing could be verified (offline / registry down / npm broken). Do NOT
+    # write the cache — the next run must retry instead of staying quiet for 24h
+    # on the strength of a run that learned nothing.
+    warn "Plugin pin check skipped: npm registry unreachable for ${unreachable} pinned package(s)."
+    return 0
+  fi
+
+  # Cache write doubles as the "checked at" marker (gate reads its mtime).
+  mkdir -p "$(dirname "$cache_file")" 2>/dev/null || return 0
+  printf '{\n  "checked_at": %s,\n  "checked": %s,\n  "stale": %s,\n  "registry_unreachable": %s\n}\n' \
+    "$now" "$checked" "$stale" "$unreachable" > "$cache_file" 2>/dev/null || true
+  return 0
 }
 
 # ---- Resolve "current" profile via cascade ----
@@ -255,6 +430,7 @@ do_rebuild() {
   echo -e "${BOLD}🔨 Rebuilding OpenCode config with profile: ${BLUE}${profile_name}${RESET}"
 
   check_env_vars
+  check_plugin_pins
 
   if MODEL_PROFILE="$profile_name" go -C "$BUILDER_DIR" run main.go; then
     # Save last-used profile
@@ -1321,6 +1497,10 @@ main() {
     if [[ -n "$last_profile" && "$last_profile" == "$current_profile" ]]; then
       info "Config is fresh (last build was '${current_profile}'). ${YELLOW}Skipping rebuild.${RESET}"
       info "Use ${BOLD}oc --rebuild${RESET} to force a rebuild."
+      # No rebuild here → do_rebuild (and therefore check_plugin_pins) never
+      # runs. Without this call, pin drift would stay invisible for weeks on
+      # the most-used launch path. The 24h TTL keeps it cheap.
+      check_plugin_pins
     else
       validate_profile "$current_profile"
       do_rebuild "$current_profile"

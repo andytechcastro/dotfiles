@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+#
+# up — OpenCode-stack updater for this Arch box (uv tools, pipx, opencode CLI,
+#      npm plugin floats, pin-drift report). Ported from the dotfilesMac fork;
+#      the brew step and the /private/tmp permission step were deleted — neither
+#      exists here — and the OS-package step was NOT ported on purpose.
+#
+# WHAT THIS SCRIPT DELIBERATELY DOES *NOT* DO:
+#   1. NO OS PACKAGES. It touches neither pacman nor the AUR: the user runs yay
+#      daily and this script must not race that habit or need root. There is no
+#      sudo anywhere in this file, and opencode itself is managed by its own
+#      installer under ~/.opencode/bin (never a pacman package on this box).
+#   2. NO SERVICE RESTART. 'opencode service restart' kills every live session,
+#      including the one you might be typing this from. If a step below reports
+#      a plugin was added or refreshed, run the restart YOURSELF from a terminal
+#      outside any active session. The steps say when.
+#
+# Exit codes:
+#   0  every step OK and no drift
+#   1  at least one step failed (details marked ✘ above it)
+#   2  every step OK but plugin drift detected — a bump or a restart is owed
+#
+# Registry calls are TTL-gated (24h) and share the cache file and knobs with the
+# 'oc' guardrail (bin/oc :: check_plugin_pins), so a morning 'oc' launch makes
+# the 'up' check free and vice versa:
+#   OC_PIN_CHECK=0              disable the drift check entirely
+#   OC_PIN_CHECK_CACHE=<file>   move the cache  (default ~/.cache/opencode/pin-check.json)
+#   OC_PIN_CHECK_TTL=<seconds>  retune the TTL   (default 86400)
+#   UP_DRIFT_FORCE=1            ignore the cache for this run (and rewrite it)
+#
+# Dependencies: bash + coreutils + grep + sed only. jq is OPTIONAL — with it the
+# plugin list is read properly, without it a bracket-counting awk fallback is
+# used and the output says so.
+set -uo pipefail
+
+# ---- Output helpers ----
+C_G=$'\033[32m'; C_Y=$'\033[1;33m'; C_R=$'\033[31m'; C_B=$'\033[1m'; C_0=$'\033[0m'
+if [[ ! -t 1 || -n "${NO_COLOR:-}" ]]; then
+  C_G=''; C_Y=''; C_R=''; C_B=''; C_0=''
+fi
+
+FAILURES=0
+DRIFT=0
+
+ok()   { printf '  %s✔%s %s\n' "$C_G" "$C_0" "$1"; }
+note() { printf '  %s⚠%s %s\n' "$C_Y" "$C_0" "$1"; }
+bad()  { printf '  %s✘%s %s\n' "$C_R" "$C_0" "$1"; FAILURES=$((FAILURES + 1)); }
+step() { printf '\n%s== %s%s\n' "$C_B" "$1" "$C_0"; }
+
+CONFIG="${UP_CONFIG:-$HOME/.config/opencode/opencode.json}"
+PIN_CACHE="${OC_PIN_CHECK_CACHE:-$HOME/.cache/opencode/pin-check.json}"
+PIN_TTL="${OC_PIN_CHECK_TTL:-86400}"
+
+# ---- Read the plugin specs out of the resolved config ----
+# Both shapes: bare strings ("opencode-snippets@3.4.0") and objects
+# ({ "package": "@plannotator/opencode@latest", "options": {...} }).
+plugin_specs() {
+  local cfg="$1"
+  [[ -f "$cfg" ]] || return 1
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '.plugins[]? | (if type=="object" then .package else . end) // empty' "$cfg"
+    return 0
+  fi
+  # jq-less fallback: print the "plugins" array by bracket depth, then take the
+  # quoted tokens that contain '@' (every package spec does; nothing else in
+  # that block does). Best effort on purpose — the message says it is degraded.
+  awk '
+    function count(s, ch,  i, n) { n = 0; for (i = 1; i <= length(s); i++) if (substr(s, i, 1) == ch) n++; return n }
+    !started { if ($0 ~ /"plugins"[ \t]*:[ \t]*\[/) started = 1; else next }
+    {
+      print
+      depth += count($0, "[") - count($0, "]")
+      if (depth <= 0) exit
+    }' "$cfg" | grep -oE '"[^"]*@[^"]*"' | tr -d '"'
+}
+
+# ---- Newest installed version of a floating plugin, across both cache roots ----
+# Cache layout measured on this box 2026-11-16: a float is stored under its
+# RESOLVED VERSION, not under its spec — config '@plannotator/opencode@latest'
+# lives at ~/.cache/opencode/npm/@plannotator/opencode@0.27.20/<install-ts-ms>/
+# node_modules/@plannotator/opencode/package.json. Legacy spec-keyed dirs
+# ('opencode-snippets@latest') also exist, so match '${name}@*' in BOTH roots
+# and keep the newest by install timestamp.
+installed_version() {
+  local name="$1" root dir cand ver ts ts_part best=-1 best_ver=""
+  for root in "$HOME/.cache/opencode/npm" "$HOME/.cache/opencode/packages"; do
+    for dir in "$root/${name}"@*; do
+      [[ -d "$dir" ]] || continue
+      for cand in "$dir"/[0-9]*/node_modules/"${name}"/package.json \
+                   "$dir"/node_modules/"${name}"/package.json; do
+        [[ -f "$cand" ]] || continue
+        ver="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$cand" 2>/dev/null | head -n 1)"
+        [[ -n "$ver" ]] || continue
+        # order by the install-timestamp directory when present, else by mtime
+        ts_part="${cand%"/node_modules/${name}/package.json"}"
+        if [[ "$ts_part" =~ /([0-9]{10,})$ ]]; then
+          ts="${BASH_REMATCH[1]}"
+        else
+          ts="$(stat -c %Y "$cand" 2>/dev/null || echo 0)"
+        fi
+        if (( ts > best )); then best="$ts"; best_ver="$ver"; fi
+      done
+    done
+  done
+  [[ -n "$best_ver" ]] || return 1
+  printf '%s' "$best_ver"
+}
+
+npm_latest() { # $1 = name, $2 = dist-tag
+  # Bounded network: npm's default fetch timeout would stall this script behind
+  # a blackholed registry.
+  npm view "$1" "dist-tags.$2" --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1
+}
+
+# ---- Drift report (pins vs registry, floats vs registry) ----
+drift_report() {
+  step "Plugin drift vs npm registry (24h TTL)"
+  [[ "${OC_PIN_CHECK:-1}" == "0" ]] && { ok "disabled via OC_PIN_CHECK=0"; return 0; }
+  command -v npm >/dev/null 2>&1 || { note "npm not found — drift check skipped"; return 0; }
+  if [[ ! -f "$CONFIG" ]]; then
+    note "resolved config not found: $CONFIG — run 'oc' once to build it; drift check skipped"
+    return 0
+  fi
+
+  local now age
+  now="$(date +%s)"
+  if [[ -f "$PIN_CACHE" && "${UP_DRIFT_FORCE:-0}" != "1" ]]; then
+    local mtime
+    mtime="$(stat -c %Y "$PIN_CACHE" 2>/dev/null || true)"
+    if [[ -n "$mtime" ]] && (( now - mtime < PIN_TTL )); then
+      age=$(( (now - mtime) / 60 ))
+      ok "already checked ${age} min ago — skipped (UP_DRIFT_FORCE=1 to force)"
+      return 0
+    fi
+  fi
+
+  local specs checked=0 unreachable=0
+  specs="$(plugin_specs "$CONFIG")" || { note "could not read plugins from $CONFIG"; return 0; }
+  command -v jq >/dev/null 2>&1 || note "jq missing — using awk fallback to read the plugin list"
+
+  # Exact pins: manual bump by policy (docs/plannotator.md), so only REPORT here.
+  local pinned spec name version latest
+  pinned="$(printf '%s\n' "$specs" | grep -E '@[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+  while IFS= read -r spec; do
+    [[ -n "$spec" ]] || continue
+    name="${spec%@*}"; version="${spec##*@}"
+    latest="$(npm_latest "$name" latest)"
+    if [[ -z "$latest" ]]; then unreachable=$(( unreachable + 1 )); note "registry unreachable for ${name} — pin unverified"; continue; fi
+    checked=$(( checked + 1 ))
+    if [[ "$latest" != "$version" ]]; then
+      DRIFT=1
+      note "pin drift: ${C_B}${name}${C_0} pinned ${C_Y}${version}${C_0} → registry ${C_G}${latest}${C_0}"
+      note "  bump is manual: check provenance (npm view ${name}@${latest} dist.integrity), edit the pin in"
+      note "  builder/templates/config/config.json, rebuild, then purge the stale tree:"
+      note "    rm -rf ~/.cache/opencode/npm/${spec} ~/.cache/opencode/packages/${spec}"
+    else
+      ok "pin current: ${name}@${version}"
+    fi
+  done <<< "$pinned"
+
+  # Floats: 'opencode plugin update' is the only refresh lever (the daemon does
+  # NOT re-resolve '@latest' on boot), so compare what is cached against the tag.
+  local floating installed tag
+  floating="$(printf '%s\n' "$specs" | grep -E '@(latest|next)$' || true)"
+  while IFS= read -r spec; do
+    [[ -n "$spec" ]] || continue
+    name="${spec%@*}"; tag="${spec##*@}"; latest="$(npm_latest "$name" "$tag")"
+    if [[ -z "$latest" ]]; then unreachable=$(( unreachable + 1 )); note "registry unreachable for ${name} — float unverified"; continue; fi
+    checked=$(( checked + 1 ))
+    installed="$(installed_version "$name")" || installed=""
+    if [[ -z "$installed" ]]; then
+      note "float ${C_B}${name}${C_0}: no cached install yet — resolved at next service start"
+    elif [[ "$installed" != "$latest" ]]; then
+      DRIFT=1
+      note "float drift: ${C_B}${name}${C_0} cached ${C_Y}${installed}${C_0} → registry ${C_G}${latest}${C_0}"
+      note "  fix: opencode plugin update ${spec}   (then 'opencode service restart' OUTSIDE a live session)"
+    else
+      ok "float current: ${name}@${tag} → ${installed}"
+    fi
+  done <<< "$floating"
+
+  if (( checked == 0 && unreachable > 0 )); then
+    note "no plugin could be verified (registry down/offline) — cache NOT written, next run retries"
+    return 0
+  fi
+  mkdir -p "$(dirname "$PIN_CACHE")" 2>/dev/null || true
+  printf '{\n  "checked_at": %s,\n  "checked": %s,\n  "stale": %s,\n  "registry_unreachable": %s,\n  "source": "up"\n}\n' \
+    "$now" "$checked" "$DRIFT" "$unreachable" > "$PIN_CACHE" 2>/dev/null || true
+  ok "registry checked: ${checked} plugin spec(s), ${unreachable} unreachable"
+  return 0
+}
+
+# ---- 1. uv-managed CLIs (graphify, ...) ----
+step "uv tools"
+if ! command -v uv >/dev/null 2>&1; then
+  ok "uv not installed — step skipped"
+else
+  uv tool upgrade --all && ok "uv tools up to date" || bad "uv tool upgrade reported a problem"
+fi
+
+# ---- 2. pipx packages (skipped when pipx is absent or has nothing installed) ----
+step "pipx"
+if ! command -v pipx >/dev/null 2>&1; then
+  ok "pipx not installed — step skipped"
+elif [[ -z "$(pipx list --short 2>/dev/null)" ]]; then
+  ok "no pipx packages installed — nothing to upgrade"
+else
+  pipx upgrade-all && { ok "pipx packages up to date"; pipx list --short || true; } \
+    || bad "pipx upgrade-all reported a problem"
+fi
+
+# ---- 3. OpenCode CLI (self-managed under ~/.opencode/bin, NOT a pacman package) ----
+step "OpenCode CLI"
+if ! command -v opencode >/dev/null 2>&1; then
+  bad "opencode not found in PATH (~/.opencode/bin) — install/reinstall it before updating the stack"
+else
+  oc_before="$(opencode --version 2>/dev/null | tail -n 1)"
+  if opencode upgrade; then
+    oc_after="$(opencode --version 2>/dev/null | tail -n 1)"
+    if [[ "$oc_before" == "$oc_after" ]]; then
+      ok "OpenCode already at ${oc_after}"
+    else
+      ok "OpenCode ${oc_before} → ${oc_after}"
+      note "binary changed: 'opencode service restart' from a terminal outside any live session"
+    fi
+  else
+    bad "opencode upgrade reported a problem"
+  fi
+fi
+
+# ---- 4. Floating plugin specs: vendor route (exact pins are NOT touched) ----
+step "OpenCode plugins (floating specs)"
+if ! command -v opencode >/dev/null 2>&1; then
+  note "opencode missing — step skipped"
+elif [[ ! -f "$CONFIG" ]]; then
+  note "resolved config not found: $CONFIG — run 'oc' once to build it; step skipped"
+else
+  float_specs="$(plugin_specs "$CONFIG" | grep -E '@(latest|next)$' || true)"
+  if [[ -z "$float_specs" ]]; then
+    ok "no floating plugin specs in config — nothing to refresh"
+  else
+    while IFS= read -r fspec; do
+      [[ -n "$fspec" ]] || continue
+      if opencode plugin update "$fspec"; then
+        ok "refreshed ${fspec}"
+        note "floating-spec changes only take effect on the NEXT 'opencode service restart' (run it outside a live session)"
+      else
+        bad "opencode plugin update ${fspec} failed"
+      fi
+    done <<< "$float_specs"
+  fi
+fi
+
+# ---- 5. Drift report ----
+drift_report
+
+# ---- 6. What this script will NOT do (policy, not laziness) ----
+step "Manual review (not auto-updated)"
+echo "  OS packages: NOT touched here. On Arch the user runs 'yay' daily; this"
+echo "  script has no sudo path and never will (that is the guard against racing"
+echo "  the AUR build and against privilege creep in a per-user updater)."
+echo "  Exact-pin plugins (${C_B}opencode-snippets${C_0}, ${C_B}@tarquinen/opencode-dcp${C_0}): manual bump —"
+echo "  provenance check first, then edit builder/templates/config/config.json"
+echo "  and rebuild. Step 5 only REPORTS the drift it found."
+echo "  Service restart: NEVER done by this script. Plugin changes need"
+echo "  'opencode service restart' from a terminal outside an active session."
+
+printf '\n%s== up done%s\n' "$C_B" "$C_0"
+if (( FAILURES > 0 )); then
+  printf '  %s✘ finished with %s failed step(s)%s\n' "$C_R" "$FAILURES" "$C_0"
+  exit 1
+fi
+if (( DRIFT == 1 )); then
+  printf '  %s⚠ steps OK, but plugin drift was detected (exit 2)%s\n' "$C_Y" "$C_0"
+  exit 2
+fi
+printf '  %s✔ everything current%s\n' "$C_G" "$C_0"

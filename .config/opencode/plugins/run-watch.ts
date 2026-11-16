@@ -363,8 +363,11 @@ export default Plugin.define({
           // callback HTTP al plugin (wake en vivo, sin depender del watcher).
           // url entre comillas dobles → & seguro. rc NO se ve afectado
           // (curl va AFTER printf). En quick el `close` del spawn ya despierta.
+          // ( ) subshell: si el cmd usa `exit N` a nivel top, sale del
+          // SUBSHELL → rc=$? y el marker SIEMPRE se escribe. Con { } (grupo)
+          // un `exit` mataba el wrapper entero y no quedaba marker (bug 2026-09-28).
           const script =
-            `{\n${args.cmd}\n}\nrc=$?\nprintf 'exit=%s\\n' "$rc" > ${marker}` +
+            `(\n${args.cmd}\n)\nrc=$?\nprintf 'exit=%s\\n' "$rc" > "${marker}"` +
             (mode === "detached" && entry.notifyUrl
               ? `\ncurl -sS -m 5 "${entry.notifyUrl}" >/dev/null 2>&1 || true`
               : "")
