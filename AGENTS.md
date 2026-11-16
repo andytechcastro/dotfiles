@@ -228,7 +228,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 
 1. Create `.config/opencode/builder/templates/agent/my_agent.md` with YAML frontmatter.
 2. Use `{file:prompts/...}` to include shared behavior libraries.
-3. Add `permissions:` list rules (`{action, resource, effect}`, catch-all first). **Personal/primary agents that only read/write their notes dir must use `shell`/`bash` `"*": deny` as the catch-all (see Personal Agents section), never `allow`.**
+3. Add `permissions:` list rules (`{action, resource, effect}`, **deny-only inline — no catch-all allow needed**; base allows, proved v2.3.0). **Personal/primary agents that only read/write their notes dir MUST carry `- { action: shell, resource: "*", effect: deny }` as their FIRST rule** (the load-bearing exfil seal, see Personal Agents) — never an allow.
 4. Run `oc --rebuild` to regenerate (or `cd .config/opencode/builder && go run main.go`).
 
 ### Adding a New MCP
@@ -431,36 +431,36 @@ flowchart TD
 
 ### Permissions Model (V2 Native)
 
-V2 agent frontmatter uses a `permissions:` **ordered LIST** of `{action, resource, effect}` entries — NOT the legacy singular `permission:` map. The legacy top-level fields (`permission`, `tools`, `temperature`, `top_p`, `prompt`, `disable`, `maxSteps`) are **IGNORED at runtime** (empirically proved 2026-10-04: a PE subagent executed `git stash list` / `git add` / `git commit` despite deny entries in its legacy `permission:` map). Action names in V2: `shell`, `edit` (covers write/patch), `read`, `glob`, `grep`, `webfetch`, `websearch`, `subagent` (resource = child agent ID), `external_directory` — **but see the dual-vocabulary rule below: `shell` alone is NOT enforced at runtime.**
+V2 agent frontmatter uses a `permissions:` **ordered LIST** of `{action, resource, effect}` entries — NOT the legacy singular `permission:` map. Legacy top-level fields (`permission`, `tools`, `temperature`, `top_p`, `prompt`, `disable`, `maxSteps`): the singular `permission:` map was IGNORED in the 2026-10-04 audit (a PE subagent executed `git stash list` / `git add` / `git commit` despite its denies) and by v2.3.0 it is AUTO-MIGRATED to the list form — but the LIST is the contract; never hand-write legacy fields. Action names in V2: `shell`, `edit` (covers write/patch), `read`, `glob`, `grep`, `webfetch`, `websearch`, `subagent` (resource = child agent ID), `external_directory` — **these documented names ARE what the v2.3.0 runtime evaluates (proved dynamically 2026-11-16; the old `bash`/`task` twin doctrine is RETIRED, see below).**
 
-All agents keep a **catch-all-first, denies-last** layout — the semantics are unchanged (**last-match-wins**, `*` = zero-or-more chars), only the format changed. `- {action: shell, resource: "*", effect: allow}` appears FIRST in every list and every explicit deny is written AFTER it, so the later deny overrides the catch-all. This eliminates nuisance permission prompts for command variants (flags, pipes, paths) while keeping the denies effective. The previous "denies first, catch-all last" layout was a defect: the trailing `"*": allow` silently voided every deny (proved in audit — a denied `curl` executed). Shell resources match RAW command text (no `~`/`$HOME` expansion). The scalar `write: ask` / `edit: ask` entries were **deliberately dropped** in the 2026-10-04 migration: they were inert under the legacy map and activating them now would prompt-block subagent file editing (behavior change). V2 `experimental.policies` supports **only** the action `provider.use` (provider access control) — entries with any other action are skipped by the runtime normalizer and enforce nothing. File/secret enforcement (`.env`, `.ssh`, secrets) lives in the global config top-level `permissions` list (read/edit denies). Global config `permissions` array applies BEFORE agent rules; agent rules refine on top.
+**Deny-only inline layout (since 2026-11-16).** NO catch-all `allow` rule is needed: measured on v2.3.0 (isolated Basic-auth probes, 17/17), no matching rule → **ALLOW** — the documented `?? ask` default never materializes and headless agents cannot deadlock on approval prompts. Every explicit deny is hard and silent: `Permission denied: <action>`, tool never executes, zero prompts. Entries are inline-flow (`- { action: shell, resource: "curl*", effect: deny }`); among denies, last-match-wins. Shell resources match RAW command text (no `~`/`$HOME` expansion). The `write: ask` / `edit: ask` scalars stay dropped — under the now-proven engine they would prompt-block subagent editing. `experimental.policies` supports MULTIPLE actions (proved: `provider.use`, `tool.use`, and more — the old "only provider.use" claim is retired); `tool.use "<action>:<glob>"` floors evaluate BEFORE any agent rule and emit `Blocked by configuration policy`. File/secret enforcement now lives in **27 floors** in the config template (read/edit/shell × `*.ssh*`, `*.env*`, `*.secret_envs*`, `*.netrc*`, `*.config/gh/hosts.yml*`, `*auth.json*`, `*opencode.db*`, `*cli-proxy-api*`, `*.config/opencode/opencode.json*`) — the global top-level `permissions` array was REMOVED: redundant under floors, and the floor set is strictly stronger (adds shell coverage — closing the measured HIGH bypass `cat ~/.ssh/id_rsa` — plus `opencode.json`/`cli-proxy-api`/`netrc` paths the array missed; Mac's typo `*.secrets_env*` corrected to `*.secret_envs*`). Accepted cost: floors cannot express allow-lifts, so `*.env*` also blocks `.env.example` reads.
 
-**Dual vocabulary (mandatory, do not "clean up").** The V2 docs name the actions `shell` and `subagent`, but the runtime daemon evaluates shell checks under `bash` and subagent-spawn under `task`. Proven 2026-10-04: a `--attach` private-server probe returned `Supported actions: read, edit, glob, grep, list, bash, task, todowrite, todoread, question`, and `opencode api get /api/agent` showed our `shell` rules loaded yet never matching. Catalog-layer tool filtering *does* honor the documented names, which is why `webfetch: deny` already works without a twin; `read`/`edit` are identical in both worlds. Every template therefore carries an **identical adjacent twin** for each `shell` entry (`action: bash`, same resource/effect) and for each `subagent` entry (`action: task`) — commander 8+8, each work agent 23+23, each personal agent 21+21 plus a `subagent`/`task` pair. The duplication is intentional: add new shell or subagent rules as **pairs**, and delete the twins only when upstream aligns the action names with the docs.
+**Dual vocabulary — RETIRED 2026-11-16 (do NOT reintroduce).** The old doctrine claimed the daemon evaluated shell under `bash` and spawns under `task`, forcing adjacent twins in every template (commander 8+8, work agents 23+23, personal 21+21). The 2026-11-16 dynamic campaign proved the opposite on v2.3.0: **docs-names (`shell`, `subagent`, `webfetch`) fire; `bash:`/`task:` entries are dead code.** Twins stripped from all 15 templates, from config floors, and from `_subagent_permissions.md`. The 2026-10-04 "shell rules loaded yet never matching" evidence belonged to the legacy-map era, not the list era. If a future version flips enforcement again, re-run the probe BEFORE duplicating anything.
 
 #### Commander (Full Access)
 ```yaml
-permissions:
-  - {action: shell, resource: "*", effect: allow}          # catch-all FIRST
-  - {action: shell, resource: "rm -rf /", effect: deny}    # denies AFTER
-  - {action: shell, resource: "mkfs*", effect: deny}
-  - {action: shell, resource: "sudo rm*", effect: deny}
+permissions:  # deny-only inline — base allows, no catch-all needed (proved v2.3.0)
+  - { action: shell, resource: "rm -rf /", effect: deny }
+  - { action: shell, resource: "rm -rf *", effect: deny }
+  - { action: shell, resource: "rm -rf /*", effect: deny }
+  - { action: shell, resource: "mkfs*", effect: deny }
+  - { action: shell, resource: "dd *", effect: deny }
+  - { action: shell, resource: "sudo rm*", effect: deny }
+  - { action: shell, resource: "chmod -R 777 /", effect: deny }
 ```
 Full deny set: `rm -rf /`, `rm -rf *`, `rm -rf /*`, `mkfs*`, `dd *`, `sudo rm*`, `chmod -R 777 /`. The Commander is the orchestrator — it needs unrestricted bash access to coordinate, commit, and deploy.
 
 #### Sub-Agents (Read + Build — No Git Write, No Network, No Subagent Spawning)
 ```yaml
-permissions:
-  - {action: shell, resource: "*", effect: allow}          # catch-all FIRST
-  - {action: shell, resource: "git push*", effect: deny}   # denies AFTER
-  - {action: shell, resource: "curl*", effect: deny}
-  # Sub-agents cannot spawn sub-agents (pure leaf execution)
-  - {action: subagent, resource: "*", effect: deny}
-  - {action: task, resource: "*", effect: deny}
-  # No outbound web fetch or search from sub-agents
-  - {action: webfetch, resource: "*", effect: deny}
-  - {action: websearch, resource: "*", effect: deny}
+permissions:  # deny-only inline, single docs-named entries (no twins since 2026-11-16)
+  - { action: shell, resource: "git push*", effect: deny }
+  - { action: shell, resource: "curl*", effect: deny }
+  # Leaf hardening: no grandchild spawns, no web egress — deny ALSO filters the model's tool catalog
+  - { action: subagent, resource: "*", effect: deny }
+  - { action: webfetch, resource: "*", effect: deny }
+  - { action: websearch, resource: "*", effect: deny }
 ```
-Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull/merge/rebase/reset/checkout/stash/cherry-pick` + `curl`/`wget`/`nc` + `security`/`sysctl` + `subagent`/`task` (`*`) + `webfetch`/`websearch` (`*`). Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, access macOS security APIs, or recursively spawn child subagents. This enforces pure leaf execution: all task decomposition remains strictly in the hands of the Commander.
+Full deny set: destructive ops (same 7 as Commander) + `git add/commit/push/pull/merge/rebase/reset/checkout/stash/cherry-pick` + `curl`/`wget`/`nc` + `security`/`sysctl` (macOS relics kept as zero-cost documentation) + `subagent` (`*`) + `webfetch`/`websearch` (`*`) — single docs-named entries, no twins since 2026-11-16. Denying `subagent`/`webfetch`/`websearch` ALSO filters them from the model tool catalog. Sub-agents can read files, search, build, test, and edit — but cannot write to git, make network calls, access macOS security APIs, or recursively spawn child subagents. This enforces pure leaf execution: all task decomposition remains strictly in the hands of the Commander.
 
 #### Personal Agents (No Shell — hardened 2026-10-27 · model switched 2026-11-15)
 
@@ -470,9 +470,9 @@ The 7 personal agents (`finanzas`, `organiza`, `habitos`, `life`, `coach`, `bari
 
 > **Data-path note (mixed profile, 2026-11-15; tier rebalance + prepaid top-up same day):** moving the 7 personal agents to the native `google` provider shifted their prompt/response traffic from the `opencode-go` gateway to **Google AI Studio under the API key**. The shell hardening is unaffected (the exfil channel was the local shell, not the vendor), but what leaves the machine is now personal notes + conversation sent to Google under this key. The later split — 3 sensitive agents on the paid flagship, 4 factual agents on the paid flash tier — **does not change this reasoning**: both tiers are billed API calls to the same provider under the same key, so the privacy posture is identical; the tier was chosen for cost and reasoning depth, never as a data-sensitivity control. Do **not** infer "cheaper model = safer data". The one privacy-relevant billing fact **is** the tier itself: **paid tiers do not use submitted content for training, the free tier does**, and tier is granted on accumulated spend. Reaching **zero balance is an availability event (`HTTP 402`), not a documented tier demotion** — do not treat the two as the same risk (see **Model Profiles**). Their `webfetch` posture is still per-agent: `barista`/`coach`/`chef` are web-open, the other four are sealed (see below) — note that the web-open/sealed groups **cut across** the hydrogen/flash groups (`coach` is web-open but on hydrogen; `organiza`/`habitos` are sealed but on flash), so never use one grouping to reason about the other.
 
-The per-command denies below the catch-all are retained as **documentation of intent** (and as defense-in-depth if a future refactor reintroduces a scoped allow). **No `allow` rule may follow the catch-all deny** — last-match-wins would silently re-open the hole (the exact defect proved in the 2026-10-04 audit). Each personal template also carries an adjacent `bash` twin for every `shell` entry and a `task` twin for the `subagent` entry (see dual-vocabulary rule above).
+The per-command denies below the catch-all are retained as **documentation of intent** (and as defense-in-depth if a future refactor reintroduces a scoped allow). **No `allow` rule may follow the catch-all deny** — last-match-wins would silently re-open the hole (the exact defect proved in the 2026-10-04 audit). Since 2026-11-16 personal templates carry NO twins and the redundant per-command shell denies were consolidated into the blanket `"*"` deny + intent comments (docs-names fire; see retired dual-vocabulary note).
 
-**Network egress (web tools) is per-agent, not blanket:** `finanzas`, `organiza`, `habitos` and `life` carry explicit `webfetch`/`websearch` `"*"` denies (sealed group — their `permissions:` blocks are byte-identical, md5 `ae8b105b375c36ac5fbc72a04cb578d3`). `barista`, `coach`, and `chef` are **intentionally web-open** (user decision 2026-10-27: they research machine manuals/specs, food and training recipes) — their templates simply omit the two web deny rules and carry a comment marking the exception. Any new personal agent defaults to SEALED; opening web requires an explicit user decision recorded in the template comment.
+**Network egress (web tools) is per-agent, not blanket:** `finanzas`, `organiza`, `habitos` and `life` carry explicit `webfetch`/`websearch` `"*"` denies (sealed group — their `permissions:` blocks are byte-identical, md5 `139ddbd38e7213faf3c186b2224b69e0`). `barista`, `coach`, and `chef` are **intentionally web-open** (user decision 2026-10-27: they research machine manuals/specs, food and training recipes) — their templates simply omit the two web deny rules and carry a comment marking the exception. Any new personal agent defaults to SEALED; opening web requires an explicit user decision recorded in the template comment.
 
 ### Sub-Agent Communication Protocol (Caveman Mode)
 
@@ -627,7 +627,7 @@ We do not use legacy commands. Use these modern alternatives:
 | Missing Tools | Builder needs `go` only. `bun` is NOT installed — plugins run inside opencode's embedded runtime |
 | Architecture Violation | Run `go run .config/opencode/tool/hex_check.go` in the project root |
 | MCP server fails to connect | Check that the required env vars are set for that MCP entry |
-| Agent can't execute commands | Check the `permissions:` list entries in the agent template — last deny may override the catch-all (V2: legacy `permission:` map and `tools:` are ignored) |
+| Command unexpectedly blocked | `Permission denied: <action>` = frontmatter deny matched (last-match-wins among denies; raw-text globs, `*` crosses `/`). `Blocked by configuration policy` = `tool.use` floor. There is NO missing-catch-all failure mode since 2026-11-16: no-match → ALLOW |
 | Custom command uses disabled agent | Check `command/*.md` — ensure `agent:` field points to an enabled agent |
 | Builder uses deprecated Go APIs | Use `os.ReadFile`/`os.WriteFile`/`os.ReadDir` instead of `ioutil` |
 | Model profile not found | Check `model_profiles.json` — profile name must match exactly. Only `opencodego` exists since 2026-11-15 (`google`/`gemini` deleted). Use `oc --set-current opencodego` or `MODEL_PROFILE=opencodego` |
