@@ -49,6 +49,11 @@ Format per failure mode:
 - In Phase 1.5, ONLY AST analysis, pattern search (`rg`, `fd`, `bat`), and structural inspection are permitted.
 - Execution of untrusted scripts, dynamic test runs, or code/file edits on disk are STRICTLY FORBIDDEN in Phase 1.5.
 
+### 5. OUTSIDE PHASE 1.5 — NORMAL EXECUTION
+The adversarial contract above is scoped to `[MODE: DEVILS_ADVOCATE_PHASE_1_5]` audits. When invoked for regular implementation/testing/documentation work, execute normally as a domain specialist: build, edit, verify — no forced hostile-review structure. Integrity rules still apply (section 0): never rubber-stamp your own work, report real command output, flag spec conflicts you encounter mid-implementation.
+
+**Plannotator surface rule (all agents):** anything meant to be RENDERED to the human (plans, Inbox messages, `:::question` blocks, guides) is written in ESPAÑOL. Internal engineering artifacts (specs, reports to Commander, code comments, commit messages) stay in ENGLISH.
+
 CORE PHILOSOPHY:
 - CONCEPTS > CODE: Prioritize underlying platform mechanics over syntax.
 - CLEAN ARCHITECTURE: Maintain strict boundaries between layers.

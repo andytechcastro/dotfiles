@@ -1,52 +1,45 @@
-# Installed Capabilities
+# Installed Capabilities (ground truth — verified 2026-11-16)
 
-This platform has these plugins/MCPs/skills active. Use them — they exist for a reason.
+<!-- Single source: builder/templates/config/config.json + this directory. Update ONLY when config/roster changes. If a tool is missing here, it does not exist. -->
 
-## Runtime Plugins
+## MCP servers (config template `mcp`)
+| Server | Purpose | Requires env |
+|--------|---------|--------------|
+| `context7` | Live library/framework docs | — |
+| `engram` | Persistent memory (local SQLite `~/.engram`) | — |
+| `gh_grep` | Real-world GitHub code examples | — |
+| `gcp` | Google Cloud Platform (OAuth) | — |
+| `google_drive` | Drive files | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| `codebase-memory-mcp` | Code knowledge graph (tree-sitter + SQLite) | — |
+| `playwright` | Browser automation | — |
 
-| Plugin | Purpose | When to use |
-|---|---|---|
-| `opencode-vibeguard` | HMAC-SHA256 secret redaction (email, IP, UUID, etc.) | ALWAYS ON. Credentials pasted in prompts get redacted automatically. Complement to `envsitter-guard`. |
-| `opencode-wakatime` | Time tracking heartbeats (1/min) | For retrospectives: "how long did this task take?" |
-| `@plannotator/opencode` | Local browser UI for plan/code review | **Commander**: instead of printing plans in terminal, plannotator opens a browser for visual review with structured input. Set `PLANNOTATOR_SHARE=disabled` to keep plans local. **Workflow: `plan-agent`** with `planningAgents: ["commander"]` — only Commander can call `submit_plan`. Plans submitted via `submit_plan` MUST ALWAYS be in Spanish. Receives ONLY the final, complete plan after all Phase 1.5 subagent consultations and inquiries are finished (never preliminary plans). No dependency on built-in `build`/`plan` agents (both disabled). **🚦 GOLDEN RULE — use only for COMPLEX multi-step plans (5+ steps, multiple files, or architectural changes). Small changes (typo fix, single-file tweak, <3 steps) → just proceed, do NOT trigger plannotator. Plannotator is for the big stuff.** |
-| `@nick-vi/opencode-type-inject` | Auto-injects TS/Svelte types into file reads | `frontend_architect`, `go_architect` working with TS files. |
-| `@tarquinen/opencode-dcp` | Dynamic Context Pruning (mid-session) | Auto-fires when context gets large. Different from compaction — trims duplicates, prunes errors, deduplicates file reads. Author migrating to "Sleev" (local proxy successor) but DCP still maintained. |
-| `envsitter-guard` | .env file redaction (no values printed) | ALWAYS ON. Use `envsitter_*` tools, never `cat` on .env files. |
-| `opencode-autotitle` | Auto-generates session titles | For long sessions. |
+NOT installed (do not hallucinate): wiz, cw-ai-gateway, atlassian/Jira, tavily, mgrep-as-MCP (it is a local tool).
 
-## Built-in Subagents (opencode ≥1.14.48)
+## Plugins — registry (`plugins` array, pinned policy: exact versions; plannotator sanctioned float)
+| Plugin | Version | Purpose |
+|--------|---------|---------|
+| `opencode-snippets` | 3.4.0 | `#hashtag` snippet expansion |
+| `@tarquinen/opencode-dcp` | 3.2.0 | Dynamic context pruning |
+| `@plannotator/opencode` | `@latest` (float) | Plan/code review UI + Inbox; options `workflow:"plan-agent"`, `planningAgents:["commander"]`. Binary + inbox docs: `docs/plannotator.md` |
 
-| Subagent | Purpose | When to delegate |
-|---|---|---|
-| `scout` | External docs/deps research. Clones to cache, NO edits. | When you need current docs for a library, framework version, or API. **FREE** (built-in, no token cost to call). Prefer over `mgrep` for external research. |
+## Plugins — local auto-discovered (`plugins/*.ts|js`, NEVER listed in config)
+`engram.ts` (memory hooks) · `squeez.js` (output compression) · `graphify.js` (graph reminders) · `run-watch.ts` (tool `run_watch`: bg script + session wake) · `yt-transcript.ts` (tool `yt_transcript`). `echo.ts.v1-retired` is inert by extension.
 
-## MCP Servers
+## Skills (on-demand)
+`hexagonal-architect` (Go import-boundary enforcement) · `infra-security-check` (Trivy IaC) · `production-log-analyzer` (Datadog logs).
 
-| MCP | Purpose | When to use |
-|---|---|---|
-| `context7` | Current library docs (Next.js, React, Prisma, etc.) | When implementing against a library — your training data may be stale. |
-| `atlassian` | Jira + Confluence | Project management, docs. |
-| `tavily` | Web search + extract | Real-time info, news, post-cutoff events. |
-| `mgrep` | Semantic local code search | Conceptual discovery in unknown repos. **COSTS TOKENS** — use sparingly. |
-| `engram` | Persistent memory | Decisions, bugs, conventions, session summaries. |
-| `gh_grep` | Real GitHub code examples | When you need to see how others use a specific API. |
-| `cw-ai-gateway` | Coverwallet platform (k8s, datadog, jira, psql, mongo) | For Coverwallet work only. |
-| `gcp` | Official Google Cloud MCP (Compute, GKE, BigQuery, Storage, etc.) | GCP infra queries, resource management. OAuth flow on first use. |
-| `wiz` | Cloud security posture (vulnerabilities, threats, findings) | Wiz security insights. OAuth flow on first use. Requires Wiz account w/ MCP enabled. |
+## Custom commands
+`/infra-scan` (PE + tofu-scan) · `/k8s-doctor` (PE + k8s-pod-doctor). Plannotator installer may add `commands/` (gitignored, untracked by design).
 
-## Skills (`.opencode/skills/<name>/SKILL.md`)
+## Platform CLI tools (`bin/`, `tool/`)
+`oc` (builder+launcher wrapper; guardrail `check_plugin_pins` pending) · `hex_check.go` + `hexagonal-validator.ts` (hexagonal import validator) · `k8s-pod-doctor.ts` · `mgrep.ts` (semantic search, cost-sensitive) · `tofu-scan.ts` (Trivy) · `graphify.sh`. Planned: `.local/bin/up` (opencode-stack updater; NO OS packages — Tony runs yay daily).
 
-| Skill | Trigger |
-|---|---|
-| `hexagonal-architect` | Enforces Hexagonal rules in Go projects. Auto-loads on Go file work. |
-| `infra-security-check` | Trivy scan of Terraform/OpenTofu. Run before committing IaC. |
-| `production-log-analyzer` | Pulls Datadog logs for service debugging. |
-| `snippets` | Code snippet management. |
-| `customize-opencode` | OpenCode config (agents, plugins, MCPs). ONLY when editing this repo's `.config/opencode/`. |
+## Agent roster (profile `opencodego` — the only one)
+- **Technical (opencode-go gateway):** `commander` (primary), subagents `PE`, `go_architect`, `python_architect`, `frontend_architect`, `qa_architect`, `security_architect`, `doc_architect`, native `explore`.
+- **Personal (native `google` provider, remote, shell-denied):** `finanzas`/`life`/`coach` → `gemini-4-hydrogen`; `barista`/`chef`/`organiza`/`habitos` → `gemini-3.8-flash`; notes in `~/notas/<agent>/`.
+- `general`/`build`/`plan` disabled.
 
-## Commands (slash)
-
-| Command | Purpose |
-|---|---|
-| `/infra-scan` | Full IaC + secrets audit (uses PE). |
-| `/k8s-doctor <pod>` | K8s pod diagnostics (uses PE). |
+## Providers & env
+- `opencode-go` gateway = technical agents. `google` native = personal agents, keyed by `GEMINI_API_KEY` (in `~/.secret_envs`; NOT visible to builder preflight — blind spot by design).
+- `experimental.policies` keeps `provider.use google allow` — load-bearing.
+- Local machine: no systemd opencode unit (service = user session); systemd exists ONLY on homesrv (Pi). NEVER `oc --rebuild`/`oc --sync`/`opencode service restart`/`opencode api` from inside a live session — kills it.

@@ -162,3 +162,4 @@ permissions:
 {file:prompts/coach_behavior.md}
 
 {file:prompts/engram_memory.md}
+{file:prompts/language_subagent.md}

@@ -163,4 +163,6 @@ permissions:
 
 {file:prompts/engram_memory.md}
 {file:prompts/tools_rules.md}
+{file:prompts/language_subagent.md}
+{file:prompts/_installed_capabilities.md}
 {file:prompts/caveman_behavior.md}

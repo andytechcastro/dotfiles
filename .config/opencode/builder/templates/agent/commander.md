@@ -62,4 +62,5 @@ permissions:
 {file:prompts/language.md}
 {file:prompts/engram_memory.md}
 {file:prompts/tools_rules.md}
+{file:prompts/_installed_capabilities.md}
 {file:prompts/behavior.md}
