@@ -414,7 +414,8 @@ dotfiles/
 │   │   │   └── config.ini      # Compression settings (persona: ultra)
 │   │   ├── tool/               # Herramientas platform (TS/Go)
 │   │   ├── skill/              # Skills on-demand
-│   │   ├── command/            # Slash commands personalizados
+│   │   ├── command/            # Slash commands personalizados (trackeados)
+│   │   │                       #   commands/ (plural) = salida del installer de Plannotator, gitignored
 │   │   └── agent/              # Agentes generados (gitignored)
 │   └── superfile/              # Superfile themes
 └── graphify-out/               # Knowledge graph del proyecto

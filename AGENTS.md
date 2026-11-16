@@ -117,6 +117,14 @@ oc --sync --notes-only   # Sync only context notes (~/notas/)
 oc --list-profiles
 ```
 
+**`oc` v0.6.0 guardrails (ported from dotfilesMac 2026-11-16, hand-adapted — the two `oc` forks diverged, never `git apply` between them):**
+- `check_plugin_pins`: hard-die on a non-`@`-prefixed, non-semver plugin entry; floats (`@latest`) pass and get a registry-freshness report cached 24 h (`pin-check.json`, GNU `stat -c %Y` — the Mac `stat -f %m` BSD idiom printed the whole filesystem here and silently defeated the TTL cache); network failures degrade to silence, never block a launch. Known latent debt: the semver regex `@[0-9]+\.[0-9]+\.[0-9]+$` skips prerelease tags.
+- `check_env_vars` is now **hard-die** (`Aborted. Set the missing env vars and retry.`) — before, a missing `${VAR}` baked an empty key into `opencode.json` silently. It also carries an explicit **`GEMINI_API_KEY` preflight warning**: that key has no template placeholder (the native `google` provider is built into the binary), so neither `_requires_env` pruning nor the `${VAR}` scan can see it — the warning is the only pre-build signal.
+- Call sites: `do_rebuild` (after `check_env_vars`) and the fresh-config branch.
+- **LETHAL from inside a live session:** `oc --rebuild`, `oc --sync`, `opencode service restart` and `opencode api` (auto-spawns a managed service on :49374) kill or collide with the daemon running your own session. Builds from a session use `cd .config/opencode/builder && MODEL_PROFILE=opencodego go run main.go`.
+
+**`up` (`.local/bin/up`, tracked via a 4-line `.gitignore` exception — `.local/*`, `!.local/bin/`, `.local/bin/*`, `!.local/bin/up`):** Arch port of the Mac updater, updated **only the opencode stack**: `uv tool upgrade --all`, pipx (self-guarded skip), `opencode upgrade`, `opencode plugin update` (floats; never auto-restarts the service — prints the instruction), and a plugin pin-drift report (snippets/dcp/plannotator vs registry). **No OS-package step at all, by user decision: Tony runs `yay` daily and `up` must never race it or need sudo** (Mac steps 1 `/private/tmp` perms and `brew upgrade` deleted — neither exists here).
+
 **Manual build** (if you need fine-grained control):
 
 ```bash
@@ -266,6 +274,7 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 
 **Registry plugin (npm package):**
 1. Add to the `plugins` array in `builder/templates/config/config.json` — plain `"pkg@X.Y.Z"` string (**pin exact versions — never `@latest`**; supply-chain integrity: `@latest` re-resolves silently on every fresh install, and `update: "notify"` means we choose when to bump), or `{ "package": "...", "options": {...} }` when it needs options (V1 tuple form is invalid). Resolve the pinned version from opencode's on-disk npm cache (`~/.cache/opencode/npm/<pkg>@latest/*/package.json`) or `npm view <pkg> version`. Same rule applies to `npx -y` MCP servers in `mcp.servers` (e.g. `@playwright/mcp@X.Y.Z`, resolved from the `~/.npm/_npx` cache).
+   > **Sanctioned exception (user decision 2026-11-16):** `@plannotator/opencode` floats at `@latest` — machine parity with dotfilesMac, where the vendor installer itself rewrites the entry on every update. The `oc` guardrail `check_plugin_pins` (v0.6.0) knows this: floats pass the pin check, get TTL-cached registry freshness reporting (24 h, `stat -c %Y`, offline-silent), and are checked for drift by `up` step 7. **Every other package keeps exact pins.** Do not generalize this exception.
 2. `oc --rebuild` then `opencode service restart`.
 
 **Terminal/TUI plugin:** add to the `plugins` array in `cli.json` (currently empty — V1 TUI contracts are rejected by the V2 loader).
@@ -274,13 +283,23 @@ To add a new profile, add an entry to `model_profiles.json` with keys matching a
 
 **Live — registry packages (`plugins` array):**
 
-| Plugin | Purpose |
-|--------|---------|
-| `opencode-snippets` | Snippet expansion with `#hashtag` syntax |
-| `@tarquinen/opencode-dcp` | Dynamic context pruning |
-| `@plannotator/opencode` | Browser UI for plan/code review — `options: { workflow: "plan-agent", planningAgents: ["commander"] }` |
+| Plugin | Version | Purpose |
+|--------|---------|---------|
+| `opencode-snippets` | 3.4.0 | `#hashtag` snippet expansion |
+| `@tarquinen/opencode-dcp` | 3.2.0 | Dynamic context pruning |
+| `@plannotator/opencode` | `@latest` (float) | Plan/code review UI + Inbox; options `workflow:"plan-agent"`, `planningAgents:["commander"]` |
 
 **Live — local auto-discovered (`.config/opencode/plugins/`):** `engram.ts`, `squeez.js`, `graphify.js`, `run-watch.ts` (tool `run_watch`), `yt-transcript.ts` (tool `yt_transcript`).
+
+#### Plannotator — platform facts (2026-11-16, measured on Linux v2.3.0)
+
+- **Float policy:** see the sanctioned exception in *Adding a New Plugin*. `planningAgents:["commander"]` was **provably inert below 0.28** (agent-switch dead-end bug); the float exists so the upgrade ships without a template edit.
+- **`plannotator` CLI is NOT on PATH** until the vendor `install.sh` runs (user terminal, review-first). Runbook: `.config/opencode/docs/vendor/plannotator-upgrade.sh` (tracked via `git add -f`). Full measured docs: `docs/plannotator.md`.
+- **The installer writes `commands/` (plural) inside the worktree** — `~/.config/opencode` is a symlink into this repo. `.gitignore` now carries `.config/opencode/commands/` so the acceptance test is `git status --porcelain` == empty after install. Tracked custom commands stay in `command/` (singular).
+- **Frozen-cache resurrection (measured 2026-11-16):** after purging the stale `@plannotator` cache, the old resolved tree (`0.27.20`) can REAPPEAR before any restart — stale metadata re-resolves the old version. Never trust the directory name `@latest`: read `version` from the resolved `package.json` (must be ≥ 0.28 after upgrade). The runbook purges immediately before restart and asserts this.
+- **`PLANNOTATOR_SHARE` env overrides the config `share` setting** at runtime (vendor install.sh writes it into `opencode.jsonc`). `share:"disabled"` in the config template is load-bearing for isolation; the env var can defeat it — know before exporting.
+- **`opencode.jsonc` precedence (probe 2026-11-16):** a stray `opencode.jsonc` in the config dir is a LIVE config doc merged AFTER the generated `opencode.json` (per-key map merge — same scalar key in the jsonc wins). The global `config.json` name is DEAD in V2 (never loaded). Hence the `.config/opencode/opencode.jsonc` gitignore rule: installer state must not shadow the generated secrets-bearing config.
+- **Inbox vs `question` precedence** lives in Commander doctrine (PHASE 2.5 of `prompts/commander_behavior.md`): interactive decisions NEVER park in the Inbox.
 
 **Removed — account suspension (2026-11-15):**
 
@@ -433,7 +452,7 @@ flowchart TD
 
 V2 agent frontmatter uses a `permissions:` **ordered LIST** of `{action, resource, effect}` entries — NOT the legacy singular `permission:` map. Legacy top-level fields (`permission`, `tools`, `temperature`, `top_p`, `prompt`, `disable`, `maxSteps`): the singular `permission:` map was IGNORED in the 2026-10-04 audit (a PE subagent executed `git stash list` / `git add` / `git commit` despite its denies) and by v2.3.0 it is AUTO-MIGRATED to the list form — but the LIST is the contract; never hand-write legacy fields. Action names in V2: `shell`, `edit` (covers write/patch), `read`, `glob`, `grep`, `webfetch`, `websearch`, `subagent` (resource = child agent ID), `external_directory` — **these documented names ARE what the v2.3.0 runtime evaluates (proved dynamically 2026-11-16; the old `bash`/`task` twin doctrine is RETIRED, see below).**
 
-**Deny-only inline layout (since 2026-11-16).** NO catch-all `allow` rule is needed: measured on v2.3.0 (isolated Basic-auth probes, 17/17), no matching rule → **ALLOW** — the documented `?? ask` default never materializes and headless agents cannot deadlock on approval prompts. Every explicit deny is hard and silent: `Permission denied: <action>`, tool never executes, zero prompts. Entries are inline-flow (`- { action: shell, resource: "curl*", effect: deny }`); among denies, last-match-wins. Shell resources match RAW command text (no `~`/`$HOME` expansion). The `write: ask` / `edit: ask` scalars stay dropped — under the now-proven engine they would prompt-block subagent editing. `experimental.policies` supports MULTIPLE actions (proved: `provider.use`, `tool.use`, and more — the old "only provider.use" claim is retired); `tool.use "<action>:<glob>"` floors evaluate BEFORE any agent rule and emit `Blocked by configuration policy`. File/secret enforcement now lives in **27 floors** in the config template (read/edit/shell × `*.ssh*`, `*.env*`, `*.secret_envs*`, `*.netrc*`, `*.config/gh/hosts.yml*`, `*auth.json*`, `*opencode.db*`, `*cli-proxy-api*`, `*.config/opencode/opencode.json*`) — the global top-level `permissions` array was REMOVED: redundant under floors, and the floor set is strictly stronger (adds shell coverage — closing the measured HIGH bypass `cat ~/.ssh/id_rsa` — plus `opencode.json`/`cli-proxy-api`/`netrc` paths the array missed; Mac's typo `*.secrets_env*` corrected to `*.secret_envs*`). Accepted cost: floors cannot express allow-lifts, so `*.env*` also blocks `.env.example` reads.
+**Deny-only inline layout (since 2026-11-16).** NO catch-all `allow` rule is needed: measured on v2.3.0 (isolated Basic-auth probes, 17/17), no matching rule → **ALLOW** — the documented `?? ask` default never materializes and headless agents cannot deadlock on approval prompts. Every explicit deny is hard and silent: `Permission denied: <action>`, tool never executes, zero prompts. Entries are inline-flow (`- { action: shell, resource: "curl*", effect: deny }`); among denies, last-match-wins. Shell resources match RAW command text (no `~`/`$HOME` expansion). The `write: ask` / `edit: ask` scalars stay dropped — under the now-proven engine they would prompt-block subagent editing. `experimental.policies` supports MULTIPLE actions (proved: `provider.use`, `tool.use`, and more — the old "only provider.use" claim is retired); `tool.use "<action>:<glob>"` floors evaluate BEFORE any agent rule and emit `Blocked by configuration policy`. File/secret enforcement now lives in **27 floors** in the config template (read/edit/shell × `*.ssh*`, `*.env*`, `*.secret_envs*`, `*.netrc*`, `*.config/gh/hosts.yml*`, `*auth.json*`, `*opencode.db*`, `*cli-proxy-api*`, `*.config/opencode/opencode.json*`) — the global top-level `permissions` array was REMOVED: redundant under floors, and the floor set is strictly stronger (adds shell coverage — closing the measured HIGH bypass `cat ~/.ssh/id_rsa` — plus `opencode.json`/`cli-proxy-api`/`netrc` paths the array missed; Mac's typo `*.secrets_env*` corrected to `*.secret_envs*`). Accepted cost: floors cannot express allow-lifts, so `*.env*` also blocks `.env.example` reads — and the `shell` floor on `*.secret_envs*` blocks `source ~/.secret_envs` from inside any agent (intentional: secrets must already be in the daemon's process env, loaded by the terminal's `~/.zshrc` before opencode starts; agents never touch the file).
 
 **Dual vocabulary — RETIRED 2026-11-16 (do NOT reintroduce).** The old doctrine claimed the daemon evaluated shell under `bash` and spawns under `task`, forcing adjacent twins in every template (commander 8+8, work agents 23+23, personal 21+21). The 2026-11-16 dynamic campaign proved the opposite on v2.3.0: **docs-names (`shell`, `subagent`, `webfetch`) fire; `bash:`/`task:` entries are dead code.** Twins stripped from all 15 templates, from config floors, and from `_subagent_permissions.md`. The 2026-10-04 "shell rules loaded yet never matching" evidence belonged to the legacy-map era, not the list era. If a future version flips enforcement again, re-run the probe BEFORE duplicating anything.
 
@@ -547,6 +566,10 @@ None active. The two V1 TUI plugins (`opencode-subagent-statusline`, `opencode-s
 - `.config/opencode/AGENTS.md` — squeez-managed session-context block (nested gitignore rule)
 - `.config/opencode/antigravity-accounts.json` — legacy OAuth tokens (access/refresh) of the **retired** `opencode-antigravity-auth` plugin (2026-11-15). NEVER in git; the node-to-node ssh copy was discontinued with the account
 - `~/.secret_envs` — single source of secrets, sourced by `~/.zshrc` (chmod 600, outside repo)
+- `.config/opencode/commands/` — Plannotator vendor installer output (plural; the tracked custom commands live in `command/` singular). Added 2026-11-16 after the installer polluted the worktree on the Mac twin
+- `.config/opencode/opencode.jsonc` — installer-written config (V2 merges it as a LIVE doc after `opencode.json`; see Plannotator platform facts)
+- `.local/*` except `!.local/bin/` + `!.local/bin/up` — 4-line exception block so ONLY the `up` updater is tracked from `~/.local`
+- `docs/` — Tony's deliberate convention: local ADRs/specs kept out of git (ADRs 0001-0007 exist on disk untracked by design). Platform docs that MUST ship (`docs/plannotator.md`, `docs/vendor/plannotator-upgrade.sh`) are force-added per-file with `git add -f`; never flip the global `docs/` rule to `docs/*` (would unignore every nested docs dir)
 
 > **Note (2026-09-26):** `.config/opencode/package.json` IS tracked now —
 > it carries security `overrides` (toml/uuid Dependabot bumps). Ignoring it
