@@ -22,15 +22,40 @@
 // hooks. That's a host limitation, not something this plugin can work around.
 
 import { execSync, spawn } from "child_process";
+import { existsSync } from "fs";
 import { Plugin } from "@opencode/plugin";
 
 const HOME = process.env.HOME || process.env.USERPROFILE || "";
-// Install location for this machine: Arch dotfiles keep squeez at
-// ~/.local/bin/squeez (see AGENTS.md troubleshooting). The legacy
-// ~/.claude/squeez/bin path is the Claude Code bundle location — probing the
-// wrong one made squeezExists() false and setup() silently registered zero
-// hooks (the plugin loaded but never wrapped anything).
-const SQUEEZ_BIN = `${HOME}/.local/bin/squeez`;
+// Ported from dotfilesMac 2026-11-16 (fork parity — never git-apply between
+// the two repos). Install location varies per machine: Arch dotfiles keep
+// squeez at ~/.local/bin/squeez; the Claude Code bundle lives at
+// ~/.claude/squeez/bin/squeez. Probe both (plus SQUEEZ_BIN override) —
+// probing the wrong one made squeezExists() false and setup() silently
+// registered zero hooks (the plugin loaded but never wrapped anything).
+const SQUEEZ_CANDIDATES = [
+  process.env.SQUEEZ_BIN,
+  `${HOME}/.local/bin/squeez`,
+  `${HOME}/.claude/squeez/bin/squeez`,
+].filter(Boolean);
+function findSqueezBin() {
+  for (const p of SQUEEZ_CANDIDATES) {
+    try {
+      execSync(`test -x "${p}"`, { timeout: 500 });
+      return p;
+    } catch {
+      // try next
+    }
+  }
+  return SQUEEZ_CANDIDATES[0];
+}
+const SQUEEZ_BIN = findSqueezBin();
+
+// Data home: prefer XDG ~/.local/share/squeez; fall back to the legacy
+// ~/.claude/squeez — which on THIS box is the live data dir (blobs, memory,
+// sessions; measured 2026-11-16). Keeps GUI-launched TUI consistent even
+// when shell env vars were never inherited.
+process.env.SQUEEZ_DIR = process.env.SQUEEZ_DIR
+  || (existsSync(`${HOME}/.local/share/squeez`) ? `${HOME}/.local/share/squeez` : `${HOME}/.claude/squeez`);
 
 // Tool names that run shell commands: "bash" is the V1 name, "shell" is the
 // V2 name for the same core tool.
