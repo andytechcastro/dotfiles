@@ -45,7 +45,7 @@ Order is mandatory (each step exists because of a measured failure mode):
 ## 4. Measured runtime facts (Linux)
 
 - **Reload vs restart (A5):** a builder rebuild or config hot-reload does **NOT** re-register plugin hooks/tools on live sessions. Plugin code changes deploy only via `opencode service restart`. Measured on this box, not inherited from Mac.
-- **`plannotator` CLI is NOT on PATH** until step 4 of the runbook has been executed by the user.
+- **`plannotator` CLI** (0.28.66): instalado el 2026-11-16 vía `install.sh` (sha256 `659c5b46545f5f386946ccb98d967e96f8fd9f3e036a217ec56d99b8a8afc0c7`, descargado a `/tmp/opencode/plannotator-install.sh` e inspeccionado ANTES de ejecutar — la política review-before-execute se mantiene; el pipe directo `curl | bash` del guide del vendor se sustituyó por `curl -o` + `sha256sum` + `bash local`). El binario vive en `~/.local/bin/plannotator` (en PATH).
 - **`--attach` flag is retired** in V2. Attaching to a protected daemon uses the server password: export `OPENCODE_SERVER_PASSWORD` for both daemon and client; there is no `--attach` equivalent to reach for.
 
 ## 5. Directory contract: `command/` vs `commands/`
@@ -57,7 +57,7 @@ Order is mandatory (each step exists because of a measured failure mode):
 
 - **`opencode.jsonc` (V2-merged, live):** a stray `opencode.jsonc` in the config dir is loaded as a LIVE config document merged AFTER the generated `opencode.json`; per-key, the jsonc value WINS. The global `config.json` name is DEAD in V2 (never loaded). `.gitignore` carries `.config/opencode/opencode.jsonc` because the installer may write it — installer state must never shadow the generated secrets-bearing config.
 - **`PLANNOTATOR_SHARE` env overrides the config `share` setting at runtime** (the vendor install.sh writes it into `opencode.jsonc`). `share:"disabled"` in the template is the isolation baseline; exporting the env var silently defeats it. Know before you export.
-- `.config/opencode/AGENTS.md` is a **multi-writer file** (squeez binary + vendor installer inject blocks; it is gitignored for that reason). The tracked mirror convention for injected vendor blocks lives in `.config/opencode/docs/vendor/`. **The Inbox vendor block does not exist on this box yet** — it appears only after the runbook runs; mirror it to `docs/vendor/plannotator-inbox-v9.md` at that moment (FASE 1.5 obligation, deferred by dependency, not dropped).
+- `.config/opencode/AGENTS.md` is a **multi-writer file** (squeez binary + vendor installer inject blocks; it is gitignored for that reason). The tracked mirror convention for injected vendor blocks lives in `.config/opencode/docs/vendor/`. **El bloque Inbox `v9` quedó inyectado el 2026-11-16** y su espejo tracked es `docs/vendor/plannotator-inbox-v9.md` (obligación FASE 1.5 cumplida; reespejar en cada upgrade comparando el marker `vN`).
 
 ## 7. Service restart policy
 
@@ -70,3 +70,13 @@ Per ADR-0006 precedence, codified in `prompts/commander_behavior.md` PHASE 2.5:
 - **Everything Plannotator renders for the user (plans, Inbox message bodies, `:::question` blocks, guides) is ESPAÑOL.** Internal artifacts (RFCs, code, logs, commits) stay English.
 - **Interactive decisions NEVER park in the Inbox:** in-session approvals and C.2 escalations go through the `question` tool in chat. Inbox is for async traffic only: long-background-work results, `run_watch` wake-ups, cross-session handoffs.
 - Conflict rule: if a session is live and interactive, the current turn's blocking decision must never be delegated to the Inbox. The Inbox must not block the Commander.
+
+## 9. Inbox — hechos medidos (2026-11-16, setup del vendor completado en esta máquina)
+
+- Servidor: `plannotator inbox` → escucha **solo** `127.0.0.1:34365` (proceso `plannotator`, verificado con `ss -ltnp`). Datos en `~/.plannotator/inbox/` (`inbox.json`, hilos por proyecto). El guide del vendor exige este listener loopback — sustituye al «Loopback check» del runbook §3.7.
+- Conexión automática (paso 2.2 del guide): `Connected Gemini CLI, OpenCode and Antigravity`. Para OpenCode escribió `{"inboxTool":{"opencode":true}}` en `~/.plannotator/config.json`. La entrada de **Antigravity es solo config local del Inbox**: cero tráfico a `*-cloudcode-pa.googleapis.com`; el path ToS-retirado sigue muerto.
+- **El tool `plannotator_inbox` solo aparece en sesiones NUEVAS** (misma ley que §4: nada de hot-reload). Sesiones vivas: enviar por stdio — `plannotator inbox mcp < payload.json` (JSON-RPC `tools/call`). El resultado de `send_message` dice si la respuesta despierta la sesión; por stdio **no despierta**: `read_thread` manual.
+- Envío de prueba: thread `msg_01M7K17H1KHV9NKQTAHJ1R90CJ` (proyecto `dotfiles`, idempotencia `plannotator-inbox-first-v1-opencode`). Reenvío seguro con la misma clave: devuelve el primer mensaje, no duplica.
+- Notas en instrucciones de agentes (guide §3b): OpenCode auto (bloque `v9`, espejado en `docs/vendor/plannotator-inbox-v9.md`). **Qwen Code y Cursor no existen en esta máquina** (`command -v qwen cursor cursor-agent` vacío) → `plannotator inbox --notes` no se ejecutó; si algún día se instalan, la decisión es del usuario.
+- Git-clean test (§3.6) tras install: los artefactos del instalador (`commands/`, AGENTS.md inyectado) están gitignored por diseño. Los sucios preexistentes `natpw.txt` (15-nov) y `.config/hypr/dms/layout.lua` (19:08) NO son del instalador (mtime verificado).
+- Reglas de operación del Inbox (para TODOS los agentes): nunca `plannotator uninstall`, nunca `inbox stop/restart` sin pedido del usuario, nunca `--tailscale` por iniciativa propia, nunca borrar hilos. Decisiones interactivas de la sesión actual siguen yendo por `question` en el chat (ADR-0006 sigue en pie); el Inbox es para tráfico asíncrono.
