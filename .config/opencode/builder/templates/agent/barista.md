@@ -10,6 +10,14 @@ permissions:
   - { action: shell, resource: "*", effect: deny }
   - { action: subagent, resource: "*", effect: deny }
   # WEB-OPEN exception (user decision 2026-10-27: manuals/recipes research) - intentionally no web denies.
+  # Notas cross-isolation (ADR-0004, restored 2026-11-16 after FASE 2 port regression F-02):
+  # web-open + remote LLM + prompt injection = exfil channel; sensitive dirs shielded.
+  - { action: read, resource: "*notas/finanzas*", effect: deny }
+  - { action: edit, resource: "*notas/finanzas*", effect: deny }
+  - { action: read, resource: "*notas/life*", effect: deny }
+  - { action: edit, resource: "*notas/life*", effect: deny }
+  - { action: read, resource: "*notas/coach*", effect: deny }
+  - { action: edit, resource: "*notas/coach*", effect: deny }
 ---
 {file:prompts/personal_identity.md}
 

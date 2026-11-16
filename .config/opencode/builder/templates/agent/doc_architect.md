@@ -14,6 +14,8 @@ permissions:
   - { action: shell, resource: "dd *", effect: deny }
   - { action: shell, resource: "sudo rm*", effect: deny }
   - { action: shell, resource: "chmod -R 777 /", effect: deny }
+  - { action: shell, resource: "ln*~/.ssh*", effect: deny }
+  - { action: shell, resource: "ln*~/.gnupg*", effect: deny }
   - { action: shell, resource: "git add*", effect: deny }
   - { action: shell, resource: "git commit*", effect: deny }
   - { action: shell, resource: "git push*", effect: deny }

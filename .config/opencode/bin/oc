@@ -272,7 +272,7 @@ check_plugin_pins() {
     # Bounded network: npm's default fetch-timeout is 300s, which would stall
     # 'oc' launches behind a blackholed registry.
     latest="$(npm view "$name" dist-tags.latest \
-               --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1)" || latest=""
+               --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1 | tr -dc '[:print:]' | cut -c1-80)" || latest=""
     if [[ -z "$latest" ]]; then
       unreachable=$(( unreachable + 1 ))
       continue
@@ -301,7 +301,7 @@ check_plugin_pins() {
     name="${spec%@*}"
     tag="${spec##*@}"
     latest="$(npm view "$name" "dist-tags.$tag" \
-               --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1)" || latest=""
+               --fetch-timeout=8000 --fetch-retries=1 2>/dev/null | tail -n 1 | tr -dc '[:print:]' | cut -c1-80)" || latest=""
     if [[ -z "$latest" ]]; then
       unreachable=$(( unreachable + 1 ))
       continue
@@ -352,11 +352,12 @@ check_plugin_pins() {
     fi
   done <<< "$floating"
 
-  if (( checked == 0 && unreachable > 0 )); then
-    # Nothing could be verified (offline / registry down / npm broken). Do NOT
-    # write the cache — the next run must retry instead of staying quiet for 24h
-    # on the strength of a run that learned nothing.
-    warn "Plugin pin check skipped: npm registry unreachable for ${unreachable} pinned package(s)."
+  if (( unreachable > 0 )); then
+    # F-06 remediation: ANY unreachable package means partial knowledge. Do NOT
+    # write the cache — a run that could only verify half the roster must not buy
+    # 24h of silence for the half it missed. Registry flakiness costs at most a few
+    # npm round-trips on the next run; stale-blinds cost a missed supply-chain drift.
+    warn "Plugin pin check partial: npm registry unreachable for ${unreachable} package(s) — pin-check cache not written."
     return 0
   fi
 

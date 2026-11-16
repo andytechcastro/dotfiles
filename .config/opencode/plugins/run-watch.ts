@@ -73,6 +73,25 @@ type RunWatchArgs = {
 
 const TAIL_LINES = 40
 
+// F-01 remediation (security gate 2026-11-16): run_watch is an ungated `bash -lc`
+// primitive. Floors key on read|edit|shell, and personal agents' seal is action:shell,
+// so the tool name matches NEITHER layer — a personal agent could exfil via
+// `run_watch curl -d $(cat ~/.secret_envs)`. A tool.use floor cannot fix this (floors
+// are agent-blind and would block commander too), so the gate lives here, deny-by-default:
+// only technical agents (+ native build/plan if ever enabled) may invoke run_watch.
+const ALLOWED_AGENTS = new Set([
+  "commander",
+  "PE",
+  "go_architect",
+  "python_architect",
+  "frontend_architect",
+  "qa_architect",
+  "security_architect",
+  "doc_architect",
+  "build",
+  "plan",
+])
+
 export default Plugin.define({
   id: "run-watch",
   async setup(ctx) {
@@ -337,6 +356,11 @@ export default Plugin.define({
         },
         execute: async (raw, tctx) => {
           const args = raw as RunWatchArgs
+          if (!ALLOWED_AGENTS.has(String(tctx.agent ?? ""))) {
+            throw new Error(
+              `run_watch: agent '${String(tctx.agent ?? "unknown")}' is not allowed to launch background shell (F-01 gate)`,
+            )
+          }
           ensureDir()
           const id = shortId()
           const mode: Mode = args.detach ? "detached" : "quick"

@@ -32,7 +32,12 @@ set -euo pipefail
 REPO="/home/andres/Proyectos/dotfiles"
 CACHE_NPM="$HOME/.cache/opencode/npm/@plannotator/opencode@latest"
 INSTALLER_URL="https://raw.githubusercontent.com/Saebom/plannotator/main/opencode/install.sh"
-INSTALLER_PATH="/tmp/plannotator-install.sh"
+# F-04 remediation: private mktemp dir (no fixed /tmp path an attacker can pre-create
+# between download and hash); optional EXPECTED_SHA256 pins the blob before execution.
+INSTALLER_DIR="$(mktemp -d)"
+INSTALLER_PATH="$INSTALLER_DIR/install.sh"
+trap 'rm -rf "$INSTALLER_DIR"' EXIT
+EXPECTED_SHA256="${EXPECTED_SHA256:-}"
 
 step() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31mFAIL: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -63,7 +68,12 @@ echo "OK: $version >= 0.28 (workflow/planningAgents options are live)"
 step "3/6 download installer -> $INSTALLER_PATH"
 curl -fsSL "$INSTALLER_URL" -o "$INSTALLER_PATH"
 echo "sha256:"
-sha256sum "$INSTALLER_PATH"
+actual_sha=$(sha256sum "$INSTALLER_PATH" | awk '{print $1}')
+echo "$actual_sha  $INSTALLER_PATH"
+if [[ -n "$EXPECTED_SHA256" ]]; then
+  [[ "$actual_sha" == "$EXPECTED_SHA256" ]] || die "installer sha256 mismatch: expected $EXPECTED_SHA256 got $actual_sha"
+  echo "OK: matches EXPECTED_SHA256"
+fi
 echo "first 40 lines:"
 head -40 "$INSTALLER_PATH"
 echo

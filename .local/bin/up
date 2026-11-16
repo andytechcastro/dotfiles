@@ -241,6 +241,20 @@ else
   else
     while IFS= read -r fspec; do
       [[ -n "$fspec" ]] || continue
+      # F-05 remediation: floats re-resolve silently on every refresh — print the
+      # registry target's dist.integrity and confirm before executing it, mirroring
+      # the manual-verification we demand for pinned bumps.
+      fname="${fspec%@*}"
+      freg_ver="$(npm view "$fspec" version 2>/dev/null || true)"
+      freg_hash="$(npm view "$fspec" dist.integrity 2>/dev/null || true)"
+      if [[ -n "$freg_ver" ]]; then
+        note "float target: ${fname}@${freg_ver}"
+        note "  dist.integrity: ${freg_hash:-<unavailable>}"
+      else
+        note "float target: ${fname} (registry unreachable — integrity UNVERIFIED)"
+      fi
+      read -r -p "  refresh ${fspec} anyway? [y/N] " f_answer || f_answer=""
+      [[ "$f_answer" == "y" || "$f_answer" == "Y" ]] || { note "skipped ${fspec} by user"; continue; }
       if opencode plugin update "$fspec"; then
         ok "refreshed ${fspec}"
         note "floating-spec changes only take effect on the NEXT 'opencode service restart' (run it outside a live session)"

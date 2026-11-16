@@ -13,6 +13,8 @@ permissions:
   - { action: shell, resource: "dd *", effect: deny }
   - { action: shell, resource: "sudo rm*", effect: deny }
   - { action: shell, resource: "chmod -R 777 /", effect: deny }
+  - { action: shell, resource: "ln*~/.ssh*", effect: deny }
+  - { action: shell, resource: "ln*~/.gnupg*", effect: deny }
 ---
 {file:prompts/commander_identity.md}
 
