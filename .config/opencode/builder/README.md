@@ -17,43 +17,67 @@ The builder supports profile-based model resolution. Today exactly one profile i
 
 | Profile | Commander | Workers | Personal agents | small_model | Use Case |
 |---------|-----------|---------|-----------------|-------------|----------|
-| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | **google/gemini-4-hydrogen ×3** · **google/gemini-3.8-flash ×4** | opencode-go/qwen3.8-flash | **Sole profile — MIXED roster since 2026-11-15**: Go gateway for every technical agent (`commander`, `PE`, the six architects) plus `model`/`small_model`, and the native `google` provider (`GEMINI_API_KEY`) for the 7 personal agents on **two tiers** — reasoning flagship for the 3 sensitive ones (`finanzas`/`life`/`coach`), cheap flash tier for the 4 factual ones (`barista`/`chef`/`organiza`/`habitos`) |
+| `opencodego` | opencode-go/qwen3.8-flash | opencode-go/qwen3.8-flash | **opencode-go/gemini-4-argon#medium ×3** · **opencode-go/gpt-6-luna ×3** (`#medium`/`#none`/`#low`) · **opencode-go/mimo-v2.6-flash** (bare) | opencode-go/qwen3.8-flash | **Sole profile — ALL 15 agents on the gateway since 2026-11-17** (ADR 0008): Go gateway for every technical agent (`commander`, `PE`, the six architects) plus `model`/`small_model`, and `provider/model#variant` personal entries — gateway flagship `gemini-4-argon#medium` for the 3 sensitive ones (`finanzas`/`life`/`coach`), `gpt-6-luna` variants for `chef`/`barista`/`habitos`, bare `mimo-v2.6-flash` for `organiza` (that model exposes no effort variants — any suffix → `provider.no-route`) |
 
 > **2026-11-15:** the `google` and `gemini` profiles were deleted (`opencode-antigravity-auth`
 > retired after the Google account ToS suspension). Selecting a removed profile aborts in `oc`:
 > `Profile '<name>' not found. Available: opencodego`. `default_profile` is `opencodego`.
 >
-> **2026-11-15 (same day, mixed roster + tier rebalance):** the 7 personal keys inside `opencodego`
-> were repointed from `opencode-go/qwen3.8-flash` to the native `google` provider, then split across
-> two tiers on measured cost: **3 → `google/gemini-4-hydrogen`** (`finanzas`, `life`, `coach`) and
-> **4 → `google/gemini-3.8-flash`** (`barista`, `chef`, `organiza`, `habitos`) — flash measured
-> 2–3× cheaper on the same prompt ($0.0115185 vs $0.0216–$0.0393). The two models do keep **separate
-> per-model quota pools**, but that is architecture, not the operating constraint: the key was topped up
-> with **€5 prepaid and promoted to Gemini API tier 2** (100K RPD per model, ~2K RPM, ~3M TPM), so for
-> this workload the binding limit is the **prepaid balance**, not the quota. This is **not** the deleted
-> `google` profile — that one used Antigravity OAuth. This uses opencode's **native** `google` provider
-> with a plain `GEMINI_API_KEY` (AI Studio, `generativelanguage.googleapis.com/v1beta`). Templates were
-> not touched: the change is **7 values in `model_profiles.json` + a rebuild**. Cost moves from the
-> gateway to billed API usage — see `AGENTS.md` → **Model Providers**.
+> **2026-11-17 (ADR 0008 — CURRENT):** the 7 personal keys moved back onto the gateway via the V2
+> `provider/model#variant` syntax (sole data change: `model_profiles.json` lines 12-18; templates
+> untouched; no daemon restart needed — the config watcher reloaded `agent/*.md` live, verified).
+> Motivation: the one-invoice rule (subscription already paid; Tony refuses subscription +
+> pay-per-use simultaneously) — measured personal workload ≈ $0.75/month equivalent, economically
+> irrelevant. `GEMINI_API_KEY` stays configured as the rollback path. Budget control: per-model
+> gateway ceilings + a burn detector — request/token counts locally (`session_message`, tolerating
+> the `session_id`/`sessionID` schema skew) and the **$/month** figure in the console / request-log
+> export, because the local `cost` field reads 0 on both nodes.
+>
+> **Historical — 2026-11-15 (same day, mixed roster + tier rebalance), superseded 2026-11-17:** the
+> 7 personal keys inside `opencodego` were repointed from `opencode-go/qwen3.8-flash` to the native
+> `google` provider, then split across two tiers on measured cost: **3 → `google/gemini-4-hydrogen`**
+> (`finanzas`, `life`, `coach`) and **4 → `google/gemini-3.8-flash`** (`barista`, `chef`, `organiza`,
+> `habitos`) — flash measured 2–3× cheaper on the same prompt ($0.0115185 vs $0.0216–$0.0393). The two
+> models did keep **separate per-model quota pools**, but that was architecture, not the operating
+> constraint: the key was topped up with **€5 prepaid and promoted to Gemini API tier 2** (100K RPD
+> per model, ~2K RPM, ~3M TPM), so for that workload the binding limit was the **prepaid balance**,
+> not the quota (HTTP 402 at zero balance). That was **not** the deleted `google` profile — that one
+> used Antigravity OAuth; this used opencode's **native** `google` provider with a plain
+> `GEMINI_API_KEY` (AI Studio, `generativelanguage.googleapis.com/v1beta`). The change was **7 values
+> in `model_profiles.json` + a rebuild**. Full narrative: `AGENTS.md` → **Model Providers** and
+> `docs/adr/0008-personal-agents-runtime-relocation-to-opencode-go.md`.
 >
 > **Build after profile edits:** run the builder directly
 > (`MODEL_PROFILE=opencodego go run main.go`). `oc --rebuild` / `oc --sync` restart the local daemon
-> and kill any live session; for homesrv use `oc --sync --agents-only --no-rebuild`.
+> and kill any live session; for homesrv use `oc --sync --agents-only --no-rebuild`. **Version
+> contract — measured and satisfied 2026-11-17:** PE verified that opencode 2.2.5 (homesrv Pi) and
+> 2.3.0 (laptop) resolve `model: opencode-go/gemini-4-argon#medium` identically (`Variant
+> unavailable`, `provider.no-route`, `activeVariant` present in both), so the ADR 0008 artifacts are
+> **SAFE_TO_SYNC — and they ARE synced** (Pi `~/.config/opencode/agent/` mtime 19:52, 15 files, zero
+> `google/` refs; backup `~/backups/oc-sync/overwrites-agent-20261117-195248/`; remote
+> `opencode run --agent finanzas` rc=0 with `session_message.data.model` =
+> `gemini-4-argon` / `opencode-go` / `variant=medium`). Keep the rule for FUTURE suffixes: verify
+> parity on both binaries before assuming a node can parse a new variant. Note the Pi's residual
+> weakness is observability, not resolution: on 2.2.5 an agent with `model: null` frontmatter
+> disappears from the listing with **no log line at all** (`agent file skipped` does not exist in
+> that binary).
 
 The generated `opencode.json` (`templates/config/config.json`) reflects the current platform state:
 
-- `plugins`: `opencode-snippets@3.2.0`, `@tarquinen/opencode-dcp@3.2.0`, `@plannotator/opencode@0.27.20`
+- `plugins`: `opencode-snippets@3.4.0`, `@tarquinen/opencode-dcp@3.2.0`, `@plannotator/opencode@latest` (float, options `workflow:"plan-agent"`, `planningAgents:["commander"]` — sanctioned exception to the pin policy, see `AGENTS.md` → Adding a New Plugin)
   (local plugins in `.config/opencode/plugins/` are auto-discovered and never listed here).
 - `experimental.policies`: catch-all `provider.use * deny`, then `allow opencode-go` and
-  `allow google`. Since 2026-11-15 the `google` allow is **load-bearing, not speculative**: the 7
-  personal agents resolve to `google/gemini-4-hydrogen` (×3) and `google/gemini-3.8-flash` (×4) and
-  need it. Still **no** Antigravity OAuth. Do not "clean it up".
+  `allow google`. The `google` allow was load-bearing 2026-11-15 → 2026-11-16 (the 7 personal
+  agents then resolved to `google/gemini-4-hydrogen` ×3 / `google/gemini-3.8-flash` ×4). **Since
+  2026-11-17 (ADR 0008) nothing running consumes it** — retained as the documented rollback path.
+  Do not "clean it up". Still **no** Antigravity OAuth.
 - `providers`: `{}` — the CLIProxyAPI sidecar it superseded was torn down 2026-10-30. The native
-  `google` provider used by the personal agents is **built into the opencode binary** and keyed by the
-  `GEMINI_API_KEY` environment variable, so it needs **no entry here and no `${VAR}` placeholder**.
-  Consequence: neither `_requires_env` pruning nor the `oc` preflight `${VAR}` scan can detect a
-  missing `GEMINI_API_KEY` — the build succeeds and the failure only appears at runtime in a personal
-  agent. Keep the key in `~/.secret_envs` (and in the homesrv systemd environment).
+  `google` provider (rollback path; no agent uses it since 2026-11-17) is **built into the opencode
+  binary** and keyed by the `GEMINI_API_KEY` environment variable, so it needs **no entry here and
+  no `${VAR}` placeholder**. Consequence: neither `_requires_env` pruning nor the `oc` preflight
+  `${VAR}` scan can detect a missing `GEMINI_API_KEY` — and since ADR 0008 a missing key is not
+  even a runtime failure: the `oc` check is an advisory. Keep the key in `~/.secret_envs` (and in
+  the homesrv systemd environment) so the rollback stays one file edit.
 
 ### Switching Profiles
 
@@ -121,12 +145,15 @@ See `oc --help` for full usage.
 ```bash
 # Set up your environment. Template ${VAR} placeholders (caught by the oc preflight) are only
 # google_drive's OAuth pair; GEMINI_API_KEY has NO placeholder (native provider reads the process
-# env at runtime) and must therefore also be exported or the 7 personal agents fail at runtime:
+# env at runtime). Since ADR 0008 (2026-11-17) it is OPTIONAL — no agent consumes it; it is kept
+# only as the rollback path to the native google provider. The oc preflight prints an advisory
+# when unset and never aborts:
 source ~/.secret_envs          # exports GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GEMINI_API_KEY
 
-# Choose your profile (one-time setup — opencodego is the only one that exists; its roster is
-# mixed: technical agents on opencode-go, personal agents on google/gemini-4-hydrogen ×3 and
-# google/gemini-3.8-flash ×4)
+# Choose your profile (one-time setup — opencodego is the only one that exists; since 2026-11-17
+# ALL agents are on opencode-go: technical agents + model/small_model on qwen3.8-flash, the 7
+# personal ones via provider/model#variant — gemini-4-argon#medium ×3, gpt-6-luna#* ×3,
+# mimo-v2.6-flash bare ×1)
 echo "opencodego" > current_profile
 
 # Build

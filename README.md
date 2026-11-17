@@ -188,13 +188,15 @@ Framework de agentes de IA modular y extensible para Platform Engineering, con m
 | **qa_architect** | `opencode-go/qwen3.8-flash` | QA SDET. Regression, E2E, performance. |
 | **security_architect** | `opencode-go/qwen3.8-flash` | Security Auditor. IaC, secrets, vulnerabilidades. |
 | **doc_architect** | `opencode-go/qwen3.8-flash` | Documentation Architect. Spec audit, ADRs, graphify. |
-| **7 agentes personales** — sensibles: `finanzas`, `life`, `coach` · factuales: `barista`, `chef`, `organiza`, `habitos` | `google/gemini-4-hydrogen` (×3) · `google/gemini-3.8-flash` (×4) | Agentes primarios de uso personal, sin shell. Mismo provider/API key, dos niveles: el flagship de razonamiento para los 3 sensibles, el tier barato para los 4 de consulta. |
+| **7 agentes personales** — sensibles: `finanzas`, `life`, `coach` · factuales: `barista`, `chef`, `organiza`, `habitos` | `opencode-go/gemini-4-argon#medium` (×3) · `opencode-go/gpt-6-luna` (`#medium` chef, `#none` barista, `#low` habitos) · `opencode-go/mimo-v2.6-flash` pelado (organiza) | Agentes primarios de uso personal, sin shell. **Todos por el gateway `opencode-go` desde 2026-11-17 (ADR 0008)**: un solo proveedor, una sola factura. El `#variant` selecciona latencia/profundidad, no coste. `organiza` va **sin sufijo** — `mimo-v2.6-flash` no expone variantes; cualquier sufijo da `provider.no-route`. |
 
 > **2026-11-15:** los perfiles `google` y `gemini` fueron **eliminados** (seleccionarlos aborta el
-> build en `oc`). Existe **un único perfil**, `opencodego`, con **roster mixto**: técnicos por el
-> gateway `opencode-go` y los 7 personales por el provider `google` **nativo** con `GEMINI_API_KEY`
-> (API de AI Studio, no Antigravity OAuth). Verdad contrastada en [`AGENTS.md`](AGENTS.md) →
-> **Model Profiles** y **Model Providers**.
+> build en `oc`). Existe **un único perfil**, `opencodego`.
+> **2026-11-17 (ADR 0008):** el roster **ya no es mixto** — los 15 agentes, técnicos y personales,
+> resuelven por el gateway `opencode-go`; los 7 personales usan la sintaxis V2
+> `provider/model#variant`. El provider `google` nativo con `GEMINI_API_KEY` queda **configurado
+> pero sin consumo**, como camino documentado de rollback. Verdad contrastada en
+> [`AGENTS.md`](AGENTS.md) → **Model Profiles** y **Model Providers**.
 
 #### 🔌 MCPs Integrados
 
@@ -236,9 +238,16 @@ MODEL_PROFILE=opencodego go run main.go
 ```
 
 > ⚠️ `MODEL_PROFILE=gemini` / `=google` **ya no existen**: el wrapper `oc` aborta con
-> `Profile '<name>' not found. Available: opencodego`. El mixto (técnicos gateway / personales
-> `google/gemini-4-hydrogen` ×3 + `google/gemini-3.8-flash` ×4) vive **dentro** de `opencodego` — se
-> cambia editando valores de `model_profiles.json`, no creando perfiles.
+> `Profile '<name>' not found. Available: opencodego`. Desde 2026-11-17 (ADR 0008) **no hay roster
+> mixto**: los 15 agentes son `opencode-go` (técnicos en `qwen3.8-flash`; personales en
+> `gemini-4-argon#medium` ×3, `gpt-6-luna#*` ×3, `mimo-v2.6-flash` pelado ×1) — se
+> cambia editando valores de `model_profiles.json`, no creando perfiles. **Paridad de versión —
+> medida y cumplida (2026-11-17):** opencode 2.2.5 (homesrv/Pi) y 2.3.0 (portátil) resuelven el
+> sufijo `#variant` de forma idéntica, y **el Pi ya está sincronizado y verificado** (15 `agent/*.md`
+> sin `google/`, turno real de `finanzas` OK, `variant=medium` leído de su propia DB). La regla se
+> mantiene para SUFJOS FUTUROS: no sincronices un artefacto a un nodo sin comprobar antes que su
+> binario lo entiende. Ojo: en 2.2.5 un frontmatter roto (`model:` → null) **hace desaparecer el
+> agente sin ningún aviso** — no hay log que leer; se detecta contando agentes o probando un turno.
 
 #### 🧠 Memoria Persistente (Engram)
 
@@ -280,8 +289,10 @@ go run main.go
 # O usar el wrapper
 oc --rebuild
 
-# O cambiar a Gemini
-MODEL_PROFILE=gemini go run main.go
+# (MODEL_PROFILE solo acepta `opencodego` — los perfiles `gemini`/`google` fueron
+#  ELIMINADOS 2026-11-15; usarlos aborta: `Profile 'gemini' not found.
+#  Available: opencodego`. El roster personal cambia por VALORES de
+#  `model_profiles.json`, no por perfiles — ver ADR 0008.)
 ```
 
 ---
@@ -401,7 +412,7 @@ dotfiles/
 │   │   │   └── templates/      # SOURCE OF TRUTH
 │   │   │       ├── agent/      # Agent templates ({{MODEL:xxx}} placeholders)
 │   │   │       ├── config/     # Config template (${VAR} + _requires_env)
-│   │   │       └── model_profiles.json # Perfiles de modelos (opencodego, gemini)
+│   │   │       └── model_profiles.json # Perfiles de modelos (único: opencodego — `google`/`gemini` eliminados 2026-11-15)
 │   │   ├── prompts/            # Módulos de prompts reutilizables (22 archivos)
 │   │   │   ├── behavior.md     # Reglas compartidas (no yes-man, planning)
 │   │   │   ├── commander_*.md  # Identity + behavior del Commander

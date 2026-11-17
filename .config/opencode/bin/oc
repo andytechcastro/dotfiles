@@ -147,19 +147,26 @@ check_env_vars() {
   # `google` provider is compiled into the opencode binary and keyed purely by
   # env var, so GEMINI_API_KEY appears in NO config-template placeholder
   # (neither _requires_env nor ${VAR}). It can therefore never land in
-  # `missing`, and by decision it must never abort the build either — warn
-  # loudly and continue. Blast radius when unset is runtime, not build time:
-  # the 7 personal agents (3x google/gemini-4-hydrogen, 4x google/gemini-3.8-flash)
-  # fail with an auth error; the 8 gateway agents keep working. On a headless
-  # node the var must exist in the daemon's process environment (systemd
-  # Environment=) — a rebuild never delivers env vars.
+  # `missing`, and by decision it must never abort the build either.
+  # STATUS SINCE 2026-11-17 (ADR 0008): the key is OPTIONAL — no running agent
+  # consumes it. The 7 personal agents moved to the opencode-go gateway via
+  # `provider/model#variant`; this key is retained, configured but unused, as
+  # the documented ROLLBACK path (the homesrv sync is already done and the
+  # remote turn verified — ADR 0008, 2026-11-17).
+  # The warning below therefore no longer predicts a runtime failure — it
+  # only flags that the rollback path would need the key exported (daemon
+  # process env; on homesrv the systemd SYSTEM unit `opencode.service`). It
+  # must stay: silence here would let the rollback break silently.
+  # check_env_vars keeps its hard-die behavior for every var that DOES matter.
   if [[ -z "${GEMINI_API_KEY:-}" ]]; then
-    echo -e "${YELLOW}${BOLD}⚠ GEMINI_API_KEY is not set.${RESET} Preflight blind spot by design:" >&2
-    echo -e "  the native ${BOLD}google${RESET} provider is keyed only by env var, so this key appears in" >&2
-    echo -e "  no template placeholder and cannot be caught by the scan below. It does NOT" >&2
-    echo -e "  abort the build. The ${BOLD}7 personal agents (google/*)${RESET} will fail at runtime until" >&2
-    echo -e "  it is exported: locally ${BOLD}source ~/.secret_envs${RESET}; on ${REMOTE_HOST} add it to the" >&2
-    echo -e "  systemd service environment. Continuing." >&2
+    echo -e "${YELLOW}${BOLD}⚠ GEMINI_API_KEY is not set (OPTIONAL — rollback path only).${RESET}" >&2
+    echo -e "  Since ADR 0008 (2026-11-17) ${BOLD}no agent consumes this key${RESET}: the 7 personal agents" >&2
+    echo -e "  run on ${BOLD}opencode-go${RESET} via ${BOLD}provider/model#variant${RESET}. It is kept configured as" >&2
+    echo -e "  the documented rollback to the native ${BOLD}google${RESET} provider (revert" >&2
+    echo -e "  ${BOLD}model_profiles.json lines 12-18${RESET} + rebuild)." >&2
+    echo -e "  If you roll back: export it first — locally ${BOLD}source ~/.secret_envs${RESET}; on" >&2
+    echo -e "  ${REMOTE_HOST} it must be in the systemd service environment. A rebuild alone never" >&2
+    echo -e "  delivers env vars. Continuing (this never aborts the build)." >&2
   fi
 
   if [[ ! -f "$CONFIG_TEMPLATE" ]]; then
