@@ -248,3 +248,6 @@ docs/
 !.local/bin/
 .local/bin/*
 !.local/bin/up
+
+# Engram project pin (.engram/config.json) — local project metadata, never commit
+.engram/

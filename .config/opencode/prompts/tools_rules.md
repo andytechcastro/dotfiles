@@ -1,122 +1,46 @@
-PREFERRED CLI TOOLS - ALWAYS USE THESE INSTEAD OF LEGACY COMMANDS:
-You MUST use these modern tools over their legacy equivalents. If any tool is missing, install it via yay (Arch) or brew (macOS) before proceeding.
+PREFERRED CLI TOOLS + MEASURED PLATFORM FACTS
 
-1. bat (replaces cat):
-   - bat <file> → syntax-highlighted file viewing
-   - bat -p <file> → plain output without line numbers/decorations
-   - bat -l <language> <file> → force specific syntax highlighting
-   - bat --style=plain,numbers <file> → customize output style
-   - INSTALL: yay -S bat
+Install missing tools first: `yay -S <pkg>` (Arch) / `brew install <pkg>` (macOS) / `pip|npm` where noted.
+Modern tools replace their legacy equivalents — use them unless a row below says otherwise.
 
-2. rg (ripgrep, replaces grep):
-   - rg 'pattern' → recursive search in current directory
-   - rg -i 'pattern' → case-insensitive search
-   - rg -t ts 'pattern' → search only TypeScript files
-   - rg -l 'pattern' → list only filenames with matches
-   - rg -C 3 'pattern' → show 3 lines of context
-   - rg --json 'pattern' → JSON output for parsing
-   - INSTALL: yay -S ripgrep
+## MEASURED FACTS (normative — each row was measured, not assumed; treat them as constraints, not advice)
 
-3. fd (replaces find):
-   - fd 'pattern' → find files matching pattern
-   - fd -e ts → find all .ts files
-   - fd -t f 'pattern' → find only files (not directories)
-   - fd -t d 'pattern' → find only directories
-   - fd -H 'pattern' → include hidden files
-   - fd -x command {} → execute command on each result
-   - INSTALL: yay -S fd 
+| Fact | Consequence |
+|---|---|
+| `rg` matches **contents, not filenames** | Never conclude a file is absent from a content search. Name search: `rg --files -g '<glob>'` or `fd`. A single-file grep proves nothing about a sibling file. |
+| `eza` may be absent, and can print nothing on a populated directory | Existence listings use `ls -la <absdir>` or `find <absdir> -maxdepth N`. An empty `eza` output is NOT an empty directory. |
+| `find -newermt` / mtimes are **not** tree-quietness primitives | `cp -p`, `rsync` and `tar` preserve mtimes and deletions leave no trace. Quiescence = two-anchor checksum sandwich (`md5sum $(find <dir> -type f \| sort)` before AND after) or `git status --porcelain`. |
+| Shell output passes through `squeez`: wrap wall now **900 s**, caps `max_lines=120`, `read_max_lines=300`, `grep_max_results=100`, `find_max_results=50`, `agent_prompt_max_tokens=2000` | Long output is silently ELIDED and stored behind a retrieve key. Never narrate elided output as if seen: write it to `docs/evidence/<ticket>.log` and cite the log path. Sub-2000-token briefs only, else put the contract in a file. |
+| `--no-squeez` raw escape exists in the plugin | **Dead until the service is restarted** (plugin/tool registration happens at service start; a rebuild or hot reload does not re-register hooks on live sessions). |
+| `tool.use` floors deny read/edit/shell on paths containing `env`, `secret_envs`, `ssh`, `auth.json`, `opencode.db` | `source ~/.secret_envs` is unavailable inside any agent; secrets must already be in the daemon's process env. `.env.example` reads are blocked by design. |
+| Compiling `AGENTS.md`/prompts is a per-step cost | Every byte added to a prefix is re-paid every step, on every project, on both machines. Offsets, not additions, are the budget (ADR 0009). |
 
-4. sd (replaces sed):
-   - sd 'find' 'replace' <file> → in-place replacement
-   - sd -s 'literal' 'replace' <file> → literal string (no regex)
-   - echo 'text' | sd 'find' 'replace' → piped replacement
-   - sd 'pattern' 'replace' → supports regex groups: sd '(\w+)' '$1_suffix'
-   - INSTALL: yay -S sd
+## TOOL USAGE
 
-5. eza (replaces ls):
-   - eza → beautiful file listing
-   - eza -la → all files with detailed info
-   - eza --tree → directory tree view
-   - eza --tree -L 2 → tree with depth limit
-   - eza --icons → show icons (requires nerd font)
-   - eza -la --git → show git status
-   - INSTALL: yay -S eza
+1. `bat` (replaces `cat`) — `bat -p <file>` plain, `bat --style=plain,numbers`, `bat -l <lang> <file>`.
+2. `rg` (replaces `grep`) — `-i`, `-t ts`, `-l` files-only, `-C 3` context, `--json` for parsing; `--files -g` for NAMES.
+3. `fd` (replaces `find`) — `-e ts`, `-t f`, `-t d`, `-H` hidden, `-x cmd {}`.
+4. `sd` (replaces `sed`) — `sd 'a' 'b' file`, `-s` literal, pipe form, groups `sd '(\w+)' '$1_x'`.
+5. `eza` — `eza -la`, `--tree -L 2`, `--icons`, `-la --git`. See facts table: not an existence oracle.
+6. `mgrep` — semantic search, **cost-sensitive: every call burns tokens**. Concept discovery and unknown-symbol
+   mapping only; never for known variables, class names or exact strings (use `rg`).
+7. `graphify` — knowledge graph, AST-only (no LLM cost): `graphify update .` re-extracts; `graphify opencode
+   install` bootstraps a project; `graphify query "<q>"` for architectural context; read
+   `graphify-out/GRAPH_REPORT.md` before answering architecture questions. **Ignores dot-folders:** scan them via
+   `ln -s .config/foo src_foo && graphify update src_foo && rm src_foo`.
+8. `sg` (ast-grep) — structural search/rewrite (`sg --pattern 'func foo($A) { $$$ }' --rewrite '...'`); use where
+   regex would break syntax. `yay -S ast-grep`.
+9. `grep-ast` — context-aware search printing the enclosing function/class: `grep-ast "pattern" <file>`. `pip install grep-ast`.
+10. `repomix` — pack a directory for one-shot reading: `repomix src/components -o context.xml`. `npm i -g repomix`.
+11. `uv` — `uv pip install`, `uv venv`, `uv add` (10-100× faster than pip).
+12. `just` — `just` lists recipes, `just build`, `just test` (Make alternative).
+13. `gh` — `gh pr create/list/view`, `gh issue create/list`, `gh run list/view <id>`. `yay -S github-cli`.
+14. `lazygit` — TUI for rebases, conflicts, history, staging, push.
+15. `fzf` — fuzzy history/pickers (`fd . | fzf`).
+16. `zoxide` — `z <partial>` smarter cd.
+17. `delta` — `git diff | delta` side-by-side highlighting.
+18. `btop` — terminal system monitor.
 
-6. mgrep (Semantic Search - COST SENSITIVE):
-   - mgrep "concept" → natural language search across code/docs
-   - mgrep -a "question" → get an answer based on code context
-   - mgrep --web "query" → search web + local
-   - CRITICAL: Every call costs tokens. 
-   - USE ONLY FOR: Conceptual discovery, feature mapping in unknown repos, or when exact symbols are unknown.
-   - DO NOT USE FOR: Finding known variables, class names, or specific strings (USE rg INSTEAD).
-
-7. graphify (Knowledge Graph - THE SOURCE OF TRUTH):
-   - graphify update . → re-extract code files and update the graph (AST-only, no LLM cost).
-   - graphify opencode install → bootstrap graphify in a new project (injects rules and plugin).
-   - graphify query "question" → query the knowledge graph for architectural context.
-   - CRITICAL - Dot-Folders: graphify ignores folders starting with "." (e.g. .config). To scan them, use a symlink: ln -s .config/foo src_foo && graphify update src_foo && rm src_foo.
-   - USE ALWAYS: Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md.
-
-8. sg (ast-grep, replaces sd for structural code):
-   - sg --pattern 'func foo($A) { $$$ }' --rewrite 'func bar($A) { $$$ }' → Structural search and replace.
-   - USE FOR: Complex refactoring where regex might break syntax (indentation, brackets).
-   - INSTALL: yay -S ast-grep
-
-9. grep-ast (Context-aware search):
-   - grep-ast "pattern" <file> → Search and print the function/class tree around the match.
-   - USE FOR: Finding variables/functions while instantly seeing what scope they belong to.
-   - INSTALL: pip install grep-ast
-
-10. repomix (Context Injector):
-    - repomix src/components -o context.xml → Pack an entire directory for LLM consumption.
-    - USE FOR: When you need to read multiple files simultaneously to understand a full module.
-    - INSTALL: npm install -g repomix
-
-TOOL CHECK ON SESSION START:
-If you need to use any of these tools and they fail, immediately offer to install them:
-- Check: which bat rg fd sd eza mgrep graphify sg grep-ast repomix
-- Install missing: yay -S <tool-name> (or pip/npm for specific ones)
-
-MODERN CLI ADDITIONS (2026):
-11. uv (Ultra-fast Python package manager):
-    - uv pip install package → 10-100x faster than pip
-    - uv venv → create virtual environments instantly
-    - uv add package → add to project dependencies
-    - INSTALL: yay -S uv
-
-12. just (Command runner, modern Make alternative):
-    - just → show available recipes
-    - just build → run build recipe from justfile
-    - just test → run test commands
-    - INSTALL: yay -S just
-
-13. gh (GitHub CLI — replaces manual PR/issue/Actions management):
-    - gh pr create --title "..." --body "..." → Open PR with flags
-    - gh pr list / gh pr view <num> → List/show PRs
-    - gh issue create / gh issue list → Issue management
-    - gh run list / gh run view <id> → GitHub Actions workflows
-    - INSTALL: yay -S github-cli
-
-14. lazygit (Terminal UI for git — replaces git CLI for interactive ops):
-    - lazygit → TUI with stages, commits, branches, log, diff, push
-    - Use for: complex rebases, conflict resolution, history exploration
-    - INSTALL: yay -S lazygit
-
-15. fzf (Fuzzy finder for everything):
-    - command <TAB> or Ctrl+R → fuzzy history
-    - fd . | fzf → fuzzy file pick
-    - INSTALL: yay -S fzf
-
-16. zoxide (Smarter cd — replaces cd):
-    - z <partial-name> → jumps to most-used dir matching name
-    - INSTALL: yay -S zoxide
-
-17. delta (Better git diff viewer):
-    - git diff | delta → syntax-highlighted, side-by-side diff
-    - INSTALL: yay -S git-delta
-
-18. btop (System monitor — replaces htop):
-    - btop → CPU, RAM, disk, network, processes in TUI
-    - INSTALL: yay -S btop
-
-NEVER use cat, grep, find, sed, or ls when these modern alternatives exist!
+TOOL CHECK ON SESSION START: if a needed tool is missing, verify with `which <tool>` and offer to install it
+(`yay -S <tool>`; pip/npm where the row says so). Never substitute a legacy command when the modern tool exists —
+EXCEPT where a fact row above explicitly makes the legacy tool the correct choice (`ls -la` for existence).

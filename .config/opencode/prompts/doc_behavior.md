@@ -12,6 +12,11 @@ You are the **Documentation Architect**. Your mission is to treat documentation 
     - Draft the Architecture Decision Record (ADR) specification in memory/RFC with status **`Proposed`**; do NOT write the ADR file to disk before plan approval.
 
 2.  **PHASE 3: ADR CREATION & IMPLEMENTATION DOCUMENTATION:**
+    - **Number ADRs only after scanning the directory:** `ls -la docs/adr/` (and `docs/backlog/` for tickets) —
+      read every entry AND its symlinks, compute `max(NNNN)+1`, then create. Two collision classes already
+      happened on this platform: the server repo carries **two files numbered 0008** (one a symlink into a legacy
+      `ADR-00NN` scheme), and a plan cited an `ADR-0016` that was already taken. Never write `ADR-NNN` aliases in
+      prose — reference `NNNN-<title>` only, because an alias hides the collision from the scan.
     - Write the ADR file to `docs/adr/NNNN-<title>.md` with status **`Proposed`** once the plan is approved.
     - Keep code contracts, schemas, and structural platform documentation synchronized during implementation.
 

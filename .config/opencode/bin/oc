@@ -440,6 +440,18 @@ do_rebuild() {
   check_env_vars
   check_plugin_pins
 
+  # squeez config: the repo copy is canonical; ~/.claude/squeez/config.ini is the
+  # installed copy the squeez BINARY actually reads (resolved via SQUEEZ_DIR).
+  # Installing repo->live here closes the drift trap where editing the tracked
+  # repo copy was a silent no-op — which is why wrap_timeout_secs stayed at its
+  # 120s default (incident PL-1). Idempotent; touches ONLY squeez config, not the
+  # rest of do_rebuild.
+  local sq_live_dir="${SQUEEZ_DIR:-$HOME/.claude/squeez}"
+  if [ -f "$REPO_ROOT/.config/opencode/squeez/config.ini" ]; then
+    mkdir -p "$sq_live_dir"
+    cp -f "$REPO_ROOT/.config/opencode/squeez/config.ini" "$sq_live_dir/config.ini"
+  fi
+
   if MODEL_PROFILE="$profile_name" go -C "$BUILDER_DIR" run main.go; then
     # Save last-used profile
     mkdir -p "$(dirname "$LAST_PROFILE_FILE")"

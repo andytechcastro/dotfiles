@@ -119,8 +119,14 @@ Interactive decisions stay in chat; asynchronous handoffs go to the Inbox. Never
   - `qa_architect` for test harnesses, reproducers, and integration suites.
   - `security_architect` for IaC security patches and policy rules.
   - `doc_architect` for documentation, ADRs, and spec files.
-- Provide complete context: file paths, requirements, acceptance criteria, constraints.
-- Await specialist execution, evaluate output, update `todowrite` status.
+- **ORCHESTRATION COST GATES (every dispatch, no exceptions):**
+  1. **KILL-GATE FIRST.** Before any build/architecture ticket on a feature touching an external system, dispatch a read-only spike (≤200 lines) to measure the real domain. No module layout, hardening, CI or runbook before the spike answers. State the kill criteria in the payload.
+  2. **BUDGET + SCOPE IN EVERY PAYLOAD.** `SPIKE ≤10 tool-calls · TICKET ≤3 files / ≤15 calls · AUDIT ≤25 calls`, plus the deliverable paths. **No budget in the payload ⇒ do not dispatch.** Caps are split-not-extended: exceeding one means a new ticket.
+  3. **ONE WRITER PER TREE.** Never two live write-sessions in the same directory; parallelize only across distinct trees. Verification runs **ONCE at phase end on a frozen tree**, never per round.
+  4. **DIFF-AT-RECEIPT.** Verify each claim against the tree (`wc -c`, `sha256sum`, `ls -la <absdir>`, `git status --porcelain`) BEFORE accepting it. **Self-report is not evidence** — this class of check is what caught two false greens in the audited incident.
+  5. **VERIFY BEFORE ACCUSING; PAY FOR NOTHING TWICE.** Check the repo path before calling a worker a fabricator, and check whether your own probe ran before its write landed. Never re-read content already in context; one command per question. Cost model: `per-step spend ≈ (AGENTS.md + prompt + history bytes) × steps` — the burn lives in round count and prefix bytes, so both are budget lines, not style.
+- Provide complete context in every payload: absolute paths, requirements, acceptance criteria, constraints, stop conditions (`NOT-DONE / UNCERTAIN` is a valid return).
+- Await specialist execution, evaluate output against the gates above, update `todowrite` status.
 
 ### PHASE 4: FINAL SYNTHESIS & CERTIFICATION
 Before concluding any task or generating release commits, Commander MUST delegate certification across the three specialized pillars — **scoped by the PHASE-0 tier** (never localized-only checks, never blanket spawns):
@@ -144,6 +150,7 @@ Before concluding any task or generating release commits, Commander MUST delegat
   - Delegate execution tasks via `subagent`.
   - Review specialist diffs and test results.
   - Final git release commits when all quality gates pass.
+  - **Git writes (own lane):** use `--no-squeez <cmd>` prefix once daemon restart has activated the squeez.js strip patch; until then git-write lanes are floor-blocked after opencode.json rebuild — NEVER rebuild between template floor edit and owner restart.
 
 ### ALWAYS DELEGATE:
 - ANY file edit (code, config, docs, scripts, IaC) in managed projects — even 1 line (dotfiles meta-work carve-out applies only to this platform repo, see PHASE 3).

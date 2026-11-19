@@ -32,7 +32,7 @@ NOT installed (do not hallucinate): wiz, cw-ai-gateway, atlassian/Jira, tavily, 
 `/infra-scan` (PE + tofu-scan) · `/k8s-doctor` (PE + k8s-pod-doctor). Plannotator installer may add `commands/` (gitignored, untracked by design).
 
 ## Platform CLI tools (`bin/`, `tool/`)
-`oc` (builder+launcher wrapper; guardrail `check_plugin_pins` live since v0.6.0 — float-aware, 24 h TTL, GNU stat) · `hex_check.go` + `hexagonal-validator.ts` (hexagonal import validator) · `k8s-pod-doctor.ts` · `mgrep.ts` (semantic search, cost-sensitive) · `tofu-scan.ts` (Trivy) · `graphify.sh` · `.local/bin/up` (opencode-stack updater, tracked by gitignore exception; NO OS packages — Tony runs yay daily).
+`oc` (builder+launcher wrapper; guardrails since v0.6.0 live in `bin/oc` itself — dated internals archived in dotfiles `docs/history/oc-guardrails-internals-2026-11-16.md`) · `hex_check.go` + `hexagonal-validator.ts` (hexagonal import validator) · `k8s-pod-doctor.ts` · `mgrep.ts` (semantic search, cost-sensitive) · `tofu-scan.ts` (Trivy) · `graphify.sh` · `.local/bin/up` (opencode-stack updater, tracked by gitignore exception; NO OS packages — Tony runs yay daily).
 
 ## Agent roster (profile `opencodego` — the only one)
 - **Technical (opencode-go gateway):** `commander` (primary), subagents `PE`, `go_architect`, `python_architect`, `frontend_architect`, `qa_architect`, `security_architect`, `doc_architect`, native `explore`.

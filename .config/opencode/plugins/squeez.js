@@ -142,7 +142,16 @@ export default Plugin.define({
         if (!command || typeof command !== "string") return;
         if (command.startsWith(SQUEEZ_BIN)) return;
         if (command.includes("squeez wrap")) return;
-        if (command.startsWith("--no-squeez")) return;
+        // PL-1 evidence-escape fix: `--no-squeez <cmd>` must run <cmd> RAW.
+        // The python claude-code hook strips the prefix; this JS plugin used to
+        // only `return` (no unwrap), so the shell received the literal
+        // `--no-squeez …` token -> command-not-found, and the raw-proof escape
+        // (needed by the ledger evidence contract, rules 2/3/9) was dead. Strip
+        // the leading token here so the command runs un-squeezed.
+        if (command.startsWith("--no-squeez")) {
+          args.command = command.replace(/^--no-squeez\s+/, "");
+          return;
+        }
         // Shell-quote the command before prepending `squeez wrap`. Without
         // this, multi-line `python3 -c "..."`, `bash -c '...'`, and quoted
         // `git commit -m "msg with spaces"` are split into separate argv

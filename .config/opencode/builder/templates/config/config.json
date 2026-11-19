@@ -36,7 +36,21 @@
             { "action": "tool.use", "resource": "shell:*.config/opencode/opencode.json*", "effect": "deny" },
             { "action": "provider.use", "resource": "*", "effect": "deny" },
             { "action": "provider.use", "resource": "opencode-go", "effect": "allow" },
-            { "action": "provider.use", "resource": "google", "effect": "allow" }
+            { "action": "provider.use", "resource": "google", "effect": "allow" },
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git add*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git commit*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git push*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git pull*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git merge*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git rebase*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git reset*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git checkout*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git stash*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*git cherry-pick*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*rm -rf /*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*sudo *", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*mkfs*", "effect": "deny"},
+            {"action": "tool.use", "resource": "shell:*squeez wrap*dd *", "effect": "deny"}
         ]
     },
     "plugins": [

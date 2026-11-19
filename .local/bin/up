@@ -270,6 +270,8 @@ drift_report
 
 # ---- 6. What this script will NOT do (policy, not laziness) ----
 step "Manual review (not auto-updated)"
+  # step 8 (guarded, idempotent): install the canonical squeez config ONLY if absent — never clobbers local edits
+  if [ ! -f "${HOME}/.claude/squeez/config.ini" ] && [ -f "${HOME}/Proyectos/dotfiles/.config/opencode/squeez/config.ini" ]; then mkdir -p "${HOME}/.claude/squeez" && cp "${HOME}/Proyectos/dotfiles/.config/opencode/squeez/config.ini" "${HOME}/.claude/squeez/config.ini" && ok "squeez config installed from canonical template" || bad "squeez config install failed"; else ok "squeez config already present or template missing — skipped"; fi
 echo "  OS packages: NOT touched here. On Arch the user runs 'yay' daily; this"
 echo "  script has no sudo path and never will (that is the guard against racing"
 echo "  the AUR build and against privilege creep in a per-user updater)."
