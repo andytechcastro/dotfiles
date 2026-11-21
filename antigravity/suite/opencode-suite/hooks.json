@@ -1,0 +1,30 @@
+{
+  "suite-session-contract": {
+    "enabled": true,
+    "SessionStart": [
+      { "type": "command", "command": "./hooks/session-start.sh", "timeout": 5 }
+    ]
+  },
+  "suite-safety-gate": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "./hooks/gate.sh", "timeout": 5 }
+        ]
+      }
+    ]
+  },
+  "suite-audit-trail": {
+    "enabled": true,
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "./hooks/audit.sh", "timeout": 5 }
+        ]
+      }
+    ]
+  }
+}

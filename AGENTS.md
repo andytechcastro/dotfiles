@@ -179,7 +179,9 @@ the daemon **process** env (a rebuild never delivers env vars). Everything else 
 native-key eras, tier/quota chronicle, superseded cost projections, rollback mechanics + sanity check,
 `vendor/antigravity-port/` kit, upstream PR #623 / issues #621-622 — is in
 `docs/history/provider-eras-native-google.md`; the `google/*` troubleshooting rows that re-apply only
-after a rollback are in `docs/history/rollback-era-troubleshooting.md`.
+after a rollback are in `docs/history/rollback-era-troubleshooting.md`. **Live agy port (2026-11-20):** the opencode→Antigravity CLI roster port is operative →
+`antigravity/README.md` + ADR 0012 (`docs/adr/0012-antigravity-port.md`); there is NO `docs/history/antigravity-port/`
+chronicle — this line is the only agy pointer in this file (operative-only budget, ADR 0009).
 
 ### No error-based model fallback in V2 (platform limitation)
 

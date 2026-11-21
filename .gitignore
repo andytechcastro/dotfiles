@@ -251,3 +251,10 @@ docs/
 
 # Engram project pin (.engram/config.json) — local project metadata, never commit
 .engram/
+
+# agy port build output (regenerable via antigravity/build.sh)
+antigravity/dist/
+
+# agy port F8: generated .agents stage + workspace-root distribution target
+antigravity/dotagents/
+.agents/

@@ -37,6 +37,10 @@
             { "action": "provider.use", "resource": "*", "effect": "deny" },
             { "action": "provider.use", "resource": "opencode-go", "effect": "allow" },
             { "action": "provider.use", "resource": "google", "effect": "allow" },
+            { "action": "provider.use", "resource": "antigravity-acp", "effect": "allow" },
+            { "action": "tool.use", "resource": "read:*antigravity-oauth-token*", "effect": "deny" },
+            { "action": "tool.use", "resource": "edit:*antigravity-oauth-token*", "effect": "deny" },
+            { "action": "tool.use", "resource": "shell:*antigravity-oauth-token*", "effect": "deny" },
             {"action": "tool.use", "resource": "shell:*squeez wrap*git add*", "effect": "deny"},
             {"action": "tool.use", "resource": "shell:*squeez wrap*git commit*", "effect": "deny"},
             {"action": "tool.use", "resource": "shell:*squeez wrap*git push*", "effect": "deny"},
@@ -55,6 +59,7 @@
     },
     "plugins": [
         "opencode-snippets@3.4.0",
+        "opencode-antigravity-acp@0.1.0",
         "@tarquinen/opencode-dcp@3.2.0",
         {
             "package": "@plannotator/opencode@latest",

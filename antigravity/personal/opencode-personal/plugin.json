@@ -1,0 +1,5 @@
+{
+  "name": "opencode-personal",
+  "description": "Personal OpenCode roster (finanzas, life, coach, chef, barista, habitos, organiza) ported to Antigravity CLI. Notes-scoped, shell-denied.",
+  "version": "0.1.0"
+}

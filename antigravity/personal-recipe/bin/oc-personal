@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# oc-personal — lanzador TUI del roster PERSONAL sobre modelos de Antigravity vía ACP.
+# Receta P1 STANDALONE: config XDG aislada bajo personal-recipe/, plugin pin
+# opencode-antigravity-acp@0.1.0 (tarball sha256 715f4bdcd1b760b68f29f843151e8730aa00053379a22bc4f49bbf29dc3b207d).
+# SOLO funciona en procesos nacidos de la terminal autenticada de Tony (pared keyring —
+# el daemon de fondo muere en OAuth). La producción (opencode-go gateway) NO se toca.
+# Guardas del auditor: B.1 modo default NUNCA auto · B.2 agy arranca por shim frotador ·
+# B.4 nunca cwd=dotfiles/repos con secretos.
+set -euo pipefail
+
+# REC sin depender de dirname/PATH (parameter expansion pura).
+# BUGFIX 2026-11-20: vía symlink en ~/.local/bin, BASH_SOURCE era la ruta del
+# enlace y REC resolvía ~/.local (config vacía → cero plugins → picker ACP vacío).
+# now resolve realpaths first
+REC_SRC="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+REC_DIR="${REC_SRC%/*}"; [ "$REC_DIR" != "$REC_SRC" ] || REC_DIR="."
+REC="$(cd "$REC_DIR/.." && pwd)"
+die() { printf '[oc-personal] ABORT: %s\n' "$*" >&2; exit 1; }
+
+# --- guarda B.4: cwd con secretos o producción, prohibido ---------------------------
+# FIX-R1 (ACP) B.4 ampliado: raiz de HOME exacta, ~/.config/antigravity (dir del
+# credential-user-scope) y el PADRE ~/Proyectos generic (no solo dotfiles).
+cwd=$(pwd -P)
+case "$cwd" in
+  "$HOME"|/home/andres)
+    die "cwd es la raiz de HOME (superficies de credenciales) — usa ~/notas u otro dir (B.4)" ;;
+  /home/andres/Proyectos*|"$HOME"/Proyectos*)
+    die "cwd vive bajo ~/Proyectos (repos con secretos/produccion, no solo dotfiles) — usa ~/notas u otro dir (B.4)" ;;
+  "$HOME"/.config/antigravity*)
+    die "cwd es el directorio del credential-user-scope (B.4)" ;;
+  /home/andres/Proyectos/dotfiles*|"$HOME"/Proyectos/dotfiles*)
+    die "cwd es el repo dotfiles (contiene config con secretos) — usa ~/notas u otro dir (B.4)" ;;
+  "$HOME"/.gemini*|"$HOME"/.config/opencode*|"$HOME"/.ssh*|"$HOME"/.gnupg*|"$HOME"/.config/gh*)
+    die "cwd toca superficies de credenciales/producción (B.4)" ;;
+esac
+
+# --- guardas de binario y shim --------------------------------------------------------
+[ -x /usr/bin/agy ] || die "/usr/bin/agy no existe — instala/agy-check antes de lanzar"
+[ -x "$REC/bin/agy-shim" ] || die "shim $REC/bin/agy-shim no existe o no es ejecutable (B.2)"
+command -v opencode >/dev/null 2>&1 || die "opencode no está en PATH"
+
+# --- cwd de trabajo: arg opcional, default ~/notas ------------------------------------
+TARGET="${HOME}/notas"
+if [ "$#" -gt 0 ] && [ -d "$1" ] && [ "${1#-}" = "$1" ]; then TARGET=$(cd "$1" && pwd -P); shift; fi
+[ -d "$TARGET" ] || mkdir -p "$TARGET" || die "no se puede crear $TARGET"
+case "$TARGET" in
+  "$HOME"|/home/andres|/home/andres/Proyectos*|"$HOME"/Proyectos*)
+    die "target dir prohibido (B.4): $TARGET — raiz de HOME o bajo ~/Proyectos" ;;
+  "$HOME"/.config/antigravity*)
+    die "target dir prohibido (B.4): $TARGET — directorio del credential-user-scope" ;;
+  "$HOME"/.gemini*|"$HOME"/.config/opencode*)
+    die "target dir prohibido (B.4): $TARGET" ;;
+esac
+cd "$TARGET"
+
+echo "[oc-personal] cwd=$TARGET · XDG_CONFIG_HOME=$REC/config · AGY_BIN=$REC/bin/agy-shim"
+echo "[oc-personal] B.1: deja los approval-modes ACP en DEFAULT — NUNCA 'Auto'."
+echo "[oc-personal] 1er arranque: fija modelos antigravity-acp/* en config/opencode/agent/*.md (ver README)."
+exec env XDG_CONFIG_HOME="$REC/config" AGY_BIN="$REC/bin/agy-shim" opencode --standalone "$@"

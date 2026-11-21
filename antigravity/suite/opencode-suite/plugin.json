@@ -1,0 +1,5 @@
+{
+  "name": "opencode-suite",
+  "description": "Technical OpenCode roster (commander, PE, go/python/frontend/qa/security/doc architects) ported to Antigravity CLI.",
+  "version": "0.1.0"
+}

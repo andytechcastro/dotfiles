@@ -54,6 +54,9 @@ var ModelProfile map[string]string
 // Keep ids in model_profiles.json.
 var allowedModelProviders = map[string]bool{
 	"opencode-go": true,
+	// ACP Antigravity channel — deliberate, owner-approved (ADR 0012,
+	// 2026-11-21): personal agents run through opencode-antigravity-acp.
+	"antigravity-acp": true,
 }
 
 // Adding a provider here is a deliberate, reviewed change. Rolling back to

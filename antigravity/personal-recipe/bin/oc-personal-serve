@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# oc-personal-serve — variante móbil (server HTTP) de la receta P1.
+# Mismo aislamiento XDG + shim frotador que bin/oc-personal; bind SOLO loopback.
+# ACCESO REMOTO: solo via tailscale (tailnet propio); NUNCA expongas el puerto.
+# La quota de consumo Google se ve SOLO en la consola de Google — este server no la expone.
+# La password del server NUNCA se hardcodea: env OPENCODE_SERVER_PASSWORD o prompt.
+set -euo pipefail
+
+# REC sin depender de dirname/PATH (parameter expansion pura)
+REC_SRC="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+REC_DIR="${REC_SRC%/*}"; [ "$REC_DIR" != "$REC_SRC" ] || REC_DIR="."
+REC="$(cd "$REC_DIR/.." && pwd)"
+die() { printf '[oc-personal-serve] ABORT: %s\n' "$*" >&2; exit 1; }
+
+# --- guarda B.4: cwd con secretos o producción, prohibido ---------------------------
+# FIX-R1 (ACP) B.4 ampliado: raiz de HOME exacta, ~/.config/antigravity (dir del
+# credential-user-scope) y el PADRE ~/Proyectos generic (no solo dotfiles).
+cwd=$(pwd -P)
+case "$cwd" in
+  "$HOME"|/home/andres)
+    die "cwd es la raiz de HOME (superficies de credenciales) — usa ~/notas u otro dir (B.4)" ;;
+  /home/andres/Proyectos*|"$HOME"/Proyectos*)
+    die "cwd vive bajo ~/Proyectos (repos con secretos/produccion, no solo dotfiles) — usa ~/notas u otro dir (B.4)" ;;
+  "$HOME"/.config/antigravity*)
+    die "cwd es el directorio del credential-user-scope (B.4)" ;;
+  /home/andres/Proyectos/dotfiles*|"$HOME"/Proyectos/dotfiles*)
+    die "cwd es el repo dotfiles (contiene config con secretos) — usa ~/notas u otro dir (B.4)" ;;
+  "$HOME"/.gemini*|"$HOME"/.config/opencode*|"$HOME"/.ssh*|"$HOME"/.gnupg*|"$HOME"/.config/gh*)
+    die "cwd toca superficies de credenciales/producción (B.4)" ;;
+esac
+
+[ -x /usr/bin/agy ] || die "/usr/bin/agy no existe"
+[ -x "$REC/bin/agy-shim" ] || die "shim no existe o no es ejecutable (B.2)"
+command -v opencode >/dev/null 2>&1 || die "opencode no está en PATH"
+
+# --- password: exigida, jamas hardcodeada --------------------------------------------
+if [ -z "${OPENCODE_SERVER_PASSWORD:-}" ]; then
+  printf '[oc-personal-serve] password del server (input oculto): '
+  read -rs OPENCODE_SERVER_PASSWORD; echo
+  [ -n "${OPENCODE_SERVER_PASSWORD:-}" ] || die "password vacía — sin auth no se levanta"
+fi
+
+PORT="${PORT:-19999}"
+case "$PORT" in (*[!0-9]*|'') die "PORT debe ser numérico: $PORT" ;; esac
+
+echo "[oc-personal-serve] AVISO: acceso remoto SOLO vía tailscale (bind 127.0.0.1:$PORT)."
+echo "[oc-personal-serve] AVISO: la quota Google se consulta SOLO en la consola de Google."
+echo "[oc-personal-serve] AVISO: cada turno consume tu cuenta Antigravity real (fail-fast 429 del plugin, cooldown 60 s)."
+echo "[oc-personal-serve] B.1: approval modes en DEFAULT, nunca 'Auto'."
+
+exec env XDG_CONFIG_HOME="$REC/config" AGY_BIN="$REC/bin/agy-shim" \
+  OPENCODE_SERVER_PASSWORD="$OPENCODE_SERVER_PASSWORD" \
+  opencode serve --hostname 127.0.0.1 --port "$PORT"

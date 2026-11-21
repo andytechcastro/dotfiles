@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# ACP sandbox shim — implementa condicion B.2 (env scrub) y A.3 (binario fijo).
+# NEVER point AGY_BIN at anything but this file in the sandbox.
+set -eu
+export HOME="${HOME:-/home/andres}"
+export PATH="/usr/local/bin:/usr/bin:/bin"
+unset GEMINI_API_KEY GOOGLE_API_KEY ANTHROPIC_API_KEY OPENAI_API_KEY || true
+# strip anything key/secret/token-ish inherited from caller env
+# FIX-R1 (ACP): bucle en el SHELL PADRE — pipeline-while corre en subshell y sus unset
+# mueren ahí, no llegan al exec. Match sobre el NOMBRE en mayusculas.
+for _v in $(env | awk -F= 'toupper($1) ~ /SECRET|TOKEN|KEY|PASS|CREDENTIAL|CRED|AUTH/ {print $1}'); do unset "$_v" 2>/dev/null || true; done
+exec /usr/bin/agy "$@"

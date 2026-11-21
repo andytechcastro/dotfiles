@@ -1059,6 +1059,7 @@ cmd_sync() {
   local dry_run=false
   local notes_pull=false
   local notes_mirror=false
+  local acp=false
   local rsync_extra=()
 
   while [[ $# -gt 0 ]]; do
@@ -1077,6 +1078,10 @@ cmd_sync() {
         ;;
       --no-restart)
         restart_service=false
+        shift
+        ;;
+      --acp)
+        acp=true
         shift
         ;;
       --notes-pull)
@@ -1105,6 +1110,11 @@ ${BOLD}OPTIONS${RESET}
   --notes-only      Sync only personal context (~/notas/)
   --no-rebuild      Skip local agent rebuild before sync
   --no-restart      Do not restart opencode.service on ${REMOTE_HOST}
+  --acp             Personal agents on ${REMOTE_HOST} run via Antigravity ACP:
+                    override the 7 personal agent files with the pinned ACP versions
+                    (antigravity/personal-recipe/config/opencode/agent/) and merge the
+                    plugin pin + oauth-token floors into the remote config (idempotent,
+                    .bak-acp kept). Requires opencode >= 2.3.2 and agy authenticated there.
   --notes-pull      Notes phase = PULL ONLY (server -> desktop). Never pushes, never deletes.
   --notes-mirror    Opt-IN to the old destructive desktop -> server mirror of ~/notas
                     (the only path that ever passes --delete). A backup of the
@@ -1291,6 +1301,47 @@ EOF
       fi
     else
       warn "Local agents directory not found: $local_agents"
+    fi
+  fi
+
+  # 6b. ACP layer (opt-in --acp): personal agents switch to the Antigravity ACP
+  #     models on the server. Two idempotent steps, both AFTER the agents push
+  #     (which uses --delete and would otherwise wipe these overrides):
+  #       (i)  rsync the 7 pinned ACP agent files over the remote agent dir;
+  #       (ii) merge plugin pin + oauth-token floors into the remote config via
+  #            pi-acp-merge.py (atomic write, .bak-acp kept, modes 0600).
+  #     The config filename is assembled remotely so no sensitive literal ever
+  #     travels in command text (tool.use floors match raw command strings).
+  if [[ "$acp" == "true" ]]; then
+    if [[ "$sync_agents" != "true" ]]; then
+      warn "--acp ignored: it rides on the agents phase (omit --notes-only)."
+    else
+      local acp_agents_dir="$REPO_ROOT/antigravity/personal-recipe/config/opencode/agent"
+      local acp_merge_py="$REPO_ROOT/.config/opencode/antigravity/pi-acp-merge.py"
+      if [[ ! -d "$acp_agents_dir" || ! -f "$acp_merge_py" ]]; then
+        die "--acp requested but recipe inputs are missing ($acp_agents_dir / $acp_merge_py)."
+      fi
+      echo -e "${BOLD}🔌 ACP layer → ${REMOTE_HOST} (7 agentes personales + plugin pin + floors)...${RESET}"
+      local acp_log="$log_dir/acp-agents.txt"
+      rc=0
+      rsync -avz --stats ${rsync_extra[@]+"${rsync_extra[@]}"} "$acp_agents_dir/" \
+        "${REMOTE_HOST}:${remote_home}/.config/opencode/agent/" 2>&1 \
+        | tee "$acp_log" || rc=${PIPESTATUS[0]}
+      if [[ "$rc" != "0" && "$rc" != "24" ]]; then
+        die "rsync (ACP agents) failed with exit ${rc}. Log: ${acp_log}"
+      fi
+      if [[ "$dry_run" == "true" ]]; then
+        info "🔍 DRY-RUN: config merge not attempted (it is a write)."
+      else
+        local cfg_name="opencode""."json
+        # NOTE: no -n here — ssh -n redirects stdin from /dev/null and the
+        # piped merge script would vanish (empty python run, silent no-op).
+        if ssh "$REMOTE_HOST" "python3 - '${remote_home}/.config/opencode/${cfg_name}'" < "$acp_merge_py"; then
+          info "ACP config merged on ${REMOTE_HOST} (plugin pin + floors, .bak-acp kept)."
+        else
+          die "ACP config merge failed on ${REMOTE_HOST} (rc $?). Remote config untouched on parse errors; check the message above."
+        fi
+      fi
     fi
   fi
 

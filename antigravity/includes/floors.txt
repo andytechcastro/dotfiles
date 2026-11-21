@@ -1,0 +1,25 @@
+# floors.txt — F4 safety-gate pattern table (agy opencode-suite gate.sh)
+# Formato: un glob fnmatch por linea; lineas vacias y las que empiezan por # se ignoran.
+# gate.sh compara CADA STRING VALUE bajo toolCall.args contra estos globs (command y
+# path indistintamente — ver comentario de diseno en gate.sh). Un hit = deny.
+# Los literales protegidos viven SOLO en este fichero de datos: nunca inline en
+# comandos shell (los tool.use floors del daemon y los denies de subagente hacen match
+# sobre el texto crudo del comando). Assert build.sh + verify.sh: >= 14 patrones activos.
+# --- rutas sensibles (espejo agy de los floors tool.use de OpenCode, ADR 0007) ---
+*.ssh*
+*.gnupg*
+*.env
+*.env.*
+*.secret_envs*
+*.netrc*
+*.config/gh/hosts.yml*
+*auth.json*
+*opencode.db*
+*cli-proxy-api*
+*.config/opencode/opencode.json*
+# --- comandos destructivos ---
+*rm -rf /*
+*mkfs*
+*dd of=/dev/*
+*chmod -R 777 /*
+*sudo *

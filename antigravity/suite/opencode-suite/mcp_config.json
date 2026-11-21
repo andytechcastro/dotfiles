@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "context7": {
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "gh_grep": {
+      "url": "https://mcp.grep.app"
+    },
+    "gcp": {
+      "url": "https://run.googleapis.com/mcp"
+    },
+    "engram": {
+      "command": "/home/andres/.local/bin/engram",
+      "args": ["mcp", "--tools=agent"]
+    },
+    "codebase-memory-mcp": {
+      "command": "/home/andres/.local/bin/codebase-memory-mcp"
+    }
+  }
+}
